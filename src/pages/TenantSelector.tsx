@@ -35,8 +35,8 @@ export default function TenantSelector() {
     if (!newTenantName) return;
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newTenantName, type: newTenantType, owner_user_id: user.id }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      body: JSON.stringify({ name: newTenantName, type: newTenantType }),
     });
     const data = await res.json();
     setTenants(prev => [...prev, data]);
@@ -57,7 +57,7 @@ export default function TenantSelector() {
   const saveEdit = async (tenantId: number) => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
       body: JSON.stringify({ name: editName, type: editType }),
     });
     if (res.ok) {
@@ -71,6 +71,7 @@ export default function TenantSelector() {
     if (!confirm('Are you sure you want to delete this store/client?')) return;
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
     if (res.ok) {
       setTenants(prev => prev.filter(t => t.id !== tenantId));
