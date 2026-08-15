@@ -51,7 +51,7 @@ export default function Upload() {
         formData.append('file', file);
         formData.append('tenant_id', tenant.id);
         
-        const res = await fetch('http://localhost:8000/api/v1/bank-statements/upload', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

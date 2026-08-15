@@ -23,7 +23,7 @@ export default function PaymentCheck() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/bank-statements/dashboard?tenant_id=1');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/dashboard?tenant_id=1`);
       const data = await res.json();
       const bank = (data.discrepancies?.unmatched_bank || []).map((t: any) => ({ ...t, type: 'bank' as const }));
       const prov = (data.discrepancies?.unmatched_provider || []).map((t: any) => ({ ...t, type: 'provider' as const }));
@@ -38,7 +38,7 @@ export default function PaymentCheck() {
   const runPaymentCheck = async () => {
     setRunningCheck(true);
     try {
-      await fetch('http://localhost:8000/api/v1/reconciliation/run', { method: 'POST' });
+      await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run`, { method: 'POST' });
       await fetchTransactions();
     } catch (err) {
       console.error(err);

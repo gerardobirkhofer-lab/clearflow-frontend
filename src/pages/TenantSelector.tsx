@@ -23,7 +23,7 @@ export default function TenantSelector() {
       navigate('/login');
       return;
     }
-    fetch(`http://localhost:8000/api/v1/tenants/?user_id=${user.id}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/?user_id=${user.id}`)
       .then(r => r.json())
       .then(data => {
         setTenants(data.tenants || []);
@@ -33,7 +33,7 @@ export default function TenantSelector() {
 
   const createTenant = async () => {
     if (!newTenantName) return;
-    const res = await fetch('http://localhost:8000/api/v1/tenants/', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newTenantName, type: newTenantType, owner_user_id: user.id }),
@@ -55,7 +55,7 @@ export default function TenantSelector() {
   };
 
   const saveEdit = async (tenantId: number) => {
-    const res = await fetch(`http://localhost:8000/api/v1/tenants/${tenantId}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: editName, type: editType }),
@@ -69,7 +69,7 @@ export default function TenantSelector() {
 
   const deleteTenant = async (tenantId: number) => {
     if (!confirm('Are you sure you want to delete this store/client?')) return;
-    const res = await fetch(`http://localhost:8000/api/v1/tenants/${tenantId}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'DELETE',
     });
     if (res.ok) {

@@ -9,7 +9,7 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     if (sessionId) {
-      fetch(`http://localhost:8000/api/v1/stripe/checkout-sessions/${sessionId}`)
+      fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/checkout-sessions/${sessionId}`)
         .then(r => r.json())
         .then(data => {
           setSession(data);

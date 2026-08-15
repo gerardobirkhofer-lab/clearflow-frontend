@@ -41,7 +41,7 @@ export default function BankUploadZone({ onUploadComplete }: Props) {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/bank-statements/upload', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
         method: 'POST',
         body: formData,
       });

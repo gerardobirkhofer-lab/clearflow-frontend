@@ -38,7 +38,7 @@ export default function Reconciliation() {
 
   const fetchStatus = async (tenantId: number) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/reconciliation/status?tenant_id=${tenantId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/status?tenant_id=${tenantId}`);
       if (!res.ok) {
         console.error('Status endpoint not found yet');
         return;
@@ -61,7 +61,7 @@ export default function Reconciliation() {
     formData.append('provider_name', providerName);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/providers/upload', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -83,7 +83,7 @@ export default function Reconciliation() {
     setResult(null);
 
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
         method: 'POST',
       });
       const data = await res.json();

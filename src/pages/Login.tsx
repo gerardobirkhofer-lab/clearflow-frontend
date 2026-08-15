@@ -19,7 +19,7 @@ export default function Login() {
       : { email, password, name, role };
     
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

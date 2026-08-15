@@ -39,15 +39,15 @@ export default function SetupWizard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/providers/types')
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/types`)
       .then(r => r.json())
       .then(data => setProviderTypes(data.types || []));
     
-    fetch('http://localhost:8000/api/v1/bank-accounts/')
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`)
       .then(r => r.json())
       .then(data => setBankAccounts(data.accounts || []));
     
-    fetch('http://localhost:8000/api/v1/providers/')
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`)
       .then(r => r.json())
       .then(data => setSavedProviders(data.providers || []));
   }, []);
@@ -86,7 +86,7 @@ export default function SetupWizard() {
 
   const addBankAccount = async () => {
     if (!newAccount.name) return;
-    const res = await fetch('http://localhost:8000/api/v1/bank-accounts/', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newAccount),
@@ -100,13 +100,13 @@ export default function SetupWizard() {
     setLoading(true);
     for (const providerId of selectedProviders) {
       const config = providerConfigs[providerId];
-      await fetch('http://localhost:8000/api/v1/providers/', {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
     }
-    const res = await fetch('http://localhost:8000/api/v1/providers/');
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`);
     const data = await res.json();
     setSavedProviders(data.providers || []);
     setLoading(false);
@@ -114,15 +114,15 @@ export default function SetupWizard() {
   };
 
   const deleteProvider = async (id: number) => {
-    await fetch(`http://localhost:8000/api/v1/providers/${id}`, { method: 'DELETE' });
-    const res = await fetch('http://localhost:8000/api/v1/providers/');
+    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`);
     const data = await res.json();
     setSavedProviders(data.providers || []);
   };
 
   const deleteAccount = async (id: number) => {
-    await fetch(`http://localhost:8000/api/v1/bank-accounts/${id}`, { method: 'DELETE' });
-    const res = await fetch('http://localhost:8000/api/v1/bank-accounts/');
+    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`);
     const data = await res.json();
     setBankAccounts(data.accounts || []);
   };

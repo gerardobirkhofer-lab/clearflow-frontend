@@ -18,7 +18,7 @@ export default function StripeConnect({ tenantId }: { tenantId: number }) {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/stripe/status/${tenantId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/status/${tenantId}`);
       const data = await res.json();
       setStatus(data);
     } catch (err) {
@@ -30,7 +30,7 @@ export default function StripeConnect({ tenantId }: { tenantId: number }) {
 
   const connectStripe = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/stripe/connect-url?tenant_id=${tenantId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/connect-url?tenant_id=${tenantId}`);
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
@@ -43,7 +43,7 @@ export default function StripeConnect({ tenantId }: { tenantId: number }) {
   const syncNow = async () => {
     setSyncing(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/stripe/sync/${tenantId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/sync/${tenantId}`, {
         method: 'POST',
       });
       if (res.ok) {

@@ -60,7 +60,7 @@ export default function BankUpload() {
       formData.append('file', upload.file);
       formData.append('type', upload.type);
       if (upload.providerName) formData.append('provider_name', upload.providerName);
-      const res = await fetch('http://localhost:8000/api/v1/bank-statements/upload', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
         method: 'POST',
         body: formData,
       });

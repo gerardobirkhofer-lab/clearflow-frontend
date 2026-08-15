@@ -11,7 +11,7 @@ export default function StripeCheckoutButton({ priceId, customerEmail }: Props) 
   const handleClick = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/stripe/checkout-sessions', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/checkout-sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
