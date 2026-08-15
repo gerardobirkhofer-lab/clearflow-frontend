@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import BackButton from '../components/BackButton';
 
 interface ProviderType {
   id: string;
@@ -129,6 +130,7 @@ export default function SetupWizard() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
+      <BackButton />
       <h1 style={{ marginBottom: 8 }}>ClearFlow Setup</h1>
       <p style={{ color: '#64748b', marginBottom: 32 }}>Set up your bank accounts first, then configure your collection providers for accurate reconciliation.</p>
 

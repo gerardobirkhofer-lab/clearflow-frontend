@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 
 interface Match {
   bank: { id: number; concept: string; amount: number; date: string | null };
@@ -110,6 +111,7 @@ export default function Reconciliation() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
+      <BackButton />
       <h1 style={{ marginBottom: 8 }}>Reconciliation</h1>
       <p style={{ color: '#64748b', marginBottom: 32 }}>
         Match your bank transactions with provider reports to find discrepancies.

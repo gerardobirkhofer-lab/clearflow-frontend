@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 
 export default function Upload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -74,6 +75,7 @@ export default function Upload() {
 
   return (
     <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 20px', fontFamily: 'sans-serif' }}>
+      <BackButton />
       <h1 style={{ marginBottom: 8 }}>Upload Documentation</h1>
       <p style={{ color: '#64748b', marginBottom: 32 }}>Drag and drop your bank statements or provider reports below.</p>
 

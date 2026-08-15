@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ExportModal from '../components/ExportModal';
+import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
@@ -198,6 +199,7 @@ ClearFlow Reconciliation System
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <BackButton />
       {/* HEADER */}
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>

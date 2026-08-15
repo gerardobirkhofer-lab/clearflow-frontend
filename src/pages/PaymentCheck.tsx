@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import BackButton from '../components/BackButton';
 
 interface Transaction {
   id: number;
@@ -64,6 +65,7 @@ export default function PaymentCheck() {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <BackButton />
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
           ⚡ Operations

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ExportModal from '../components/ExportModal';
+import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
@@ -192,6 +193,7 @@ export default function Reports() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <BackButton />
       {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
