@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function Login() {
+interface LoginProps {
+  onLogin?: () => void;
+}
+
+export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,10 +31,30 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Request failed');
       
-      localStorage.clear(); localStorage.setItem('token', data.token);
+      localStorage.clear();
+      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/tenants');
-       } catch (err: any) {
+      
+      // Check how many tenants this user has
+      const tenantRes = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
+        headers: { Authorization: `Bearer ${data.token}` }
+      });
+      const tenantData = await tenantRes.json();
+      const tenantCount = tenantData.tenants?.length || 0;
+      
+      // Notify App.tsx that login succeeded (shows navbar)
+      if (onLogin) onLogin();
+      
+      // Redirect logic:
+      // - Accountants always go to tenant selector (choose client)
+      // - First-time users (0 tenants) go to setup
+      // - Returning users go to dashboard
+      if (data.user.role === 'accountant' || tenantCount === 0) {
+        navigate('/tenants');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
       setError(err.message);
     }
   };
