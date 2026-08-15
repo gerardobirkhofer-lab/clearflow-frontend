@@ -27,7 +27,7 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Request failed');
       
-      localStorage.setItem('token', data.token);
+      localStorage.clear(); localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/tenants');
        } catch (err: any) {

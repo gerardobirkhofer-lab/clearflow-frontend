@@ -23,7 +23,7 @@ export default function TenantSelector() {
       navigate('/login');
       return;
     }
-    fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/?user_id=${user.id}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       .then(r => r.json())
       .then(data => {
         setTenants(data.tenants || []);
