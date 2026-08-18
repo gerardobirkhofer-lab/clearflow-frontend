@@ -57,12 +57,16 @@ export default function BankUpload() {
       setUploads(prev => prev.map(u => u.file === upload.file ? { ...u, progress: i } : u));
     }
     try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('file', upload.file);
+      formData.append('tenant_id', tenant.id);
       formData.append('type', upload.type);
       if (upload.providerName) formData.append('provider_name', upload.providerName);
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token || ''}` },
         body: formData,
       });
       if (res.ok) {

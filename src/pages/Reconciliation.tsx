@@ -39,9 +39,11 @@ export default function Reconciliation() {
 
   const fetchStatus = async (tenantId: number) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/status?tenant_id=${tenantId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/status?tenant_id=${tenantId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      });
       if (!res.ok) {
-        console.error('Status endpoint not found yet');
+        console.error('Status endpoint error:', res.status);
         return;
       }
       const data = await res.json();
@@ -64,6 +66,7 @@ export default function Reconciliation() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/upload`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
         body: formData,
       });
       const data = await res.json();
@@ -86,6 +89,7 @@ export default function Reconciliation() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Reconciliation failed');

@@ -24,7 +24,11 @@ export default function PaymentCheck() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/dashboard?tenant_id=1`);
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/dashboard?tenant_id=${tenant.id || 1}`, {
+        headers: { Authorization: `Bearer ${token || ''}` },
+      });
       const data = await res.json();
       const bank = (data.discrepancies?.unmatched_bank || []).map((t: any) => ({ ...t, type: 'bank' as const }));
       const prov = (data.discrepancies?.unmatched_provider || []).map((t: any) => ({ ...t, type: 'provider' as const }));
@@ -39,7 +43,12 @@ export default function PaymentCheck() {
   const runPaymentCheck = async () => {
     setRunningCheck(true);
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run`, { method: 'POST' });
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const token = localStorage.getItem('token');
+      await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run?tenant_id=${tenant.id || 1}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token || ''}` },
+      });
       await fetchTransactions();
     } catch (err) {
       console.error(err);

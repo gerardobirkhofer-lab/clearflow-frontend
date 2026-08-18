@@ -38,11 +38,15 @@ export default function BankUploadZone({ onUploadComplete }: Props) {
     }
     setUploading(true);
     setError(null);
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('tenant_id', tenant.id);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token || ''}` },
         body: formData,
       });
       const data = await res.json();
