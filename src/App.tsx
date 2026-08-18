@@ -13,6 +13,7 @@ import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
 import MismatchTracker from './pages/MismatchTracker';
 import Reconciliation from './pages/Reconciliation';
+import DisputeTracker from './pages/DisputeTracker';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -35,6 +36,7 @@ function App() {
           <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Dashboard</Link>
           <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Statistics</Link>
           <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Profitability</Link>
+          <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 Disputes</Link>
           <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 Mismatches</Link>
           <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Reconciliation</Link>
           <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>Payment Check</Link>
@@ -57,6 +59,7 @@ function App() {
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/profitability" element={<Profitability />} />
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
+          <Route path="/dispute-tracker" element={<DisputeTracker />} />
           <Route path="/reconciliation" element={<Reconciliation />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
           <Route path="/bank-upload" element={<BankUpload />} />
