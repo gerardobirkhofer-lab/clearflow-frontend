@@ -13,7 +13,7 @@ import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
 import MismatchTracker from './pages/MismatchTracker';
 import Reconciliation from './pages/Reconciliation';
-import DisputeTracker from './pages/DisputeTracker';
+import Pricing from './pages/Pricing';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -43,6 +43,7 @@ function App() {
           <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>Payment Check</Link>
           <Link to="/bank-upload" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Upload Center</Link>
           <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Reports</Link>
+          <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 Pricing</Link>
           <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Setup</Link>
           <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← Switch Store</Link>
           <div style={{ flex: 1 }}></div>
@@ -60,12 +61,13 @@ function App() {
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/profitability" element={<Profitability />} />
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
-          <Route path="/dispute-tracker" element={<DisputeTracker />} />
+          <Route path="/dispute-tracker" element={<MismatchTracker />} />
           <Route path="/reconciliation" element={<Reconciliation />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
           <Route path="/bank-upload" element={<BankUpload />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

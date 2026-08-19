@@ -106,6 +106,14 @@ export default function Dashboard() {
   const pendingTx = (s.pending_bank || 0) + (s.pending_provider || 0);
   const collectionRate = s.collection_rate || (totalTx ? (matchedTx / totalTx * 100) : 0);
 
+  const tierColors: Record<string, { bg: string; color: string }> = {
+    starter: { bg: '#f1f5f9', color: '#64748b' },
+    pro: { bg: '#ede9fe', color: '#635bff' },
+    enterprise: { bg: '#fef3c7', color: '#92400e' },
+  };
+  const currentTier = tenant?.tier || 'starter';
+  const tierStyle = tierColors[currentTier] || tierColors.starter;
+
   return (
     <div className="print-full" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <style>{`
@@ -123,9 +131,19 @@ export default function Dashboard() {
             📈 Overview
           </div>
           <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Dashboard</h1>
-          <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-            {tenant?.name ? `${tenant.name} — ` : ''}Real-time view of your cash position.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
+              {tenant?.name ? `${tenant.name} — ` : ''}Real-time view of your cash position.
+            </p>
+            <span style={{
+              background: tierStyle.bg, color: tierStyle.color,
+              padding: '3px 10px', borderRadius: 12,
+              fontSize: 11, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: 0.5,
+            }}>
+              {currentTier}
+            </span>
+          </div>
         </div>
         <button
           onClick={() => setShowExport(true)}
