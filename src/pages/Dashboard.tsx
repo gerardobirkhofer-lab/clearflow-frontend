@@ -37,7 +37,7 @@ export default function Dashboard() {
     fetchData(t.id);
   }, []);
 
-  const fetchData = async (tenantId: number) => {
+  const fetchData = async (tenantId: string) => {
     setLoading(true);
     setError(null);
     try {

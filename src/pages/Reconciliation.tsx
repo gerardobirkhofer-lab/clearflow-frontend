@@ -37,7 +37,7 @@ export default function Reconciliation() {
     fetchStatus(t.id);
   }, []);
 
-  const fetchStatus = async (tenantId: number) => {
+  const fetchStatus = async (tenantId: string) => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/status?tenant_id=${tenantId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },

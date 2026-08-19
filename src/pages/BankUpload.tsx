@@ -58,6 +58,10 @@ export default function BankUpload() {
     }
     try {
       const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      if (!tenant.id) {
+        setUploads(prev => prev.map(u => u.file === upload.file ? { ...u, status: 'error', message: 'No tenant selected. Please log in and select a store first.' } : u));
+        return;
+      }
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('file', upload.file);

@@ -7,7 +7,7 @@ interface StripeStatus {
   last_sync_at?: string;
 }
 
-export default function StripeConnect({ tenantId }: { tenantId: number }) {
+export default function StripeConnect({ tenantId }: { tenantId: string }) {
   const [status, setStatus] = useState<StripeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);

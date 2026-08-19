@@ -3,21 +3,21 @@ import StripeConnect from '../components/StripeConnect';
 import BackButton from '../components/BackButton';
 
 interface Client {
-  id: number;
+  id: string;
   name: string;
   email: string;
   stores: Store[];
 }
 
 interface Store {
-  id: number;
+  id: string;
   name: string;
   type: 'physical' | 'online';
   address?: string;
 }
 
 interface BankAccount {
-  id: number;
+  id: string;
   bank_name: string;
   account_number: string;
   currency: string;
@@ -27,11 +27,11 @@ export default function Setup() {
   const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [tenantId, setTenantId] = useState<number | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
-  const [showAddStore, setShowAddStore] = useState<number | null>(null);
+  const [showAddStore, setShowAddStore] = useState<string | null>(null);
   const [showAddBank, setShowAddBank] = useState(false);
-  const [expandedClient, setExpandedClient] = useState<number | null>(null);
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
   
   const [autoPurge, setAutoPurge] = useState(false);
   const [purgeDays, setPurgeDays] = useState(90);
@@ -47,19 +47,19 @@ export default function Setup() {
   }, []);
 
   const addClient = (name: string, email: string) => {
-    setClients([...clients, { id: Date.now(), name, email, stores: [] }]);
+    setClients([...clients, { id: crypto.randomUUID(), name, email, stores: [] }]);
     setShowAddClient(false);
   };
 
-  const addStore = (clientId: number, name: string, type: 'physical' | 'online', address?: string) => {
+  const addStore = (clientId: string, name: string, type: 'physical' | 'online', address?: string) => {
     setClients(clients.map(c => c.id === clientId ? {
-      ...c, stores: [...c.stores, { id: Date.now(), name, type, address }]
+      ...c, stores: [...c.stores, { id: crypto.randomUUID(), name, type, address }]
     } : c));
     setShowAddStore(null);
   };
 
   const addBankAccount = (bank_name: string, account_number: string, currency: string) => {
-    setBankAccounts([...bankAccounts, { id: Date.now(), bank_name, account_number, currency }]);
+    setBankAccounts([...bankAccounts, { id: crypto.randomUUID(), bank_name, account_number, currency }]);
     setShowAddBank(false);
   };
 

@@ -14,6 +14,7 @@ import Reports from './pages/Reports';
 import MismatchTracker from './pages/MismatchTracker';
 import Reconciliation from './pages/Reconciliation';
 import Pricing from './pages/Pricing';
+import DisputeTracker from './pages/DisputeTracker';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -61,7 +62,7 @@ function App() {
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/profitability" element={<Profitability />} />
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
-          <Route path="/dispute-tracker" element={<MismatchTracker />} />
+          <Route path="/dispute-tracker" element={<DisputeTracker />} />
           <Route path="/reconciliation" element={<Reconciliation />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
           <Route path="/bank-upload" element={<BankUpload />} />

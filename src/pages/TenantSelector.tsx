@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface Tenant {
-  id: number;
+  id: string;
   name: string;
   type: string;
 }
@@ -12,7 +12,7 @@ export default function TenantSelector() {
   const [newTenantName, setNewTenantName] = useState('');
   const [newTenantType, setNewTenantType] = useState('store');
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editType, setEditType] = useState('store');
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function TenantSelector() {
     fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       .then(r => r.json())
       .then(data => {
-        setTenants(data.tenants || []);
+        setTenants(data.items || []);
         setLoading(false);
       });
   }, []);
@@ -65,7 +65,7 @@ export default function TenantSelector() {
     setEditType(tenant.type);
   };
 
-  const saveEdit = async (tenantId: number) => {
+  const saveEdit = async (tenantId: string) => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -78,7 +78,7 @@ export default function TenantSelector() {
     }
   };
 
-  const deleteTenant = async (tenantId: number) => {
+  const deleteTenant = async (tenantId: string) => {
     if (!confirm('Are you sure you want to delete this store/client?')) return;
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'DELETE',

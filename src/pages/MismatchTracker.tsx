@@ -21,8 +21,8 @@ interface Mismatch {
   timesReported: number;
 }
 
-export default function MismatchTracker() {
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'mismatches' | 'disputes' }) {
+  const [filterStatus, setFilterStatus] = useState<string>(mode === 'disputes' ? 'disputed' : 'all');
   const [filterProvider, setFilterProvider] = useState<string>('all');
   const [filterStore, setFilterStore] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -204,11 +204,13 @@ ClearFlow Reconciliation System
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-            🔍 Dispute Management
+            {mode === 'disputes' ? '🎯 Dispute Management' : '🔍 Dispute Management'}
           </div>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Mismatch Tracker</h1>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{mode === 'disputes' ? 'Dispute Tracker' : 'Mismatch Tracker'}</h1>
           <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-            Track, dispute, and resolve payment discrepancies with your providers.
+            {mode === 'disputes' 
+              ? 'Track active complaints and disputes with your payment providers.' 
+              : 'Track, dispute, and resolve payment discrepancies with your providers.'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

@@ -39,10 +39,16 @@ export default function Upload() {
 
   const processFiles = async () => {
     if (files.length === 0) return;
+    
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) {
+      setResult('❌ Error: No tenant selected. Please log in and select a store first.');
+      return;
+    }
+    
     setUploading(true);
     setResult(null);
     
-    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
     const token = localStorage.getItem('token');
     
     try {
