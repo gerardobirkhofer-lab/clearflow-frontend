@@ -34,16 +34,20 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [autoCheckMessage, setAutoCheckMessage] = useState<string | null>(null);
   const [reportFrequency, setReportFrequency] = useState<'daily' | 'weekly' | 'immediate'>('weekly');
 
-  const [mismatches, setMismatches] = useState<Mismatch[]>([
-    { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-07', notes: 'Fee discrepancy on international card', cardType: 'Credit Card', firstReportedDate: '2026-08-07', timesReported: 1 },
-    { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-06', notes: '', cardType: 'Debit Card', firstReportedDate: '2026-08-06', timesReported: 1 },
-    { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resolved', date: '2026-08-05', resolvedDate: '2026-08-08', notes: 'Provider confirmed rounding error, credited next batch', cardType: 'Credit Card', firstReportedDate: '2026-08-05', timesReported: 1 },
-    { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'disputed', date: '2026-08-04', notes: 'Ticket #ST-8842 opened with Stripe support', cardType: 'Credit Card', firstReportedDate: '2026-08-04', timesReported: 2 },
-    { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-03', notes: 'Full payout missing — escalated to account manager', cardType: 'Credit Card', firstReportedDate: '2026-08-03', timesReported: 2 },
-    { id: 'TX-006', concept: 'Stripe Payout #4815', expected: 12500, received: 12450, difference: -50, provider: 'Stripe', store: 'Pura Zona Norte', status: 'resolved', date: '2026-08-01', resolvedDate: '2026-08-05', notes: 'Chargeback fee — legitimate deduction', cardType: 'Debit Card', firstReportedDate: '2026-08-01', timesReported: 1 },
-    { id: 'TX-007', concept: 'TPV Settlement Jul 28', expected: 4500, received: 4485, difference: -15, provider: 'TPV / Redsys', store: 'Pura Online Shop', status: 'resolved', date: '2026-07-28', resolvedDate: '2026-08-02', notes: 'Interchange fee adjustment', cardType: 'Credit Card', firstReportedDate: '2026-07-28', timesReported: 1 },
-    { id: 'TX-008', concept: 'Mercado Pago Payout', expected: 3800, received: 3792, difference: -8, provider: 'Mercado Pago', store: 'Pura Zona Norte', status: 'disputed', date: '2026-07-25', notes: 'Waiting for fee breakdown documentation', cardType: 'Debit Card', firstReportedDate: '2026-07-25', timesReported: 3 },
-  ]);
+  const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+
+  const loadDemoData = () => {
+    setMismatches([
+      { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-07', notes: 'Fee discrepancy on international card', cardType: 'Credit Card', firstReportedDate: '2026-08-07', timesReported: 1 },
+      { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-06', notes: '', cardType: 'Debit Card', firstReportedDate: '2026-08-06', timesReported: 1 },
+      { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resolved', date: '2026-08-05', resolvedDate: '2026-08-08', notes: 'Provider confirmed rounding error, credited next batch', cardType: 'Credit Card', firstReportedDate: '2026-08-05', timesReported: 1 },
+      { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'disputed', date: '2026-08-04', notes: 'Ticket #ST-8842 opened with Stripe support', cardType: 'Credit Card', firstReportedDate: '2026-08-04', timesReported: 2 },
+      { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-03', notes: 'Full payout missing — escalated to account manager', cardType: 'Credit Card', firstReportedDate: '2026-08-03', timesReported: 2 },
+      { id: 'TX-006', concept: 'Stripe Payout #4815', expected: 12500, received: 12450, difference: -50, provider: 'Stripe', store: 'Pura Zona Norte', status: 'resolved', date: '2026-08-01', resolvedDate: '2026-08-05', notes: 'Chargeback fee — legitimate deduction', cardType: 'Debit Card', firstReportedDate: '2026-08-01', timesReported: 1 },
+      { id: 'TX-007', concept: 'TPV Settlement Jul 28', expected: 4500, received: 4485, difference: -15, provider: 'TPV / Redsys', store: 'Pura Online Shop', status: 'resolved', date: '2026-07-28', resolvedDate: '2026-08-02', notes: 'Interchange fee adjustment', cardType: 'Credit Card', firstReportedDate: '2026-07-28', timesReported: 1 },
+      { id: 'TX-008', concept: 'Mercado Pago Payout', expected: 3800, received: 3792, difference: -8, provider: 'Mercado Pago', store: 'Pura Zona Norte', status: 'disputed', date: '2026-07-25', notes: 'Waiting for fee breakdown documentation', cardType: 'Debit Card', firstReportedDate: '2026-07-25', timesReported: 3 },
+    ]);
+  };
 
   const updateStatus = (id: string, newStatus: Mismatch['status']) => {
     setMismatches(prev => prev.map(m => {
@@ -214,6 +218,18 @@ ClearFlow Reconciliation System
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          {mismatches.length === 0 && (
+            <button
+              onClick={loadDemoData}
+              style={{
+                padding: '10px 20px', borderRadius: 8, border: '1px solid #c7d2fe',
+                background: '#eef2ff', color: '#4338ca', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              🎮 Load Demo Data
+            </button>
+          )}
           <button
             onClick={autoCheckResolutions}
             style={{
@@ -503,8 +519,20 @@ ClearFlow Reconciliation System
         {filtered.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-            <div style={{ fontWeight: 600 }}>No mismatches found</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Try adjusting your filters</div>
+            <div style={{ fontWeight: 600 }}>No {mode === 'disputes' ? 'disputes' : 'mismatches'} found</div>
+            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters or load demo data to see how the tracker works.</div>
+            {mismatches.length === 0 && (
+              <button
+                onClick={loadDemoData}
+                style={{
+                  padding: '10px 20px', borderRadius: 8, border: '1px solid #c7d2fe',
+                  background: '#eef2ff', color: '#4338ca', fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                🎮 Load Demo Data
+              </button>
+            )}
           </div>
         )}
       </div>
