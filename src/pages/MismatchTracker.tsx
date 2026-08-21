@@ -32,6 +32,8 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [batchModal, setBatchModal] = useState<string | null>(null); // provider name
   const [copied, setCopied] = useState(false);
   const [autoCheckMessage, setAutoCheckMessage] = useState<string | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [reportFrequency, setReportFrequency] = useState<'daily' | 'weekly' | 'immediate'>('weekly');
 
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
@@ -75,6 +77,38 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const sendDisputeEmail = async (m: Mismatch) => {
+    setSendingEmailId(m.id);
+    setEmailMessage(null);
+    try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const params = new URLSearchParams({
+        tenant_id: tenant.id || '',
+        provider_name: m.provider,
+        amount: String(Math.abs(m.difference)),
+        description: m.notes || `Discrepancy: expected ${m.expected}, received ${m.received}`,
+        concept: m.concept,
+        date: m.date,
+        days_open: String(m.firstReportedDate ? Math.floor((Date.now() - new Date(m.firstReportedDate).getTime()) / 86400000) : 0),
+      });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/disputes/send-email-direct?${params}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailMessage(`❌ ${data.detail || 'Email failed'}`);
+      } else {
+        setEmailMessage(`✅ Email sent to ${data.to}`);
+      }
+    } catch (err) {
+      setEmailMessage('❌ Network error sending email');
+    } finally {
+      setSendingEmailId(null);
+      setTimeout(() => setEmailMessage(null), 5000);
+    }
   };
 
   const autoCheckResolutions = () => {
@@ -252,6 +286,12 @@ ClearFlow Reconciliation System
           </button>
         </div>
       </div>
+
+      {emailMessage && (
+        <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: emailMessage.startsWith('✅') ? '#f0fdf4' : '#fee2e2', border: `1px solid ${emailMessage.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`, color: emailMessage.startsWith('✅') ? '#166534' : '#991b1b', fontWeight: 600, fontSize: 14 }}>
+          {emailMessage}
+        </div>
+      )}
 
       {autoCheckMessage && (
         <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 600, fontSize: 14 }}>
@@ -471,6 +511,21 @@ ClearFlow Reconciliation System
               </span>
             </div>
             <div style={{ textAlign: 'center' }}>
+              {m.status !== 'resolved' && (
+                <button
+                  onClick={() => sendDisputeEmail(m)}
+                  disabled={sendingEmailId === m.id}
+                  style={{
+                    padding: '6px 12px', borderRadius: 6, border: '1px solid #c7d2fe',
+                    background: sendingEmailId === m.id ? '#f1f5f9' : '#eef2ff',
+                    color: sendingEmailId === m.id ? '#94a3b8' : '#4338ca',
+                    fontSize: 11, fontWeight: 600, cursor: sendingEmailId === m.id ? 'not-allowed' : 'pointer',
+                    display: 'block', width: '100%', marginBottom: 4,
+                  }}
+                >
+                  {sendingEmailId === m.id ? '⏳ Sending...' : '📧 Email'}
+                </button>
+              )}
               {m.status === 'unresolved' && (
                 <button onClick={() => updateStatus(m.id, 'resolved')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#dcfce7', color: '#166534', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%' }}>
                   Resolve

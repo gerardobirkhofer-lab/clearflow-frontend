@@ -36,6 +36,7 @@ export default function Setup() {
   const [autoPurge, setAutoPurge] = useState(false);
   const [purgeDays, setPurgeDays] = useState(90);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [providerEmails, setProviderEmails] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -44,6 +45,8 @@ export default function Setup() {
     const savedDays = localStorage.getItem('clearflow_purge_days');
     if (savedPurge) setAutoPurge(savedPurge === 'true');
     if (savedDays) setPurgeDays(Number(savedDays));
+    const savedEmails = localStorage.getItem('clearflow_provider_emails');
+    if (savedEmails) setProviderEmails(JSON.parse(savedEmails));
   }, []);
 
   const addClient = (name: string, email: string) => {
@@ -61,6 +64,12 @@ export default function Setup() {
   const addBankAccount = (bank_name: string, account_number: string, currency: string) => {
     setBankAccounts([...bankAccounts, { id: crypto.randomUUID(), bank_name, account_number, currency }]);
     setShowAddBank(false);
+  };
+
+  const saveProviderEmail = (provider: string, email: string) => {
+    const updated = { ...providerEmails, [provider]: email };
+    setProviderEmails(updated);
+    localStorage.setItem('clearflow_provider_emails', JSON.stringify(updated));
   };
 
   const savePrivacySettings = () => {
@@ -313,6 +322,39 @@ export default function Setup() {
               No store selected. Please select a store first.
             </div>
           )}
+
+          <div style={{ marginTop: 32, marginBottom: 24 }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700 }}>📧 Dispute Email Configuration</h3>
+            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+              Set the dispute contact email for each provider. These emails are used when you click "Send Email" from Mismatch Tracker.
+            </p>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {[
+                { key: 'stripe', label: 'Stripe', icon: '🔷' },
+                { key: 'redsys', label: 'TPV / Redsys', icon: '🏧' },
+                { key: 'mercadopago', label: 'Mercado Pago', icon: '🌐' },
+                { key: 'karma', label: 'Karma', icon: '📱' },
+              ].map((p) => (
+                <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white' }}>
+                  <div style={{ fontSize: 22 }}>{p.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{p.label}</div>
+                    <input
+                      type="email"
+                      value={providerEmails[p.key] || ''}
+                      onChange={(e) => saveProviderEmail(p.key, e.target.value)}
+                      placeholder={`disputes@${p.key}.com`}
+                      style={{ width: '100%', maxWidth: 320, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                    />
+                  </div>
+                  {providerEmails[p.key] && (
+                    <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}>✓ Saved</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', opacity: 0.6, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 24 }}>🌐</div>
