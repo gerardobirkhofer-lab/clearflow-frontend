@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +15,7 @@ import MismatchTracker from './pages/MismatchTracker';
 import Reconciliation from './pages/Reconciliation';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
+import Communications from './pages/Communications';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -40,6 +41,7 @@ function App() {
           <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 Revenue</Link>
           <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 Disputes</Link>
           <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 Mismatches</Link>
+          <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 Communications</Link>
           <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Reconciliation</Link>
           <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>Payment Check</Link>
           <Link to="/bank-upload" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Upload Center</Link>
@@ -63,6 +65,7 @@ function App() {
           <Route path="/profitability" element={<Profitability />} />
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
           <Route path="/dispute-tracker" element={<DisputeTracker />} />
+          <Route path="/communications" element={<Communications />} />
           <Route path="/reconciliation" element={<Reconciliation />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
           <Route path="/bank-upload" element={<BankUpload />} />
