@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
 
@@ -22,6 +23,7 @@ interface Mismatch {
 }
 
 export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'mismatches' | 'disputes' }) {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState<string>(mode === 'disputes' ? 'disputed' : 'all');
   const [filterProvider, setFilterProvider] = useState<string>('all');
   const [filterStore, setFilterStore] = useState<string>('all');
@@ -99,12 +101,12 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
       });
       const data = await res.json();
       if (!res.ok) {
-        setEmailMessage(`❌ ${data.detail || 'Email failed'}`);
+        setEmailMessage(`❌ ${data.detail || t('mismatchTracker.emailFailed')}`);
       } else {
-        setEmailMessage(`✅ Email sent to ${data.to}`);
+        setEmailMessage(`✅ ${t('mismatchTracker.emailSent')} ${data.to}`);
       }
     } catch (err) {
-      setEmailMessage('❌ Network error sending email');
+      setEmailMessage(`❌ ${t('mismatchTracker.networkError')}`);
     } finally {
       setSendingEmailId(null);
       setTimeout(() => setEmailMessage(null), 5000);
@@ -154,9 +156,9 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const totalAtRisk = unresolved.reduce((s, m) => s + Math.abs(m.difference), 0) + disputed.reduce((s, m) => s + Math.abs(m.difference), 0);
 
   const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-    unresolved: { bg: '#fee2e2', text: '#991b1b', label: '🔴 Unresolved' },
-    disputed: { bg: '#fef3c7', text: '#92400e', label: '🟡 Disputed' },
-    resolved: { bg: '#dcfce7', text: '#166534', label: '🟢 Resolved' },
+    unresolved: { bg: '#fee2e2', text: '#991b1b', label: '🔴 ' + t('common.unresolved') },
+    disputed: { bg: '#fef3c7', text: '#92400e', label: '🟡 ' + t('common.disputed') },
+    resolved: { bg: '#dcfce7', text: '#166534', label: '🟢 ' + t('common.resolved') },
   };
 
   // BATCH REPORT GENERATOR
@@ -242,13 +244,11 @@ ClearFlow Reconciliation System
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-            {mode === 'disputes' ? '🎯 Dispute Management' : '🔍 Dispute Management'}
+            {mode === 'disputes' ? '🎯 ' + t('mismatchTracker.title') : '🔍 ' + t('mismatchTracker.title')}
           </div>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{mode === 'disputes' ? 'Dispute Tracker' : 'Mismatch Tracker'}</h1>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('mismatchTracker.title')}</h1>
           <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-            {mode === 'disputes' 
-              ? 'Track active complaints and disputes with your payment providers.' 
-              : 'Track, dispute, and resolve payment discrepancies with your providers.'}
+            {t('mismatchTracker.subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -261,7 +261,7 @@ ClearFlow Reconciliation System
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              🎮 Load Demo Data
+              🎮 {t('mismatchTracker.loadDemo')}
             </button>
           )}
           <button
@@ -272,7 +272,7 @@ ClearFlow Reconciliation System
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            🔄 Auto-Check
+            🔄 {t('mismatchTracker.autoCheck')}
           </button>
           <button
             onClick={() => setShowExport(true)}
@@ -282,7 +282,7 @@ ClearFlow Reconciliation System
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            📥 Export
+            📥 {t('common.export')}
           </button>
         </div>
       </div>
@@ -307,20 +307,20 @@ ClearFlow Reconciliation System
           filename="clearflow_mismatch_tracker"
           data={exportData}
           columns={[
-            { key: 'id', label: 'Ref ID' },
-            { key: 'date', label: 'Date' },
-            { key: 'store', label: 'Store' },
-            { key: 'provider', label: 'Provider' },
-            { key: 'cardType', label: 'Card Type' },
-            { key: 'concept', label: 'Concept' },
-            { key: 'expected', label: 'Expected (€)' },
-            { key: 'received', label: 'Received (€)' },
-            { key: 'difference', label: 'Diff (€)' },
-            { key: 'status', label: 'Status' },
-            { key: 'resolvedDate', label: 'Resolved Date' },
-            { key: 'firstReported', label: 'First Reported' },
-            { key: 'timesReported', label: 'Times Reported' },
-            { key: 'notes', label: 'Notes' },
+            { key: 'id', label: t('mismatchTracker.ref') },
+            { key: 'date', label: t('common.date') },
+            { key: 'store', label: t('common.store') },
+            { key: 'provider', label: t('common.provider') },
+            { key: 'cardType', label: t('mismatchTracker.cardType') },
+            { key: 'concept', label: t('common.concept') },
+            { key: 'expected', label: t('mismatchTracker.expected') + ' (€)' },
+            { key: 'received', label: t('mismatchTracker.received') + ' (€)' },
+            { key: 'difference', label: t('mismatchTracker.difference') + ' (€)' },
+            { key: 'status', label: t('common.status') },
+            { key: 'resolvedDate', label: t('mismatchTracker.resolvedDate') },
+            { key: 'firstReported', label: t('mismatchTracker.firstReported') },
+            { key: 'timesReported', label: t('mismatchTracker.timesReported') },
+            { key: 'notes', label: t('common.notes') },
           ]}
           dateField="date"
         />
@@ -337,7 +337,7 @@ ClearFlow Reconciliation System
             background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 720,
             boxShadow: '0 24px 80px rgba(0,0,0,0.2)', maxHeight: '90vh', overflow: 'auto',
           }}>
-            <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Batch Dispute Report</h2>
+            <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{t('mismatchTracker.batchComplaint')}</h2>
             <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 20px 0' }}>
               {batchModal} — One consolidated complaint with all discrepancies
             </p>
@@ -377,9 +377,9 @@ ClearFlow Reconciliation System
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setBatchModal(null)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>Close</button>
+              <button onClick={() => setBatchModal(null)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>{t('common.close')}</button>
               <button onClick={() => copyReport(generateBatchReport(batchModal))} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-                {copied ? '✅ Copied!' : '📋 Copy to Clipboard'}
+                {copied ? '✅ ' + t('common.success') + '!' : '📋 Copy to Clipboard'}
               </button>
               <button onClick={() => sendBatchComplaint(batchModal)} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Mark All as Disputed
@@ -392,22 +392,22 @@ ClearFlow Reconciliation System
       {/* SUMMARY CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Unresolved</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.unresolved')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{unresolved.length}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Needs immediate action</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Disputed</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.disputed')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#92400e' }}>{disputed.length}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Complaint sent</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Resolved This Month</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.resolved')} This Month</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{resolvedThisMonth.length}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Closed successfully</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total At Risk</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.atRiskAmount')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{formatMoney(totalAtRisk)}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Unresolved + disputed</div>
         </div>
@@ -421,7 +421,7 @@ ClearFlow Reconciliation System
       {/* BATCH DISPUTE BUTTONS BY PROVIDER */}
       {providersWithIssues.length > 0 && (
         <div style={{ marginBottom: 24, padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Generate Batch Complaint</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('mismatchTracker.batchComplaint')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {providersWithIssues.map(provider => {
               const count = mismatches.filter(m => m.provider === provider && m.status !== 'resolved').length;
@@ -455,19 +455,19 @@ ClearFlow Reconciliation System
           style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, minWidth: 260, outline: 'none' }}
         />
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-          <option value="all">All Statuses</option>
-          <option value="unresolved">🔴 Unresolved</option>
-          <option value="disputed">🟡 Disputed</option>
-          <option value="resolved">🟢 Resolved</option>
+          <option value="all">{t('common.all')} {t('common.status')}</option>
+          <option value="unresolved">🔴 {t('common.unresolved')}</option>
+          <option value="disputed">🟡 {t('common.disputed')}</option>
+          <option value="resolved">🟢 {t('common.resolved')}</option>
         </select>
         <select value={filterProvider} onChange={(e) => setFilterProvider(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-          <option value="all">All Providers</option>
+          <option value="all">{t('common.all')} {t('common.provider')}</option>
           <option value="Stripe">Stripe</option>
           <option value="TPV / Redsys">TPV / Redsys</option>
           <option value="Mercado Pago">Mercado Pago</option>
         </select>
         <select value={filterStore} onChange={(e) => setFilterStore(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-          <option value="all">All Stores</option>
+          <option value="all">{t('common.all')} {t('common.store')}</option>
           <option value="Pura Zona Norte">Pura Zona Norte</option>
           <option value="Pura Online Shop">Pura Online Shop</option>
         </select>
@@ -478,14 +478,14 @@ ClearFlow Reconciliation System
       {/* TABLE */}
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '90px 2fr 110px 110px 100px 100px 110px 140px', padding: '14px 20px', background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0' }}>
-          <div>Ref</div>
-          <div>Concept</div>
-          <div style={{ textAlign: 'right' }}>Expected</div>
-          <div style={{ textAlign: 'right' }}>Received</div>
-          <div style={{ textAlign: 'right' }}>Diff</div>
-          <div style={{ textAlign: 'center' }}>Status</div>
-          <div style={{ textAlign: 'center' }}>Action</div>
-          <div>Notes</div>
+          <div>{t('mismatchTracker.ref')}</div>
+          <div>{t('common.concept')}</div>
+          <div style={{ textAlign: 'right' }}>{t('mismatchTracker.expected')}</div>
+          <div style={{ textAlign: 'right' }}>{t('mismatchTracker.received')}</div>
+          <div style={{ textAlign: 'right' }}>{t('mismatchTracker.difference')}</div>
+          <div style={{ textAlign: 'center' }}>{t('common.status')}</div>
+          <div style={{ textAlign: 'center' }}>{t('common.actions')}</div>
+          <div>{t('common.notes')}</div>
         </div>
         {filtered.map(m => (
           <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '90px 2fr 110px 110px 100px 100px 110px 140px', padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
@@ -523,27 +523,17 @@ ClearFlow Reconciliation System
                     display: 'block', width: '100%', marginBottom: 4,
                   }}
                 >
-                  {sendingEmailId === m.id ? '⏳ Sending...' : '📧 Email'}
+                  {sendingEmailId === m.id ? '⏳ ' + t('common.loading') : '📧 Email'}
                 </button>
               )}
-              {m.status === 'unresolved' && (
+              {(m.status === 'unresolved' || m.status === 'disputed') && (
                 <button onClick={() => updateStatus(m.id, 'resolved')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#dcfce7', color: '#166534', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%' }}>
-                  Resolve
+                  {t('common.resolved')}
                 </button>
               )}
-              {m.status === 'disputed' && (
-                <button onClick={() => updateStatus(m.id, 'resolved')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#dcfce7', color: '#166534', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%' }}>
-                  Resolve
-                </button>
-              )}
-              {m.status === 'disputed' && (
+              {(m.status === 'disputed' || m.status === 'resolved') && (
                 <button onClick={() => updateStatus(m.id, 'unresolved')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontSize: 11, fontWeight: 600, cursor: 'pointer', marginTop: 4, display: 'block', width: '100%' }}>
-                  Reopen
-                </button>
-              )}
-              {m.status === 'resolved' && (
-                <button onClick={() => updateStatus(m.id, 'unresolved')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%' }}>
-                  Reopen
+                  {t('mismatchTracker.reopen') || 'Reopen'}
                 </button>
               )}
             </div>
@@ -555,17 +545,17 @@ ClearFlow Reconciliation System
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 12, outline: 'none', width: '100%' }}
-                    placeholder="Add notes..."
+                    placeholder={t('common.notes') + '...'}
                     autoFocus
                   />
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => saveNotes(m.id)} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: 'none', background: '#635bff', color: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Save</button>
-                    <button onClick={() => { setEditingNotes(null); setNoteDraft(''); }} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0', background: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => saveNotes(m.id)} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: 'none', background: '#635bff', color: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{t('common.save')}</button>
+                    <button onClick={() => { setEditingNotes(null); setNoteDraft(''); }} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0', background: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{t('common.cancel')}</button>
                   </div>
                 </div>
               ) : (
                 <div onClick={() => startEditNotes(m)} style={{ cursor: 'pointer', fontSize: 12, color: m.notes ? '#0f172a' : '#94a3b8', lineHeight: 1.4, minHeight: 20 }}>
-                  {m.notes || 'Click to add notes...'}
+                  {m.notes || t('common.noData')}
                 </div>
               )}
             </div>
@@ -574,7 +564,7 @@ ClearFlow Reconciliation System
         {filtered.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-            <div style={{ fontWeight: 600 }}>No {mode === 'disputes' ? 'disputes' : 'mismatches'} found</div>
+            <div style={{ fontWeight: 600 }}>{t('common.noData')}</div>
             <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters or load demo data to see how the tracker works.</div>
             {mismatches.length === 0 && (
               <button
@@ -585,7 +575,7 @@ ClearFlow Reconciliation System
                   cursor: 'pointer',
                 }}
               >
-                🎮 Load Demo Data
+                🎮 {t('mismatchTracker.loadDemo')}
               </button>
             )}
           </div>
@@ -596,13 +586,13 @@ ClearFlow Reconciliation System
       <div style={{ marginTop: 32, padding: 20, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ fontSize: 24 }}>💡</div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>How Batch Disputes Work</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t('mismatchTracker.howItWorks')}</div>
           <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
-            <strong>1. Weekly Batch</strong> — One consolidated report per provider with all discrepancies (new + carried-forward).<br/>
-            <strong>2. Three Sections</strong> — New discrepancies, still-unresolved from previous reports, and recently resolved.<br/>
-            <strong>3. Urgent Override</strong> — For large amounts or missing payouts, switch to "⚡ Urgent" and send immediately.<br/>
-            <strong>4. Auto-Check</strong> — After each bank upload, the system scans for automatic resolutions.<br/>
-            <strong>5. Track Times Reported</strong> — The provider can't claim they never received it.
+            <strong>1.</strong> {t('mismatchTracker.howItWorks1')}<br/>
+            <strong>2.</strong> {t('mismatchTracker.howItWorks2')}<br/>
+            <strong>3.</strong> {t('mismatchTracker.howItWorks3')}<br/>
+            <strong>4.</strong> {t('mismatchTracker.howItWorks4')}<br/>
+            <strong>5.</strong> {t('mismatchTracker.howItWorks5')}
           </div>
         </div>
       </div>

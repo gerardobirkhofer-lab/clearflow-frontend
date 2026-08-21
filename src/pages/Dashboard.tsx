@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
@@ -18,6 +19,7 @@ interface Tx {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
   const [tenant, setTenant] = useState<any>(null);
@@ -29,7 +31,7 @@ export default function Dashboard() {
   useEffect(() => {
     const t = JSON.parse(localStorage.getItem('tenant') || '{}');
     if (!t.id) {
-      setError('No tenant selected. Please switch store.');
+      setError(t('dashboard.errorLoading'));
       setLoading(false);
       return;
     }
@@ -80,8 +82,8 @@ export default function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', fontFamily: 'sans-serif', color: '#64748b' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 16 }}>📊</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>Loading snapshot...</div>
-          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>Fetching your latest data</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>{t('dashboard.loadingSnapshot')}</div>
+          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>{t('dashboard.fetchingData')}</div>
         </div>
       </div>
     );
@@ -91,10 +93,10 @@ export default function Dashboard() {
     return (
       <div style={{ maxWidth: 800, margin: '40px auto', padding: 40, textAlign: 'center', fontFamily: 'sans-serif' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-        <h2 style={{ color: '#991b1b' }}>Error loading dashboard</h2>
+        <h2 style={{ color: '#991b1b' }}>{t('dashboard.errorLoading')}</h2>
         <p style={{ color: '#64748b' }}>{error}</p>
         <button onClick={() => tenant?.id && fetchData(tenant.id)} style={{ marginTop: 20, padding: '10px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
-          Retry
+          {t('dashboard.retry')}
         </button>
       </div>
     );
@@ -114,6 +116,13 @@ export default function Dashboard() {
   const currentTier = tenant?.tier || 'starter';
   const tierStyle = tierColors[currentTier] || tierColors.starter;
 
+  const rangeLabels: Record<string, string> = {
+    '7d': t('dashboard.last7d'),
+    '30d': t('dashboard.last30d'),
+    '90d': t('dashboard.last90d'),
+    'YTD': t('dashboard.yearToDate'),
+  };
+
   return (
     <div className="print-full" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <style>{`
@@ -128,12 +137,12 @@ export default function Dashboard() {
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-            📈 Overview
+            📈 {t('dashboard.overview')}
           </div>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Dashboard</h1>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('dashboard.title')}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
-              {tenant?.name ? `${tenant.name} — ` : ''}Real-time view of your cash position.
+              {tenant?.name ? `${tenant.name} — ` : ''}{t('dashboard.subtitle')}
             </p>
             <span style={{
               background: tierStyle.bg, color: tierStyle.color,
@@ -149,7 +158,7 @@ export default function Dashboard() {
           onClick={() => setShowExport(true)}
           style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#0f172a', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
         >
-          📥 Export
+          📥 {t('common.export')}
         </button>
       </div>
 
@@ -161,11 +170,11 @@ export default function Dashboard() {
           filename="clearflow_dashboard"
           data={recent}
           columns={[
-            { key: 'concept', label: 'Concept' },
-            { key: 'amount', label: 'Amount (€)' },
-            { key: 'date', label: 'Date' },
-            { key: 'status', label: 'Status' },
-            { key: 'type', label: 'Type' },
+            { key: 'concept', label: t('common.concept') },
+            { key: 'amount', label: t('common.amount') },
+            { key: 'date', label: t('common.date') },
+            { key: 'status', label: t('common.status') },
+            { key: 'type', label: t('common.type') },
           ]}
         />
       )}
@@ -179,7 +188,7 @@ export default function Dashboard() {
               background: timeRange === r ? '#0f172a' : 'white',
               color: timeRange === r ? 'white' : '#64748b',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}>{r === 'YTD' ? 'Year to Date' : `Last ${r}`}</button>
+            }}>{rangeLabels[r]}</button>
           ))}
         </div>
       </div>
@@ -187,29 +196,29 @@ export default function Dashboard() {
       {/* STATS CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Collected</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.totalCollected')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(s.total_collected)}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Sales</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.totalSales')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(s.total_sales)}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Matched</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.matched')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{matchedTx}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{collectionRate.toFixed(0)}% rate</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{collectionRate.toFixed(0)}% {t('dashboard.rate')}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Unmatched</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.unmatched')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{pendingTx}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Needs attention</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{t('dashboard.needsAttention')}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Bank Txns</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.bankTxns')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{s.bank_transactions || 0}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Provider Txns</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.providerTxns')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{s.provider_transactions || 0}</div>
         </div>
       </div>
@@ -217,27 +226,27 @@ export default function Dashboard() {
       {/* RECENT TRANSACTIONS */}
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Recent Activity</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('dashboard.recentActivity')}</h2>
           <Link to="/reconciliation" style={{ textDecoration: 'none', padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#635bff', fontSize: 13, fontWeight: 600 }}>
-            Reconcile →
+            {t('dashboard.reconcile')} →
           </Link>
         </div>
         {recent.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
-            <div>No transactions yet.</div>
+            <div>{t('dashboard.noTransactions')}</div>
             <div style={{ fontSize: 13, marginTop: 8 }}>
-              <Link to="/bank-upload" style={{ color: '#635bff' }}>Upload a bank statement</Link> or <Link to="/reconciliation" style={{ color: '#635bff' }}>provider report</Link> to get started.
+              <Link to="/bank-upload" style={{ color: '#635bff' }}>{t('dashboard.uploadBankStatement')}</Link> {t('dashboard.toGetStarted')}
             </div>
           </div>
         ) : (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 100px 100px', padding: '12px 16px', background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0' }}>
-              <div>Concept</div>
-              <div style={{ textAlign: 'right' }}>Amount</div>
-              <div style={{ textAlign: 'right' }}>Date</div>
-              <div style={{ textAlign: 'center' }}>Type</div>
-              <div style={{ textAlign: 'center' }}>Status</div>
+              <div>{t('common.concept')}</div>
+              <div style={{ textAlign: 'right' }}>{t('common.amount')}</div>
+              <div style={{ textAlign: 'right' }}>{t('common.date')}</div>
+              <div style={{ textAlign: 'center' }}>{t('common.type')}</div>
+              <div style={{ textAlign: 'center' }}>{t('common.status')}</div>
             </div>
             {recent.map(tx => (
               <div key={tx.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 100px 100px', padding: '12px 16px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
@@ -251,12 +260,12 @@ export default function Dashboard() {
                 <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{tx.date}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: tx.type === 'bank' ? '#dbeafe' : '#fef3c7', color: tx.type === 'bank' ? '#1e40af' : '#92400e' }}>
-                    {tx.type === 'bank' ? '🏦 Bank' : '💳 Provider'}
+                    {tx.type === 'bank' ? `🏦 ${t('dashboard.bank')}` : `💳 ${t('dashboard.providerShort')}`}
                   </span>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: tx.status === 'matched' ? '#dcfce7' : '#fef3c7', color: tx.status === 'matched' ? '#166534' : '#92400e' }}>
-                    {tx.status === 'matched' ? '✅ Matched' : '⚠️ Unmatched'}
+                    {tx.status === 'matched' ? '✅ ' + t('dashboard.matched') : '⚠️ ' + t('dashboard.unmatched')}
                   </span>
                 </div>
               </div>

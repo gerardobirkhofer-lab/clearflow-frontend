@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
@@ -19,6 +20,7 @@ import Communications from './pages/Communications';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const { t } = useTranslation();
 
   // Re-check auth on every route change (fixes navbar disappearing)
   useEffect(() => {
@@ -35,22 +37,22 @@ function App() {
     <BrowserRouter>
       {isLoggedIn && (
         <nav style={{ padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 20, background: '#fff', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Dashboard</Link>
-          <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Statistics</Link>
-          <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Profitability</Link>
-          <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 Revenue</Link>
-          <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 Disputes</Link>
-          <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 Mismatches</Link>
-          <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 Communications</Link>
-          <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Reconciliation</Link>
-          <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>Payment Check</Link>
-          <Link to="/bank-upload" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Upload Center</Link>
-          <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Reports</Link>
-          <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 Pricing</Link>
-          <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Setup</Link>
-          <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← Switch Store</Link>
+          <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
+          <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
+          <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
+          <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 {t('nav.revenue')}</Link>
+          <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 {t('nav.disputes')}</Link>
+          <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 {t('nav.mismatches')}</Link>
+          <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
+          <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
+          <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
+          <Link to="/bank-upload" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.uploadCenter')}</Link>
+          <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
+          <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
+          <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
+          <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
           <div style={{ flex: 1 }}></div>
-          <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>Logout</button>
+          <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
         </nav>
       )}
 

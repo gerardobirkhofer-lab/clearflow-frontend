@@ -1,4 +1,32 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import StripeConnect from '../components/StripeConnect';
+import BackButton from '../components/BackButton';
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  stores: Store[];
+}
+
+interface Store {
+  id: string;
+  name: string;
+  type: 'physical' | 'online';
+  address?: string;
+}
+
+interface BankAccount {
+  id: string;
+  bank_name: string;
+  account_number: string;
+  currency: string;
+}
+
+export default function Setup() {
+  const { t, i18n } = useTranslation();
+  const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy'>('clients');
 import StripeConnect from '../components/StripeConnect';
 import BackButton from '../components/BackButton';
 
@@ -37,6 +65,26 @@ export default function Setup() {
   const [purgeDays, setPurgeDays] = useState(90);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [providerEmails, setProviderEmails] = useState<Record<string, string>>({});
+  const [language, setLanguage] = useState(localStorage.getItem('clearflow_language') || 'es');
+
+  useEffect(() => {
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (tenant.id) setTenantId(tenant.id);
+    const savedPurge = localStorage.getItem('clearflow_auto_purge');
+    const savedDays = localStorage.getItem('clearflow_purge_days');
+    if (savedPurge) setAutoPurge(savedPurge === 'true');
+    if (savedDays) setPurgeDays(Number(savedDays));
+    const savedEmails = localStorage.getItem('clearflow_provider_emails');
+    if (savedEmails) setProviderEmails(JSON.parse(savedEmails));
+    const savedLang = localStorage.getItem('clearflow_language');
+    if (savedLang) setLanguage(savedLang);
+  }, []);
+
+  const changeLanguage = (lng: string) => {
+    setLanguage(lng);
+    localStorage.setItem('clearflow_language', lng);
+    i18n.changeLanguage(lng);
+  };
 
   useEffect(() => {
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -94,6 +142,29 @@ export default function Setup() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
       <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
+          ⚙️ Configuration
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Setup</h1>
+            <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
+              Manage your client portfolio, stores, providers, bank accounts, and data privacy.
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white' }}>
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>🌐 {t('setup.language')}:</span>
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13, background: 'white', cursor: 'pointer' }}
+            >
+              <option value="es">🇪🇸 Español</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+          </div>
+        </div>
+      </div>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
           ⚙️ Configuration
         </div>
