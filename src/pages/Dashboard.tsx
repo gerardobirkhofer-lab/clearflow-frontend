@@ -29,14 +29,14 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('30d');
 
   useEffect(() => {
-    const t = JSON.parse(localStorage.getItem('tenant') || '{}');
-    if (!t.id) {
+    const tenantData = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenantData.id) {
       setError(t('dashboard.errorLoading'));
       setLoading(false);
       return;
     }
-    setTenant(t);
-    fetchData(t.id);
+    setTenant(tenantData);
+    fetchData(tenantData.id);
   }, []);
 
   const fetchData = async (tenantId: string) => {
@@ -56,7 +56,6 @@ export default function Dashboard() {
 
       setSummary({ ...dashData.summary, ...recData });
 
-      // Normalize recent activity for display
       const activity = (dashData.recent_activity || [])
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''))
         .slice(0, 10)
@@ -133,7 +132,6 @@ export default function Dashboard() {
         }
       `}</style>
 
-      {/* HEADER */}
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
@@ -179,7 +177,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* FILTERS */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           {['7d', '30d', '90d', 'YTD'].map(r => (
@@ -193,7 +190,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* STATS CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.totalCollected')}</div>
@@ -223,7 +219,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* RECENT TRANSACTIONS */}
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('dashboard.recentActivity')}</h2>
