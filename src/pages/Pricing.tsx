@@ -1,61 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const tiers = [
-  {
-    name: 'Starter',
-    price: '€49',
-    period: '/month',
-    description: 'Perfect for a single restaurant or small business just getting started.',
-    features: [
-      'Up to 1,000 transactions / month',
-      'Shared database (schema-isolated)',
-      'Stripe & Redsys reconciliation',
-      'Basic dashboard & reports',
-      'Email support',
-    ],
-    cta: 'Current Plan',
-    ctaStyle: { background: '#e2e8f0', color: '#64748b', cursor: 'default' } as any,
-    highlight: false,
-  },
-  {
-    name: 'Pro',
-    price: '€99',
-    period: '/month',
-    description: 'For growing chains and accountants managing multiple clients.',
-    features: [
-      'Unlimited transactions',
-      'Dedicated PostgreSQL database',
-      'Multi-institution support',
-      'Advanced reconciliation engine',
-      'Priority email & chat support',
-      'API access',
-      'Custom fee structures',
-    ],
-    cta: 'Upgrade to Pro',
-    ctaStyle: { background: '#635bff', color: 'white', cursor: 'pointer' } as any,
-    highlight: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '€199',
-    period: '/month',
-    description: 'For large groups, franchises, and accounting firms with BYOC needs.',
-    features: [
-      'Everything in Pro',
-      'Bring Your Own Cloud (BYOC)',
-      'Dedicated VPC / private DB',
-      'Custom SLA & uptime guarantee',
-      'White-label options',
-      'Dedicated account manager',
-      'On-premise deployment option',
-    ],
-    cta: 'Contact Sales',
-    ctaStyle: { background: '#0f172a', color: 'white', cursor: 'pointer' } as any,
-    highlight: false,
-  },
-];
-
 export default function Pricing() {
   const { t } = useTranslation();
   const currentTier = (() => {
@@ -64,6 +9,42 @@ export default function Pricing() {
       return tenantData.tier || 'starter';
     } catch { return 'starter'; }
   })();
+
+  const tiers = [
+    {
+      key: 'starter',
+      name: 'Starter',
+      price: '€49',
+      period: t('pricing.perMonth'),
+      description: t('pricing.starterDesc'),
+      features: t('pricing.features.starter', { returnObjects: true }) as string[],
+      cta: t('pricing.currentPlan'),
+      ctaStyle: { background: '#e2e8f0', color: '#64748b', cursor: 'default' } as any,
+      highlight: false,
+    },
+    {
+      key: 'pro',
+      name: 'Pro',
+      price: '€99',
+      period: t('pricing.perMonth'),
+      description: t('pricing.proDesc'),
+      features: t('pricing.features.pro', { returnObjects: true }) as string[],
+      cta: t('pricing.upgrade'),
+      ctaStyle: { background: '#635bff', color: 'white', cursor: 'pointer' } as any,
+      highlight: true,
+    },
+    {
+      key: 'enterprise',
+      name: 'Enterprise',
+      price: '€199',
+      period: t('pricing.perMonth'),
+      description: t('pricing.enterpriseDesc'),
+      features: t('pricing.features.enterprise', { returnObjects: true }) as string[],
+      cta: t('pricing.contactSales'),
+      ctaStyle: { background: '#0f172a', color: 'white', cursor: 'pointer' } as any,
+      highlight: false,
+    },
+  ];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
@@ -79,10 +60,10 @@ export default function Pricing() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
         {tiers.map((tier) => {
-          const isCurrent = currentTier === tier.name.toLowerCase();
+          const isCurrent = currentTier === tier.key;
           return (
             <div
-              key={tier.name}
+              key={tier.key}
               style={{
                 padding: 32,
                 borderRadius: 16,
@@ -134,19 +115,15 @@ export default function Pricing() {
                 }}
                 disabled={isCurrent}
                 onClick={() => {
-                  if (tier.name === 'Starter') return;
-                  if (tier.name === 'Pro') {
-                    alert('Upgrade to Pro: In a real flow this would redirect to Stripe Checkout or ask for your dedicated DB URL.');
+                  if (tier.key === 'starter') return;
+                  if (tier.key === 'pro') {
+                    alert(t('pricing.upgradeAlert') || 'Upgrade to Pro: In a real flow this would redirect to Stripe Checkout or ask for your dedicated DB URL.');
                   } else {
-                    alert('Enterprise: Contact sales@clearflow.io for a custom quote and BYOC setup.');
+                    alert(t('pricing.enterpriseAlert') || 'Enterprise: Contact sales@clearflow.io for a custom quote and BYOC setup.');
                   }
                 }}
               >
-                {isCurrent ? '✓ ' + t('pricing.currentPlan') : (
-                  tier.name === 'Starter' ? t('pricing.currentPlan') :
-                  tier.name === 'Pro' ? t('pricing.upgrade') :
-                  t('pricing.contactSales')
-                )}
+                {isCurrent ? '✓ ' + t('pricing.currentPlan') : tier.cta}
               </button>
             </div>
           );

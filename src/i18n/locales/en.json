@@ -196,7 +196,39 @@
     "contactSales": "Contact Sales",
     "mostPopular": "Most Popular",
     "trial": "All plans include 14-day free trial. No credit card required.",
-    "backToDashboard": "← Back to Dashboard"
+    "backToDashboard": "← Back to Dashboard",
+    "starterDesc": "Perfect for a single restaurant or small business just getting started.",
+    "proDesc": "For growing chains and accountants managing multiple clients.",
+    "enterpriseDesc": "For large groups, franchises, and accounting firms with BYOC needs.",
+    "features": {
+      "starter": [
+        "Up to 1,000 transactions / month",
+        "Shared database (schema-isolated)",
+        "Stripe & Redsys reconciliation",
+        "Basic dashboard & reports",
+        "Email support"
+      ],
+      "pro": [
+        "Unlimited transactions",
+        "Dedicated PostgreSQL database",
+        "Multi-institution support",
+        "Advanced reconciliation engine",
+        "Priority email & chat support",
+        "API access",
+        "Custom fee structures"
+      ],
+      "enterprise": [
+        "Everything in Pro",
+        "Bring Your Own Cloud (BYOC)",
+        "Dedicated VPC / private DB",
+        "Custom SLA & uptime guarantee",
+        "White-label options",
+        "Dedicated account manager",
+        "On-premise deployment option"
+      ]
+    },
+    "upgradeAlert": "Upgrade to Pro: In a real flow this would redirect to Stripe Checkout or ask for your dedicated DB URL.",
+    "enterpriseAlert": "Enterprise: Contact sales@clearflow.io for a custom quote and BYOC setup."
   },
   "login": {
     "title": "Welcome to ClearFlow",

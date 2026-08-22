@@ -196,7 +196,39 @@
     "contactSales": "Contactar Ventas",
     "mostPopular": "Más Popular",
     "trial": "Todos los planes incluyen 14 días de prueba gratis. No se requiere tarjeta de crédito.",
-    "backToDashboard": "← Volver al Panel"
+    "backToDashboard": "← Volver al Panel",
+    "starterDesc": "Perfecto para un solo restaurante o pequeño negocio que recién empieza.",
+    "proDesc": "Para cadenas en crecimiento y contadores que gestionan múltiples clientes.",
+    "enterpriseDesc": "Para grandes grupos, franquicias y despachos contables con necesidades de cloud propio.",
+    "features": {
+      "starter": [
+        "Hasta 1,000 transacciones / mes",
+        "Base de datos compartida (schema-isolated)",
+        "Conciliación Stripe & Redsys",
+        "Panel básico e informes",
+        "Soporte por email"
+      ],
+      "pro": [
+        "Transacciones ilimitadas",
+        "Base de datos PostgreSQL dedicada",
+        "Soporte multi-institución",
+        "Motor de conciliación avanzado",
+        "Soporte prioritario email & chat",
+        "Acceso API",
+        "Estructuras de fee personalizadas"
+      ],
+      "enterprise": [
+        "Todo lo de Pro",
+        "Cloud propio (BYOC)",
+        "VPC dedicada / DB privada",
+        "SLA personalizado & garantía de uptime",
+        "Opciones white-label",
+        "Account manager dedicado",
+        "Despliegue on-premise"
+      ]
+    },
+    "upgradeAlert": "Actualizar a Pro: En un flujo real esto redirigiría a Stripe Checkout o pediría tu URL de base de datos dedicada.",
+    "enterpriseAlert": "Enterprise: Contactá a sales@clearflow.io para una cotización personalizada y configuración BYOC."
   },
   "login": {
     "title": "Bienvenido a ClearFlow",
