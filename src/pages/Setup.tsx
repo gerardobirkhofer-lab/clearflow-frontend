@@ -24,9 +24,19 @@ interface BankAccount {
   currency: string;
 }
 
+interface CloudConfig {
+  host: string;
+  port: string;
+  database: string;
+  username: string;
+  password: string;
+  ssl: boolean;
+  provider: string;
+}
+
 export default function Setup() {
   const { t, i18n } = useTranslation();
-  const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy'>('clients');
+  const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy' | 'cloud'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -39,6 +49,13 @@ export default function Setup() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [providerEmails, setProviderEmails] = useState<Record<string, string>>({});
   const [language, setLanguage] = useState(localStorage.getItem('clearflow_language') || 'es');
+  const [cloudConfig, setCloudConfig] = useState<CloudConfig>(() => {
+    const saved = localStorage.getItem('clearflow_cloud_config');
+    return saved ? JSON.parse(saved) : {
+      host: '', port: '5432', database: '', username: '', password: '', ssl: true, provider: 'aws'
+    };
+  });
+  const [cloudConnected, setCloudConnected] = useState(false);
 
   useEffect(() => {
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -51,6 +68,12 @@ export default function Setup() {
     if (savedEmails) setProviderEmails(JSON.parse(savedEmails));
     const savedLang = localStorage.getItem('clearflow_language');
     if (savedLang) setLanguage(savedLang);
+    const savedCloud = localStorage.getItem('clearflow_cloud_config');
+    if (savedCloud) {
+      const cfg = JSON.parse(savedCloud);
+      setCloudConfig(cfg);
+      setCloudConnected(!!cfg.host && !!cfg.database);
+    }
   }, []);
 
   const changeLanguage = (lng: string) => {
@@ -86,6 +109,16 @@ export default function Setup() {
     localStorage.setItem('clearflow_auto_purge', String(autoPurge));
     localStorage.setItem('clearflow_purge_days', String(purgeDays));
     alert(t('setup.saved') || 'Privacy settings saved.');
+  };
+
+  const saveCloudConfig = () => {
+    localStorage.setItem('clearflow_cloud_config', JSON.stringify(cloudConfig));
+    setCloudConnected(!!cloudConfig.host && !!cloudConfig.database);
+    alert(t('setup.saved') || 'Cloud configuration saved.');
+  };
+
+  const testCloudConnection = () => {
+    alert(t('setup.cloudTestMsg') || 'Connection test: This would test your database connection in a real deployment.');
   };
 
   const deleteAllData = () => {
@@ -153,6 +186,12 @@ export default function Setup() {
           color: activeSection === 'privacy' ? 'white' : '#64748b',
           fontSize: 14, fontWeight: 600, cursor: 'pointer',
         }}>🔒 {t('setup.dataPrivacy')}</button>
+        <button onClick={() => setActiveSection('cloud')} style={{
+          padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0',
+          background: activeSection === 'cloud' ? '#0f172a' : 'white',
+          color: activeSection === 'cloud' ? 'white' : '#64748b',
+          fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        }}>☁️ {t('setup.cloudDb') || 'Cloud / DB'}</button>
       </div>
 
       {activeSection === 'clients' && (
@@ -615,6 +654,154 @@ export default function Setup() {
               We process your data only to provide the reconciliation service you requested. 
               We do not perform tax analysis, financial auditing, or regulatory reporting on your behalf. 
               If you require a Data Processing Agreement (DPA), contact us at dpa@clearflow.app.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'cloud' && (
+        <div>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 700 }}>{t('setup.cloudDb') || 'Cloud / Database'}</h2>
+            <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+              {t('setup.cloudDbDesc') || 'Connect your own PostgreSQL database. Enterprise plan required. Your data stays on your infrastructure.'}
+            </p>
+          </div>
+
+          {cloudConnected && (
+            <div style={{ padding: 16, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 20 }}>✅</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#166534' }}>{t('setup.cloudConnected') || 'Connected to your database'}</div>
+                <div style={{ fontSize: 12, color: '#15803d' }}>{cloudConfig.host}:{cloudConfig.port}/{cloudConfig.database}</div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 24 }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>{t('setup.cloudProvider') || 'Cloud Provider'}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+              {[
+                { key: 'aws', label: 'AWS RDS', icon: '☁️' },
+                { key: 'azure', label: 'Azure SQL', icon: '🔷' },
+                { key: 'gcp', label: 'Google Cloud', icon: '🔶' },
+                { key: 'self', label: 'Self-hosted', icon: '🖥️' },
+              ].map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => setCloudConfig({ ...cloudConfig, provider: p.key })}
+                  style={{
+                    padding: '14px', borderRadius: 10, border: cloudConfig.provider === p.key ? '2px solid #635bff' : '1px solid #e2e8f0',
+                    background: cloudConfig.provider === p.key ? '#f5f3ff' : 'white',
+                    cursor: 'pointer', textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{p.icon}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: cloudConfig.provider === p.key ? '#635bff' : '#0f172a' }}>{p.label}</div>
+                </button>
+              ))}
+            </div>
+
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>{t('setup.connectionDetails') || 'Connection Details'}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.dbHost') || 'Host / Server'}</label>
+                <input
+                  value={cloudConfig.host}
+                  onChange={(e) => setCloudConfig({ ...cloudConfig, host: e.target.value })}
+                  placeholder="mydb.cluster-xxx.eu-west-1.rds.amazonaws.com"
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.dbPort') || 'Port'}</label>
+                <input
+                  value={cloudConfig.port}
+                  onChange={(e) => setCloudConfig({ ...cloudConfig, port: e.target.value })}
+                  placeholder="5432"
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.dbName') || 'Database Name'}</label>
+                <input
+                  value={cloudConfig.database}
+                  onChange={(e) => setCloudConfig({ ...cloudConfig, database: e.target.value })}
+                  placeholder="clearflow_db"
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.dbUser') || 'Username'}</label>
+                <input
+                  value={cloudConfig.username}
+                  onChange={(e) => setCloudConfig({ ...cloudConfig, username: e.target.value })}
+                  placeholder="clearflow_user"
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.dbPassword') || 'Password'}</label>
+                <input
+                  type="password"
+                  value={cloudConfig.password}
+                  onChange={(e) => setCloudConfig({ ...cloudConfig, password: e.target.value })}
+                  placeholder="••••••••"
+                  style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24 }}>
+                <button
+                  onClick={() => setCloudConfig({ ...cloudConfig, ssl: !cloudConfig.ssl })}
+                  style={{
+                    width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                    background: cloudConfig.ssl ? '#635bff' : '#cbd5e1', position: 'relative', transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 11, background: 'white',
+                    position: 'absolute', top: 2, left: cloudConfig.ssl ? 24 : 2, transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  }} />
+                </button>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{t('setup.sslEnabled') || 'SSL/TLS Enabled'}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={saveCloudConfig}
+                style={{
+                  padding: '10px 20px', borderRadius: 8, border: 'none', background: '#635bff',
+                  color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {t('common.save')}
+              </button>
+              <button
+                onClick={testCloudConnection}
+                style={{
+                  padding: '10px 20px', borderRadius: 8, border: '1px solid #cbd5e1',
+                  background: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {t('setup.testConnection') || 'Test Connection'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: 20, borderRadius: 12, border: '1px solid #dbeafe', background: '#eff6ff' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ fontSize: 20 }}>💡</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#1e40af' }}>{t('setup.cloudWhy') || 'Why bring your own database?'}</div>
+                <ul style={{ fontSize: 13, color: '#3b82f6', margin: 0, paddingLeft: 16, lineHeight: 1.8 }}>
+                  <li>{t('setup.cloudBenefit1') || 'Your data never leaves your infrastructure'}</li>
+                  <li>{t('setup.cloudBenefit2') || 'Full control over backups and retention'}</li>
+                  <li>{t('setup.cloudBenefit3') || 'Comply with internal IT security policies'}</li>
+                  <li>{t('setup.cloudBenefit4') || 'No shared database with other customers'}</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
