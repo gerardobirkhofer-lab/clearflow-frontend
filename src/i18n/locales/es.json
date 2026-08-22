@@ -182,5 +182,47 @@
     "bankStatement": "Extracto Bancario",
     "tpvReport": "Informe TPV",
     "providerReport": "Informe de Proveedor"
+  },
+  "pricing": {
+    "title": "Precios",
+    "subtitle": "Precios simples y transparentes",
+    "description": "Empieza gratis con Starter. Escala a Pro cuando necesites una base de datos dedicada. Enterprise para control total.",
+    "starter": "Starter",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "perMonth": "/mes",
+    "currentPlan": "Plan Actual",
+    "upgrade": "Actualizar a Pro",
+    "contactSales": "Contactar Ventas",
+    "mostPopular": "Más Popular",
+    "trial": "Todos los planes incluyen 14 días de prueba gratis. No se requiere tarjeta de crédito.",
+    "backToDashboard": "← Volver al Panel"
+  },
+  "login": {
+    "title": "Bienvenido a ClearFlow",
+    "subtitle": "Inicia sesión para acceder a tu panel de control",
+    "createAccount": "Crear tu cuenta",
+    "email": "Email",
+    "password": "Contraseña",
+    "fullName": "Nombre Completo",
+    "signIn": "Iniciar Sesión",
+    "createAccountBtn": "Crear Cuenta",
+    "demoAccount": "Cuenta Demo",
+    "demoEmail": "demo@clearflow.app",
+    "demoPassword": "demo123",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tenés una cuenta? ",
+    "hasAccount": "¿Ya tenés una cuenta? ",
+    "register": "Registrate",
+    "iAmA": "Soy",
+    "businessOwner": "Dueño de Negocio",
+    "accountant": "Contador / Asesor Fiscal"
+  },
+  "landing": {
+    "title": "Sabe exactamente dónde está tu dinero.",
+    "subtitle": "ClearFlow concilia tus proveedores de pago contra tus extractos bancarios automáticamente.",
+    "cta": "Empezar Gratis — Sin Tarjeta",
+    "getStarted": "Comenzar",
+    "footer": "© 2026 ClearFlow S.L. · Madrid, España"
   }
 }

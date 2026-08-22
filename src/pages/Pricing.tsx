@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const tiers = [
   {
@@ -56,10 +57,11 @@ const tiers = [
 ];
 
 export default function Pricing() {
+  const { t } = useTranslation();
   const currentTier = (() => {
     try {
-      const t = JSON.parse(localStorage.getItem('tenant') || '{}');
-      return t.tier || 'starter';
+      const tenantData = JSON.parse(localStorage.getItem('tenant') || '{}');
+      return tenantData.tier || 'starter';
     } catch { return 'starter'; }
   })();
 
@@ -67,11 +69,11 @@ export default function Pricing() {
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <div style={{ textAlign: 'center', marginBottom: 48 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Pricing
+          {t('pricing.title')}
         </div>
-        <h1 style={{ margin: 0, fontSize: 36, fontWeight: 800 }}>Simple, transparent pricing</h1>
+        <h1 style={{ margin: 0, fontSize: 36, fontWeight: 800 }}>{t('pricing.subtitle')}</h1>
         <p style={{ color: '#64748b', marginTop: 12, fontSize: 16, maxWidth: 500, margin: '12px auto 0' }}>
-          Start free with Starter. Scale to Pro when you need a dedicated database. Go Enterprise for full control.
+          {t('pricing.description')}
         </p>
       </div>
 
@@ -103,7 +105,7 @@ export default function Pricing() {
                   fontSize: 12,
                   fontWeight: 700,
                 }}>
-                  Most Popular
+                  {t('pricing.mostPopular')}
                 </div>
               )}
               <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{tier.name}</div>
@@ -140,7 +142,11 @@ export default function Pricing() {
                   }
                 }}
               >
-                {isCurrent ? '✓ Current Plan' : tier.cta}
+                {isCurrent ? '✓ ' + t('pricing.currentPlan') : (
+                  tier.name === 'Starter' ? t('pricing.currentPlan') :
+                  tier.name === 'Pro' ? t('pricing.upgrade') :
+                  t('pricing.contactSales')
+                )}
               </button>
             </div>
           );
@@ -148,9 +154,9 @@ export default function Pricing() {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 48, color: '#64748b', fontSize: 13 }}>
-        All plans include 14-day free trial. No credit card required to start. {' '}
+        {t('pricing.trial')} {' '}
         <Link to="/dashboard" style={{ color: '#635bff', textDecoration: 'none', fontWeight: 600 }}>
-          ← Back to Dashboard
+          {t('pricing.backToDashboard')}
         </Link>
       </div>
     </div>
