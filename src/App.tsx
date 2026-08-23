@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Landing from './pages/Landing';
 import Welcome from './pages/Welcome';
+import Hub from './pages/Hub';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
@@ -38,6 +39,7 @@ function App() {
     <BrowserRouter>
       {isLoggedIn && (
         <nav style={{ padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 20, background: '#fff', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
           <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
           <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
           <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
@@ -62,6 +64,7 @@ function App() {
           <Route path="/" element={isLoggedIn ? <Navigate to="/welcome" /> : <Landing />} />
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
+          <Route path="/hub" element={<Hub />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
           <Route path="/dashboard" element={<Dashboard />} />

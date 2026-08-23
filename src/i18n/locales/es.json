@@ -14,7 +14,8 @@
     "pricing": "Precios",
     "setup": "Configuración",
     "switchStore": "Cambiar Tienda",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "home": "Inicio"
   },
   "common": {
     "save": "Guardar",
@@ -284,5 +285,29 @@
     "advisorDesc": "Trabajo con múltiples clientes. Necesito una herramienta que me permita revisar y disputar pagos de todos mis clientes en un solo lugar.",
     "select": "Seleccionar →",
     "changeLater": "Podés cambiar esto más adelante desde Configuración."
+  },
+  "hub": {
+    "greeting": "Hola {{name}}, ¿qué querés hacer hoy?",
+    "switchStore": "Cambiar tienda / cliente",
+    "noTenant": "No hay tienda seleccionada",
+    "selectTenant": "Seleccioná una tienda para comenzar.",
+    "goSelect": "Ir a seleccionar →",
+    "open": "Abrir →",
+    "upload": "Cargar Archivos",
+    "uploadDesc": "Subí extractos bancarios, informes TPV o archivos de proveedores.",
+    "smartcheck": "SmartCheck",
+    "smartcheckDesc": "Verificá que todo lo cobrado llegó al banco y detectá diferencias.",
+    "dashboard": "Panel de Control",
+    "dashboardDesc": "Mirá el estado general de tu negocio en un solo vistazo.",
+    "disputes": "Disputas",
+    "disputesDesc": "Reclamá pagos pendientes o faltantes a tus proveedores.",
+    "mismatches": "Discrepancias",
+    "mismatchesDesc": "Revisá diferencias detectadas entre lo esperado y lo recibido.",
+    "communications": "Comunicaciones",
+    "communicationsDesc": "Historial de emails enviados a proveedores.",
+    "reports": "Informes",
+    "reportsDesc": "Descargá reportes en PDF o Excel para tu contador.",
+    "setup": "Configuración",
+    "setupDesc": "Gestioná tiendas, proveedores, cuentas bancarias e idioma."
   }
 }

@@ -46,7 +46,7 @@ export default function TenantSelector() {
 
   const selectTenant = (tenant: Tenant) => {
     localStorage.setItem('tenant', JSON.stringify(tenant));
-    navigate('/dashboard');
+    navigate('/hub');
   };
 
   const goToDashboard = () => {
@@ -55,7 +55,7 @@ export default function TenantSelector() {
       if (!savedTenant) {
         localStorage.setItem('tenant', JSON.stringify(tenants[0]));
       }
-      navigate('/dashboard');
+      navigate('/hub');
     }
   };
 
