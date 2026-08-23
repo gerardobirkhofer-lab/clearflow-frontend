@@ -197,17 +197,17 @@ export default function Reports() {
       {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          📥 Download Center
+          📥 Centro de Descargas
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Reports</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Informes</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Generate and download professional reports for your accountant, your bank, or your payment providers.
+          Generá y descargá informes profesionales para tu contador, tu banco o tus proveedores de pago.
         </p>
       </div>
 
       {/* STORE FILTER */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>Store:</label>
+        <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>Tienda:</label>
         <select style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white', minWidth: 220 }}>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
@@ -221,7 +221,7 @@ export default function Reports() {
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{report.title}</div>
             <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>{report.description}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} records</span>
+              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} registros</span>
               <button
                 onClick={() => setActiveReport(report.id)}
                 style={{
@@ -230,7 +230,7 @@ export default function Reports() {
                   fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                Download
+                Descargar
               </button>
             </div>
           </div>

@@ -63,13 +63,13 @@ export default function PaymentCheck() {
     return true;
   });
 
-  const formatAmount = (amount: number) => {
+  const formatMonto = (amount: number) => {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount || 0);
   };
 
-  const formatDate = (dateStr: string | null) => {
+  const formatFecha = (dateStr: string | null) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('es-ES');
+    return new Fecha(dateStr).toLocaleFechaString('es-ES');
   };
 
   return (
@@ -77,11 +77,11 @@ export default function PaymentCheck() {
       <BackButton />
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          ⚡ Operations
+          ⚡ Operaciones
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Payment Check</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Verificación de Pagos</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Match bank transactions against provider reports. Fix discrepancies.
+          Compará transacciones bancarias contra informes de proveedores. Corregí discrepancias.
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function PaymentCheck() {
                 textTransform: 'capitalize',
               }}
             >
-              {tab === 'unmatched' ? '⚠️ Unmatched' : tab === 'matched' ? '✅ Matched' : '📋 All'}
+              {tab === 'unmatched' ? '⚠️ Sin conciliar' : tab === 'matched' ? '✅ Conciliado' : '📋 Todas'}
             </button>
           ))}
         </div>
@@ -123,27 +123,27 @@ export default function PaymentCheck() {
             opacity: runningCheck ? 0.7 : 1,
           }}
         >
-          {runningCheck ? '⏳ Running...' : '⚡ Run Payment Check'}
+          {runningCheck ? '⏳ Ejecutando...' : '⚡ Run Verificación de Pagos'}
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Unmatched Bank</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Banco sin conciliar</div>
           <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>
             {transactions.filter(t => t.type === 'bank' && !t.matched).length}
           </div>
         </div>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Unmatched Provider</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Proveedor sin conciliar</div>
           <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>
             {transactions.filter(t => t.type === 'provider' && !t.matched).length}
           </div>
         </div>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Missing</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total faltante</div>
           <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#f59e0b' }}>
-            {formatAmount(transactions.filter(t => !t.matched).reduce((sum, t) => sum + Math.abs(t.amount), 0))}
+            {formatMonto(transactions.filter(t => !t.matched).reduce((sum, t) => sum + Math.abs(t.amount), 0))}
           </div>
         </div>
       </div>
@@ -162,19 +162,19 @@ export default function PaymentCheck() {
           borderBottom: '1px solid #e2e8f0'
         }}>
           <div></div>
-          <div>Concept</div>
-          <div style={{ textAlign: 'right' }}>Amount</div>
-          <div style={{ textAlign: 'right' }}>Date</div>
-          <div style={{ textAlign: 'center' }}>Source</div>
-          <div style={{ textAlign: 'center' }}>Status</div>
+          <div>Concepto</div>
+          <div style={{ textAlign: 'right' }}>Monto</div>
+          <div style={{ textAlign: 'right' }}>Fecha</div>
+          <div style={{ textAlign: 'center' }}>Origen</div>
+          <div style={{ textAlign: 'center' }}>Estado</div>
         </div>
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading transactions...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando transacciones...</div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🎉</div>
-            <div style={{ fontWeight: 600, color: '#0f172a' }}>All clear!</div>
+            <div style={{ fontWeight: 600, color: '#0f172a' }}>¡Todo limpio!</div>
             <div style={{ fontSize: 13, marginTop: 4 }}>No {activeTab} transactions found.</div>
           </div>
         ) : (
@@ -193,9 +193,9 @@ export default function PaymentCheck() {
                 {tx.provider_name && <div style={{ fontSize: 11, color: '#94a3b8' }}>{tx.provider_name}</div>}
               </div>
               <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14, color: tx.amount >= 0 ? '#166534' : '#991b1b' }}>
-                {tx.amount >= 0 ? '+' : ''}{formatAmount(tx.amount)}
+                {tx.amount >= 0 ? '+' : ''}{formatMonto(tx.amount)}
               </div>
-              <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{formatDate(tx.date)}</div>
+              <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{formatFecha(tx.date)}</div>
               <div style={{ textAlign: 'center' }}>
                 <span style={{
                   padding: '4px 10px',

@@ -85,7 +85,7 @@ export default function BankUpload() {
   };
 
   const dropZoneText = activeTab === 'bank' 
-    ? 'Drop your bank CSV here' 
+    ? 'Arrastrá tu CSV bancario aquí' 
     : 'Drop your provider CSV here';
 
   return (
@@ -93,11 +93,11 @@ export default function BankUpload() {
       <BackButton />
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          📁 Upload Center
+          📁 Centro de Carga
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Upload Center</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Centro de Carga</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Upload bank statements and provider reports in one place.
+          Cargá extractos bancarios e informes de proveedores en un solo lugar.
         </p>
       </div>
 
@@ -107,13 +107,13 @@ export default function BankUpload() {
           background: activeTab === 'bank' ? '#0f172a' : 'white',
           color: activeTab === 'bank' ? 'white' : '#64748b',
           fontSize: 14, fontWeight: 600, cursor: 'pointer',
-        }}>🏦 Bank Statement</button>
+        }}>🏦 Extracto Bancario</button>
         <button onClick={() => setActiveTab('provider')} style={{
           padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0',
           background: activeTab === 'provider' ? '#0f172a' : 'white',
           color: activeTab === 'provider' ? 'white' : '#64748b',
           fontSize: 14, fontWeight: 600, cursor: 'pointer',
-        }}>💳 Provider Report</button>
+        }}>💳 Informe de Proveedor</button>
       </div>
 
       {activeTab === 'provider' && (
@@ -142,7 +142,7 @@ export default function BankUpload() {
         <input ref={fileInputRef} type="file" accept=".csv" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
         <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{dropZoneText}</div>
-        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 8 }}>or click to browse</div>
+        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 8 }}>o hacé clic para buscar</div>
         <div style={{ color: '#94a3b8', fontSize: 12 }}>
           Supports: Santander, BBVA, CaixaBank, Sabadell, generic CSV
         </div>
@@ -160,7 +160,7 @@ export default function BankUpload() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{u.file.name}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                  {u.type === 'bank' ? 'Bank Statement' : `Provider: ${u.providerName}`}
+                  {u.type === 'bank' ? 'Extracto Bancario' : `Provider: ${u.providerName}`}
                 </div>
                 {u.status === 'uploading' && (
                   <div style={{ marginTop: 8, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
@@ -186,7 +186,7 @@ export default function BankUpload() {
       <div style={{ padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ fontSize: 20 }}>💡</div>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Tip</div>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Consejo</div>
           <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
             Upload your bank statement and all provider reports for the same period, then go to <strong>Payment Check</strong> to run the matching algorithm.
             <br /><br />

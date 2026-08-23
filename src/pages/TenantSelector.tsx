@@ -11,7 +11,7 @@ export default function TenantSelector() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [newTenantName, setNewTenantName] = useState('');
   const [newTenantType, setNewTenantType] = useState('store');
-  const [loading, setLoading] = useState(true);
+  const [loading, setCargando... useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editType, setEditType] = useState('store');
@@ -28,7 +28,7 @@ export default function TenantSelector() {
       .then(r => r.json())
       .then(data => {
         setTenants(data.items || []);
-        setLoading(false);
+        setCargando...lse);
       });
   }, []);
 
@@ -79,7 +79,7 @@ export default function TenantSelector() {
   };
 
   const deleteTenant = async (tenantId: string) => {
-    if (!confirm('Are you sure you want to delete this store/client?')) return;
+    if (!confirm('¿Estás seguro de que querés eliminar esta tienda/cliente?')) return;
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -93,18 +93,18 @@ export default function TenantSelector() {
     }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 60 }}>Loading...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 60 }}>Cargando...</div>;
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: 28 }}>Welcome back, {user.name || 'User'}</h1>
+          <h1 style={{ margin: '0 0 8px 0', fontSize: 28 }}>Bienvenido de nuevo, {user.name || 'Usuario'}</h1>
           <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
             {tenants.length === 0 
-              ? "Set up your first store to get started." 
-              : "Select a store to enter your dashboard."}
+              ? "Configurá tu primera tienda para comenzar." 
+              : "Seleccioná una tienda para entrar a tu panel."}
           </p>
         </div>
         
@@ -124,7 +124,7 @@ export default function TenantSelector() {
                 cursor: 'pointer',
               }}
             >
-              ↩ Resume {savedTenant.name}
+              ↩ Volver a {savedTenant.name}
             </button>
           )}
           {tenants.length > 0 && (
@@ -142,7 +142,7 @@ export default function TenantSelector() {
                 boxShadow: '0 2px 8px rgba(99,91,255,0.3)',
               }}
             >
-              Go to Dashboard →
+                            Ir al Panel →
             </button>
           )}
         </div>
@@ -177,9 +177,9 @@ export default function TenantSelector() {
                   onChange={e => setEditType(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
                 >
-                  <option value="store">Physical Store</option>
-                  <option value="online">Online Store</option>
-                  <option value="client">Client (Accountant)</option>
+                  <option value="store">Tienda Física</option>
+                  <option value="online">Tienda Online</option>
+                  <option value="client">Cliente (Contador)</option>
                 </select>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
@@ -200,7 +200,7 @@ export default function TenantSelector() {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div style={{ fontSize: 36 }}>{t.type === 'online' ? '🌐' : t.type === 'client' ? '🏢' : '🏪'}</div>
-                  <span style={{ fontSize: 12, color: '#635bff', fontWeight: 600 }}>Click to enter →</span>
+                  <span style={{ fontSize: 12, color: '#635bff', fontWeight: 600 }}>Clic para entrar →</span>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 17, color: '#0f172a', marginBottom: 4 }}>{t.name}</div>
                 <div style={{ fontSize: 13, color: '#64748b', textTransform: 'capitalize', marginBottom: 16 }}>{t.type}</div>
@@ -233,11 +233,11 @@ export default function TenantSelector() {
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>➕</div>
-          <div style={{ fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Add New Store/Client</div>
+          <div style={{ fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Agregar Nueva Tienda/Cliente</div>
           <input
             value={newTenantName}
             onChange={e => setNewTenantName(e.target.value)}
-            placeholder="Name (e.g. Tienda Norte)"
+            placeholder="Nombre (ej. Tienda Norte)"
             style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
           />
           <select
@@ -245,9 +245,9 @@ export default function TenantSelector() {
             onChange={e => setNewTenantType(e.target.value)}
             style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
           >
-            <option value="store">Physical Store</option>
-            <option value="online">Online Store</option>
-            <option value="client">Client (Accountant)</option>
+            <option value="store">Tienda Física</option>
+            <option value="online">Tienda Online</option>
+            <option value="client">Cliente (Contador)</option>
           </select>
           <button
             onClick={createTenant}
@@ -273,9 +273,9 @@ export default function TenantSelector() {
       {tenants.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏪</div>
-          <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a', marginBottom: 8 }}>No stores yet</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a', marginBottom: 8 }}>Aún no hay tiendas</div>
           <div style={{ color: '#64748b', fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
-            Create your first store or client above to start tracking payments, reconciling transactions, and monitoring your cash flow.
+            Creá tu primera tienda o cliente arriba para empezar a rastrear pagos, conciliar transacciones y monitorear tu flujo de caja.
           </div>
         </div>
       )}

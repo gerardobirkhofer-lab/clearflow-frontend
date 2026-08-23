@@ -7,7 +7,7 @@
     "disputes": "Disputas",
     "mismatches": "Discrepancias",
     "communications": "Comunicaciones",
-    "reconciliation": "Conciliación",
+    "reconciliation": "SmartCheck",
     "paymentCheck": "Verificación de Pagos",
     "uploadCenter": "Centro de Carga",
     "reports": "Informes",
@@ -222,7 +222,7 @@
       "starter": [
         "Hasta 1,000 transacciones / mes",
         "Base de datos compartida (schema-isolated)",
-        "Conciliación Stripe & Redsys",
+        "SmartCheck Stripe & Redsys",
         "Panel básico e informes",
         "Soporte por email"
       ],
