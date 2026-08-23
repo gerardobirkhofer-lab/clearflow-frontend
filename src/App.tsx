@@ -8,10 +8,12 @@ import Hub from './pages/Hub';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
+import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
 import BankUpload from './pages/BankUpload';
 import Setup from './pages/Setup';
 import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
 import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
@@ -80,6 +82,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/profitability" element={<Profitability />} />
+          <Route path="/revenue-control" element={<RevenueControl />} />
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
           <Route path="/dispute-tracker" element={<DisputeTracker />} />
           <Route path="/communications" element={<Communications />} />
@@ -90,6 +93,7 @@ function App() {
           <Route path="/setup" element={<Setup />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-cancel" element={<PaymentCancel />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
