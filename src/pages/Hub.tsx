@@ -22,7 +22,7 @@ export default function Hub() {
       icon: '📁',
       title: t('hub.upload', 'Cargar Archivos'),
       desc: t('hub.uploadDesc', 'Subí extractos bancarios, informes TPV o archivos de proveedores.'),
-      path: '/bank-upload',
+      path: '/upload-center',
       color: '#635bff',
       bg: '#f5f3ff',
       priority: 1,
