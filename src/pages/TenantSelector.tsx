@@ -11,7 +11,7 @@ export default function TenantSelector() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [newTenantName, setNewTenantName] = useState('');
   const [newTenantType, setNewTenantType] = useState('store');
-  const [loading, setCargando... useState(true);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editType, setEditType] = useState('store');
@@ -28,7 +28,7 @@ export default function TenantSelector() {
       .then(r => r.json())
       .then(data => {
         setTenants(data.items || []);
-        setCargando...lse);
+        setLoading(false);
       });
   }, []);
 
