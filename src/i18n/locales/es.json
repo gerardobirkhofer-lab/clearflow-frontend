@@ -274,5 +274,15 @@
     "cta": "Empezar Gratis — Sin Tarjeta",
     "getStarted": "Comenzar",
     "footer": "© 2026 ClearFlow S.L. · Madrid, España"
+  },
+  "welcome": {
+    "title": "¿Cómo usás ClearFlow?",
+    "subtitle": "Elegí tu perfil para personalizar tu experiencia.",
+    "ownerTitle": "Soy Dueño de Negocio",
+    "ownerDesc": "Gestiono uno o varios locales, tiendas online o restaurantes. Quiero saber exactamente cuánto cobré, qué falta y dónde está mi dinero.",
+    "advisorTitle": "Soy Asesor / Contador",
+    "advisorDesc": "Trabajo con múltiples clientes. Necesito una herramienta que me permita revisar y disputar pagos de todos mis clientes en un solo lugar.",
+    "select": "Seleccionar →",
+    "changeLater": "Podés cambiar esto más adelante desde Configuración."
   }
 }

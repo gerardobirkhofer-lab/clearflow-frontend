@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Landing from './pages/Landing';
+import Welcome from './pages/Welcome';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
@@ -58,7 +59,8 @@ function App() {
 
       <div style={{ fontFamily: 'sans-serif', background: '#f8fafc', minHeight: '100vh' }}>
         <Routes>
-          <Route path="/" element={isLoggedIn ? <Navigate to="/dashboard" /> : <Landing />} />
+          <Route path="/" element={isLoggedIn ? <Navigate to="/welcome" /> : <Landing />} />
+          <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
