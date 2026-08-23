@@ -69,7 +69,7 @@ export default function PaymentCheck() {
 
   const formatFecha = (dateStr: string | null) => {
     if (!dateStr) return '—';
-    return new Fecha(dateStr).toLocaleFechaString('es-ES');
+    return new Date(dateStr).toLocaleDateString('es-ES');
   };
 
   return (
