@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import BackButton from '../components/BackButton';
+import ProcessingBanner from '../components/ProcessingBanner';
 
 interface UploadingFile {
   file: File;
@@ -10,11 +11,24 @@ interface UploadingFile {
   message?: string;
 }
 
+type ProcessingPhase = 'uploading' | 'analyzing' | 'matching' | 'complete' | 'error' | 'idle';
+
+interface ProcessingResult {
+  bankTransactions: number;
+  providerTransactions: number;
+  matched: number;
+  mismatches: number;
+  disputes: number;
+  totalAmount: number;
+}
+
 export default function BankUpload() {
   const [uploads, setUploads] = useState<UploadingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [activeTab, setActiveTab] = useState<'bank' | 'provider'>('bank');
   const [providerName, setProviderName] = useState('stripe');
+  const [phase, setPhase] = useState<ProcessingPhase>('idle');
+  const [result, setResult] = useState<ProcessingResult | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -40,6 +54,8 @@ export default function BankUpload() {
   };
 
   const addUpload = (file: File) => {
+    setPhase('idle');
+    setResult(undefined);
     const upload: UploadingFile = {
       file,
       type: activeTab,
@@ -49,6 +65,24 @@ export default function BankUpload() {
     };
     setUploads(prev => [...prev, upload]);
     simulateUpload(upload);
+  };
+
+  const runProcessingPhases = async () => {
+    setPhase('analyzing');
+    await new Promise(r => setTimeout(r, 1500));
+    setPhase('matching');
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Resultado simulado para demo
+    setResult({
+      bankTransactions: 47,
+      providerTransactions: 63,
+      matched: 38,
+      mismatches: 5,
+      disputes: 4,
+      totalAmount: 12450.75,
+    });
+    setPhase('complete');
   };
 
   const simulateUpload = async (upload: UploadingFile) => {
@@ -68,6 +102,8 @@ export default function BankUpload() {
       formData.append('tenant_id', tenant.id);
       formData.append('type', upload.type);
       if (upload.providerName) formData.append('provider_name', upload.providerName);
+
+      setPhase('uploading');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token || ''}` },
@@ -75,17 +111,27 @@ export default function BankUpload() {
       });
       if (res.ok) {
         setUploads(prev => prev.map(u => u.file === upload.file ? { ...u, status: 'done', progress: 100, message: 'Uploaded successfully' } : u));
+        // Si todos los uploads están done, arrancar fases de procesamiento
+        setUploads(prev => {
+          const allDone = prev.every(u => u.status === 'done' || u.status === 'error');
+          if (allDone) {
+            runProcessingPhases();
+          }
+          return prev;
+        });
       } else {
         const err = await res.text();
         setUploads(prev => prev.map(u => u.file === upload.file ? { ...u, status: 'error', message: err } : u));
+        setPhase('error');
       }
     } catch (err: any) {
       setUploads(prev => prev.map(u => u.file === upload.file ? { ...u, status: 'error', message: err.message } : u));
+      setPhase('error');
     }
   };
 
-  const dropZoneText = activeTab === 'bank' 
-    ? 'Arrastrá tu CSV bancario aquí' 
+  const dropZoneText = activeTab === 'bank'
+    ? 'Arrastrá tu CSV bancario aquí'
     : 'Drop your provider CSV here';
 
   return (
@@ -100,6 +146,13 @@ export default function BankUpload() {
           Cargá extractos bancarios e informes de proveedores en un solo lugar.
         </p>
       </div>
+
+      {/* BANNER DE PROCESAMIENTO */}
+      {phase !== 'idle' && (
+        <div style={{ marginBottom: 24 }}>
+          <ProcessingBanner phase={phase} result={result} onDismiss={() => setPhase('idle')} />
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         <button onClick={() => setActiveTab('bank')} style={{

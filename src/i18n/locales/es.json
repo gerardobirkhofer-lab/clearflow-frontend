@@ -309,5 +309,21 @@
     "reportsDesc": "Descargá reportes en PDF o Excel para tu contador.",
     "setup": "Configuración",
     "setupDesc": "Gestioná tiendas, proveedores, cuentas bancarias e idioma."
+  },
+  "banner": {
+    "uploading": "Subiendo archivos",
+    "analyzing": "Analizando transacciones",
+    "matching": "Ejecutando SmartCheck",
+    "pleaseWait": "No cierres esta ventana",
+    "completeTitle": "¡SmartCheck completado!",
+    "completeDesc": "Procesamos {{bank}} transacciones bancarias y {{provider}} de proveedores.",
+    "matched": "Conciliados",
+    "mismatches": "Discrepancias",
+    "disputes": "Disputas",
+    "totalAmount": "Monto Total",
+    "viewDashboard": "Ver Panel",
+    "viewReport": "Ver Informe Detallado",
+    "dismiss": "Cerrar",
+    "error": "Hubo un error al procesar. Intentá de nuevo."
   }
 }
