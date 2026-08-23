@@ -10,7 +10,7 @@ import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
 import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
-import BankUpload from './pages/BankUpload';
+import DocUploadCenter from './pages/DocUploadCenter';
 import Setup from './pages/Setup';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
@@ -60,7 +60,7 @@ function App() {
           <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
           <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
           <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
-          <Link to="/bank-upload" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.uploadCenter')}</Link>
+          <Link to="/upload-center" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.uploadCenter')}</Link>
           <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
           <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
           <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
@@ -88,7 +88,7 @@ function App() {
           <Route path="/communications" element={<Communications />} />
           <Route path="/reconciliation" element={<Reconciliation />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
-          <Route path="/bank-upload" element={<BankUpload />} />
+          <Route path="/upload-center" element={<DocUploadCenter />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/pricing" element={<Pricing />} />

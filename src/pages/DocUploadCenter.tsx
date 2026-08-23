@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import ProcessingBanner from '../components/ProcessingBanner';
 
@@ -22,9 +23,18 @@ interface ProcessingResult {
   totalAmount: number;
 }
 
+interface ChecklistItem {
+  id: string;
+  name: string;
+  icon: string;
+  type: 'bank' | 'provider';
+  status: 'missing' | 'uploaded' | 'api_connected' | 'error';
+  detail: string;
+}
+
 const BANK_KEYWORDS = ['santander', 'bbva', 'caixabank', 'sabadell', 'iban', 'concepto', 'fecha valor', 'saldo', 'abono', 'cargo'];
 const PROVIDER_PATTERNS: Record<string, string[]> = {
-  stripe: ['stripe', 'charge_id', 'charge.id', 'payment_intent', 'amount', 'currency', 'usd', 'eur'],
+  stripe: ['stripe', 'charge_id', 'charge.id', 'payment_intent', 'amount', 'currency'],
   redsys: ['redsys', 'terminal', 'comercio', 'numero operacion', 'tarjeta', 'autorizacion'],
   mercado_pago: ['mercado pago', 'mercadopago', 'mp', 'payment_id', 'external_reference'],
   karma: ['karma', 'karma_payments'],
@@ -32,22 +42,29 @@ const PROVIDER_PATTERNS: Record<string, string[]> = {
   tpv: ['tpv', 'pos', 'terminal', 'lote', 'cierre'],
 };
 
+const ICONS: Record<string, string> = {
+  bank: '🏦',
+  stripe: '💳',
+  redsys: '🏧',
+  mercado_pago: '💰',
+  karma: '🔮',
+  paypal: '🅿️',
+  tpv: '🏪',
+  unknown: '📄',
+};
+
 async function detectFileType(file: File): Promise<{ type: UploadingFile['detectedType']; name: string }> {
   const text = await file.text();
-  const firstLines = text.split('\n').slice(0, 5).join(' ').toLowerCase();
   const content = text.slice(0, 2000).toLowerCase();
 
-  // Check bank first
   const bankScore = BANK_KEYWORDS.reduce((acc, kw) => acc + (content.includes(kw) ? 1 : 0), 0);
   if (bankScore >= 2) return { type: 'bank', name: 'Extracto Bancario' };
 
-  // Check providers
   for (const [provider, keywords] of Object.entries(PROVIDER_PATTERNS)) {
     const score = keywords.reduce((acc, kw) => acc + (content.includes(kw) ? 1 : 0), 0);
     if (score >= 2) return { type: provider as UploadingFile['detectedType'], name: provider.toUpperCase() };
   }
 
-  // Fallback: check filename
   const fname = file.name.toLowerCase();
   if (fname.includes('stripe')) return { type: 'stripe', name: 'Stripe' };
   if (fname.includes('redsys')) return { type: 'redsys', name: 'Redsys' };
@@ -62,23 +79,77 @@ async function detectFileType(file: File): Promise<{ type: UploadingFile['detect
   return { type: 'unknown', name: 'Desconocido' };
 }
 
-const ICONS: Record<string, string> = {
-  bank: '🏦',
-  stripe: '💳',
-  redsys: '🏧',
-  mercado_pago: '💰',
-  karma: '🔮',
-  paypal: '🅿️',
-  tpv: '🏪',
-  unknown: '📄',
-};
-
-export default function BankUpload() {
+export default function DocUploadCenter() {
+  const navigate = useNavigate();
   const [uploads, setUploads] = useState<UploadingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [phase, setPhase] = useState<ProcessingPhase>('idle');
   const [result, setResult] = useState<ProcessingResult | undefined>();
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [apiStatus, setApiStatus] = useState<Record<string, 'checking' | 'connected' | 'disconnected'>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cargar checklist desde configuración del wizard
+  useEffect(() => {
+    const saved = localStorage.getItem('onboardingProgress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const items: ChecklistItem[] = [];
+
+        // Banco siempre requerido
+        items.push({ id: 'bank', name: 'Extracto Bancario', icon: '🏦', type: 'bank', status: 'missing', detail: 'Requerido para SmartCheck' });
+
+        // Proveedores configurados en wizard
+        const providers = parsed.state?.providers?.filter((p: any) => p.selected) || [];
+        providers.forEach((p: any) => {
+          items.push({
+            id: p.id,
+            name: p.name,
+            icon: ICONS[p.id] || '📄',
+            type: 'provider',
+            status: 'missing',
+            detail: 'CSV requerido',
+          });
+        });
+
+        setChecklist(items);
+
+        // Simular check de APIs
+        const apiChecks: Record<string, 'checking' | 'connected' | 'disconnected'> = {};
+        providers.forEach((p: any) => {
+          if (['stripe', 'paypal'].includes(p.id)) {
+            apiChecks[p.id] = 'checking';
+            setTimeout(() => {
+              setApiStatus(prev => ({ ...prev, [p.id]: Math.random() > 0.3 ? 'connected' : 'disconnected' }));
+            }, 1500);
+          }
+        });
+        setApiStatus(apiChecks);
+      } catch {}
+    }
+  }, []);
+
+  // Actualizar checklist cuando cambian uploads
+  useEffect(() => {
+    const doneUploads = uploads.filter(u => u.status === 'done');
+    setChecklist(prev => prev.map(item => {
+      const match = doneUploads.find(u =>
+        (item.id === 'bank' && u.detectedType === 'bank') ||
+        (item.id === u.detectedType)
+      );
+      if (match && item.status === 'missing') {
+        return { ...item, status: 'uploaded', detail: `Recibido: ${match.file.name}` };
+      }
+      return item;
+    }));
+  }, [uploads]);
+
+  const allReady = checklist.length > 0 && checklist.every(item => {
+    if (item.status === 'uploaded') return true;
+    if (item.type === 'provider' && apiStatus[item.id] === 'connected') return true;
+    return false;
+  });
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -105,19 +176,12 @@ export default function BankUpload() {
   const addUpload = async (file: File) => {
     setPhase('idle');
     setResult(undefined);
-
     const detected = await detectFileType(file);
-
     const upload: UploadingFile = {
-      file,
-      detectedType: detected.type,
-      detectedName: detected.name,
-      progress: 0,
-      status: 'detecting',
+      file, detectedType: detected.type, detectedName: detected.name,
+      progress: 0, status: 'detecting',
     };
     setUploads(prev => [...prev, upload]);
-
-    // Start upload after brief detection delay
     setTimeout(() => {
       setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'uploading' } : u));
       simulateUpload(file, detected.type);
@@ -129,15 +193,7 @@ export default function BankUpload() {
     await new Promise(r => setTimeout(r, 1500));
     setPhase('matching');
     await new Promise(r => setTimeout(r, 2000));
-
-    setResult({
-      bankTransactions: 47,
-      providerTransactions: 63,
-      matched: 38,
-      mismatches: 5,
-      disputes: 4,
-      totalAmount: 12450.75,
-    });
+    setResult({ bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 });
     setPhase('complete');
   };
 
@@ -149,7 +205,7 @@ export default function BankUpload() {
     try {
       const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
       if (!tenant.id) {
-        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', message: 'No tenant selected. Please log in and select a store first.' } : u));
+        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', message: 'No tenant selected' } : u));
         return;
       }
       const token = localStorage.getItem('token');
@@ -161,17 +217,11 @@ export default function BankUpload() {
 
       setPhase('uploading');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token || ''}` },
-        body: formData,
+        method: 'POST', headers: { Authorization: `Bearer ${token || ''}` }, body: formData,
       });
       if (res.ok) {
-        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'done', progress: 100, message: '✅ Uploaded successfully' } : u));
-        setUploads(prev => {
-          const allDone = prev.every(u => u.status === 'done' || u.status === 'error');
-          if (allDone) runProcessingPhases();
-          return prev;
-        });
+        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'done', progress: 100, message: '✅ OK' } : u));
+        setUploads(prev => { if (prev.every(u => u.status === 'done' || u.status === 'error')) runProcessingPhases(); return prev; });
       } else {
         const err = await res.text();
         setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', message: err } : u));
@@ -192,7 +242,7 @@ export default function BankUpload() {
         </div>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Centro de Carga Inteligente</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Arrastrá todos tus archivos CSV acá. Detectamos automáticamente si es un extracto bancario o un informe de proveedor.
+          Arrastrá todos tus archivos CSV acá. Detectamos automáticamente cada tipo y te avisamos cuando esté todo listo para el SmartCheck.
         </p>
       </div>
 
@@ -203,7 +253,64 @@ export default function BankUpload() {
         </div>
       )}
 
-      {/* ZONA DE DROP UNIFICADA */}
+      {/* CHECKLIST DE DOCUMENTOS REQUERIDOS */}
+      {checklist.length > 0 && (
+        <div style={{ marginBottom: 32, padding: 24, background: 'white', borderRadius: 14, border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>📋 Documentos requeridos según tu configuración</h3>
+            <div style={{ fontSize: 13, fontWeight: 600, color: allReady ? '#16a34a' : '#d97706' }}>
+              {checklist.filter(c => c.status === 'uploaded').length} / {checklist.length} listos
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {checklist.map(item => {
+              const api = apiStatus[item.id];
+              const isApiConnected = api === 'connected';
+              const isUploaded = item.status === 'uploaded';
+              const isReady = isUploaded || isApiConnected;
+
+              return (
+                <div key={item.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: 12, borderRadius: 10,
+                  background: isReady ? '#f0fdf4' : '#fef2f2',
+                  border: `1px solid ${isReady ? '#bbf7d0' : '#fecaca'}`,
+                }}>
+                  <div style={{ fontSize: 20 }}>{item.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{item.name}</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                      {isApiConnected ? '🔗 Conectado vía API' : isUploaded ? item.detail : item.detail}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: isReady ? '#22c55e' : api === 'disconnected' ? '#ef4444' : '#cbd5e1',
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* BOTÓN SMARTCHECK */}
+          <button
+            onClick={() => allReady && runProcessingPhases()}
+            disabled={!allReady}
+            style={{
+              width: '100%', marginTop: 16, padding: '14px',
+              background: allReady ? '#635bff' : '#e2e8f0',
+              color: allReady ? 'white' : '#94a3b8',
+              border: 'none', borderRadius: 10,
+              fontSize: 16, fontWeight: 700,
+              cursor: allReady ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {allReady ? '🔁 Ejecutar SmartCheck' : '⏳ Faltan documentos para SmartCheck'}
+          </button>
+        </div>
+      )}
+
+      {/* ZONA DE DROP */}
       <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         style={{
@@ -220,12 +327,10 @@ export default function BankUpload() {
         </div>
       </div>
 
-      {/* LISTA DE UPLOADS CON DETECCIÓN */}
+      {/* LISTA DE UPLOADS */}
       {uploads.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Archivos Detectados
-          </h3>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Archivos Detectados</h3>
           {uploads.map((u, i) => (
             <div key={i} style={{
               padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 12,
@@ -235,18 +340,14 @@ export default function BankUpload() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{u.file.name}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                  {u.status === 'detecting' ? '🔍 Detectando...' :
-                   u.detectedType === 'bank' ? '🏦 Extracto Bancario' :
-                   `💳 Proveedor: ${u.detectedName}`}
+                  {u.status === 'detecting' ? '🔍 Detectando...' : u.detectedType === 'bank' ? '🏦 Banco' : `💳 ${u.detectedName}`}
                 </div>
                 {u.status === 'uploading' && (
                   <div style={{ marginTop: 8, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
                     <div style={{ width: `${u.progress}%`, height: '100%', background: '#635bff', transition: 'width 0.3s' }} />
                   </div>
                 )}
-                {u.message && (
-                  <div style={{ fontSize: 12, marginTop: 4, color: u.status === 'done' ? '#22c55e' : '#991b1b' }}>{u.message}</div>
-                )}
+                {u.message && <div style={{ fontSize: 12, marginTop: 4, color: u.status === 'done' ? '#22c55e' : '#991b1b' }}>{u.message}</div>}
               </div>
               <div style={{
                 padding: '6px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600,
@@ -259,38 +360,6 @@ export default function BankUpload() {
           ))}
         </div>
       )}
-
-      {/* RESUMEN POR PROVEEDOR/BANCO */}
-      {uploads.filter(u => u.status === 'done').length > 0 && (
-        <div style={{ padding: 20, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: 32 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#166534', marginBottom: 12 }}>
-            ✅ Archivos recibidos correctamente
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {uploads.filter(u => u.status === 'done').map((u, i) => (
-              <span key={i} style={{
-                padding: '6px 12px', background: 'white', borderRadius: 8,
-                fontSize: 13, fontWeight: 600, color: '#166534', border: '1px solid #bbf7d0',
-              }}>
-                {ICONS[u.detectedType]} {u.detectedName}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ fontSize: 20 }}>💡</div>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Consejo</div>
-          <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-            Subí tu extracto bancario y todos los informes de proveedores del mismo período.
-            Nuestro sistema detecta automáticamente cada archivo y ejecuta SmartCheck cuando todo esté cargado.
-            <br /><br />
-            Para Stripe, también podés <strong>conectar automáticamente</strong> en Configuración — no necesitás CSV.
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
