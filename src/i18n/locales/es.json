@@ -32,6 +32,7 @@
     "close": "Cerrar",
     "send": "Enviar",
     "back": "Volver",
+    "next": "Siguiente",
     "yes": "Sí",
     "no": "No",
     "active": "Activo",
@@ -325,5 +326,30 @@
     "viewReport": "Ver Informe Detallado",
     "dismiss": "Cerrar",
     "error": "Hubo un error al procesar. Intentá de nuevo."
+  },
+  "wizard": {
+    "title": "Configurá ClearFlow",
+    "subtitle": "Paso {{step}} de {{total}} — {{desc}}",
+    "step1Title": "¿Quién sos?",
+    "step1Desc": "Elegí el perfil que mejor se adapte a vos. Podés cambiarlo después.",
+    "step2OwnerTitle": "¿Cuántas tiendas/negocios tenés?",
+    "step2AdvisorTitle": "¿Cuántos clientés querés gestionar?",
+    "step2Desc": "Configuralos ahora. Siempre podés agregar más después.",
+    "storeCount": "Cantidad",
+    "storeN": "Tienda {{n}}",
+    "clientN": "Cliente {{n}}",
+    "step3Title": "¿Qué proveedores de pago usás?",
+    "step3Desc": "Tildá los que uses. Después configuraremos cada uno.",
+    "disputeEmails": "Emails de contacto para disputas",
+    "disputeEmailsDesc": "Cuando detectemos un pago faltante, el sistema mandará un email automático a esta dirección.",
+    "step4Title": "¿Dónde querés guardar tus datos?",
+    "step4Desc": "Tu información, tu decisión. Cambiá esto cuando quieras.",
+    "cloudOurs": "Usar cloud de ClearFlow",
+    "cloudOursDesc": "Base de datos segura en Europa. Sin configuración. Ideal para empezar ya.",
+    "cloudYours": "Conectar mi propia base de datos",
+    "cloudYoursDesc": "Tus datos nunca salen de tu infraestructura. Requiere plan Pro o Enterprise.",
+    "recommended": "Recomendado",
+    "readyTitle": "¡Todo listo!",
+    "readyDesc": "Ya podés empezar a usar ClearFlow. Acá está el resumen de tu configuración:"
   }
 }

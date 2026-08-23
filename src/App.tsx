@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Landing from './pages/Landing';
 import Welcome from './pages/Welcome';
+import OnboardingWizard from './pages/OnboardingWizard';
 import Hub from './pages/Hub';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
@@ -35,6 +36,14 @@ function App() {
     window.location.href = '/';
   };
 
+  // Helper para redirigir según estado de onboarding
+  const getHomeRoute = () => {
+    if (!isLoggedIn) return <Landing />;
+    const onboardingComplete = localStorage.getItem('onboardingComplete');
+    if (!onboardingComplete) return <Navigate to="/welcome" />;
+    return <Navigate to="/hub" />;
+  };
+
   return (
     <BrowserRouter>
       {isLoggedIn && (
@@ -61,8 +70,9 @@ function App() {
 
       <div style={{ fontFamily: 'sans-serif', background: '#f8fafc', minHeight: '100vh' }}>
         <Routes>
-          <Route path="/" element={isLoggedIn ? <Navigate to="/welcome" /> : <Landing />} />
+          <Route path="/" element={getHomeRoute()} />
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
+          <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
           <Route path="/hub" element={<Hub />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
