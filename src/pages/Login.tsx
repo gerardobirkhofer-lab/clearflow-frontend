@@ -46,7 +46,16 @@ export default function Login({ onLogin }: LoginProps) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      // Try to fetch tenants, fallback to demo
+      if (onLogin) onLogin();
+      
+      // Check onboarding status - redirect new users to Welcome/Wizard
+      const onboardingComplete = localStorage.getItem('onboardingComplete');
+      if (!onboardingComplete) {
+        navigate('/welcome');
+        return;
+      }
+      
+      // Onboarding done - go to dashboard or tenant selector
       try {
         const tenantRes = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
           headers: { Authorization: `Bearer ${data.token}` }
@@ -62,8 +71,6 @@ export default function Login({ onLogin }: LoginProps) {
         localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
         navigate('/dashboard');
       }
-      
-      if (onLogin) onLogin();
     } catch (err: any) {
       // DEMO FALLBACK: if backend is down, use demo mode
       localStorage.clear();
