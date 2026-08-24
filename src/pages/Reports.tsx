@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
 
@@ -7,8 +8,8 @@ const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'curr
 interface ReportCard {
   id: string;
   icon: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   filename: string;
   data: any[];
   columns: { key: string; label: string }[];
@@ -16,10 +17,11 @@ interface ReportCard {
 }
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [activeReport, setActiveReport] = useState<string | null>(null);
 
   const stores = [
-    { id: 'all', name: 'All Stores' },
+    { id: 'all', name: t('reports.store') + ' ' + t('common.all') },
     { id: '1', name: 'Pura Zona Norte' },
     { id: '2', name: 'Pura Online Shop' },
   ];
@@ -78,8 +80,8 @@ export default function Reports() {
     {
       id: 'dashboard',
       icon: '📊',
-      title: 'Dashboard Summary Report',
-      description: 'Key metrics, totals, and period-over-period changes across all stores.',
+      titleKey: 'reports.dashboardSummary',
+      descKey: 'reports.dashboardSummaryDesc',
       filename: 'clearflow_dashboard_summary',
       data: dashboardSummaryData,
       columns: [
@@ -93,8 +95,8 @@ export default function Reports() {
     {
       id: 'profitability',
       icon: '💰',
-      title: 'Profitability Report',
-      description: 'Revenue, provider fees, operating costs, and net margin per store.',
+      titleKey: 'reports.profitability',
+      descKey: 'reports.profitabilityDesc',
       filename: 'clearflow_profitability',
       data: profitabilityData,
       columns: [
@@ -111,8 +113,8 @@ export default function Reports() {
     {
       id: 'mismatch',
       icon: '🔍',
-      title: 'Mismatch & Discrepancy Report',
-      description: 'All unmatched transactions, missing payouts, and fee discrepancies with status tracking.',
+      titleKey: 'reports.mismatch',
+      descKey: 'reports.mismatchDesc',
       filename: 'clearflow_mismatches',
       data: mismatchData,
       columns: [
@@ -131,8 +133,8 @@ export default function Reports() {
     {
       id: 'fees',
       icon: '💳',
-      title: 'Fee Analysis by Provider & Card',
-      description: 'Breakdown of fees per provider, card type, transaction count, and payout timing.',
+      titleKey: 'reports.fees',
+      descKey: 'reports.feesDesc',
       filename: 'clearflow_fee_analysis',
       data: feeAnalysisData,
       columns: [
@@ -151,8 +153,8 @@ export default function Reports() {
     {
       id: 'reconciliation',
       icon: '🏦',
-      title: 'Bank Reconciliation Detail',
-      description: 'Line-by-line matching between bank statements and provider reports per store and bank account.',
+      titleKey: 'reports.reconciliation',
+      descKey: 'reports.reconciliationDesc',
       filename: 'clearflow_reconciliation',
       data: reconciliationData,
       columns: [
@@ -171,8 +173,8 @@ export default function Reports() {
     {
       id: 'health',
       icon: '📈',
-      title: 'Provider Health Scorecard',
-      description: 'Weighted fee analysis, payout speed risk, and health indicators per provider for negotiation insights.',
+      titleKey: 'reports.health',
+      descKey: 'reports.healthDesc',
       filename: 'clearflow_provider_health',
       data: providerHealthData,
       columns: [
@@ -197,17 +199,17 @@ export default function Reports() {
       {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          📥 Centro de Descargas
+          📥 {t('reports.title')}
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Informes</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('reports.title')}</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Generá y descargá informes profesionales para tu contador, tu banco o tus proveedores de pago.
+          {t('reports.subtitle')}
         </p>
       </div>
 
       {/* STORE FILTER */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>Tienda:</label>
+        <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>{t('reports.store')}</label>
         <select style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white', minWidth: 220 }}>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
@@ -218,10 +220,10 @@ export default function Reports() {
         {reports.map(report => (
           <div key={report.id} style={{ padding: 28, borderRadius: 16, border: '1px solid #e2e8f0', background: 'white', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>{report.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{report.title}</div>
-            <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>{report.description}</div>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{t(report.titleKey)}</div>
+            <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>{t(report.descKey)}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} registros</span>
+              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} {t('reports.records')}</span>
               <button
                 onClick={() => setActiveReport(report.id)}
                 style={{
@@ -230,7 +232,7 @@ export default function Reports() {
                   fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                Descargar
+                {t('reports.download')}
               </button>
             </div>
           </div>
@@ -240,8 +242,7 @@ export default function Reports() {
       {/* DISCLAIMER */}
       <div style={{ marginTop: 32, padding: 16, borderRadius: 10, background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
         <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-          <strong>Report Usage:</strong> These reports are generated from your uploaded data and are intended for internal analysis, accountant review, or formal disputes with payment providers. 
-          All amounts are shown in EUR. For multi-currency reports, ensure your bank accounts are configured in Setup.
+          <strong>{t('reports.usage')}:</strong> {t('reports.usageDesc')}
         </div>
       </div>
 
@@ -250,7 +251,7 @@ export default function Reports() {
         <ExportModal
           isOpen={!!activeReport}
           onClose={() => setActiveReport(null)}
-          title={active.title}
+          title={t(active.titleKey)}
           filename={active.filename}
           data={active.data}
           columns={active.columns}

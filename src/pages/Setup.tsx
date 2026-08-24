@@ -285,7 +285,7 @@ export default function Setup() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>STORES</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{t('setup.stores')}</div>
                       <div style={{ fontSize: 18, fontWeight: 800 }}>{client.stores.length}</div>
                     </div>
                     <div style={{ 
@@ -379,16 +379,14 @@ export default function Setup() {
         <div>
           <h2 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700 }}>{t('setup.connectedProviders')}</h2>
           <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
-            Connect payment providers for automatic transaction syncing. CSV upload is always available as a fallback.
+            {t('setup.providerConnectDesc')}
           </p>
           {tenantId ? <StripeConnect tenantId={tenantId} /> : (
             <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', marginBottom: 16 }}>
-              No store selected. Please select a store first.
+              {t('setup.noStoreSelected')}
             </div>
           )}
-
-          <div style={{ marginTop: 32, marginBottom: 24 }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700 }}>📧 {t('setup.disputeEmailConfig')}</h3>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700 }}>📧 {t('setup.disputeEmailConfig')}</h3>
             <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
               {t('setup.disputeEmailDesc')}
             </p>
@@ -417,14 +415,13 @@ export default function Setup() {
                 </div>
               ))}
             </div>
-          </div>
 
           <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', opacity: 0.6, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 24 }}>🌐</div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>Mercado Pago</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ Coming soon — upload CSV for now</div>
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ {t('setup.comingSoon')}</div>
               </div>
             </div>
           </div>
@@ -433,7 +430,7 @@ export default function Setup() {
               <div style={{ fontSize: 24 }}>💳</div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>TPV / Redsys</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ Coming soon — upload CSV for now</div>
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ {t('setup.comingSoon')}</div>
               </div>
             </div>
           </div>
@@ -442,7 +439,7 @@ export default function Setup() {
               <div style={{ fontSize: 24 }}>📱</div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>Karma</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ Coming soon — upload CSV for now</div>
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>⚪ {t('setup.comingSoon')}</div>
               </div>
             </div>
           </div>
@@ -477,7 +474,7 @@ export default function Setup() {
                     <input name="account_number" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="ES91 0000 0000..." />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Currency</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.currency')}</label>
                     <select name="currency" style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}>
                       <option value="EUR">EUR (€)</option>
                       <option value="USD">USD ($)</option>
@@ -506,7 +503,7 @@ export default function Setup() {
                 padding: '14px 20px', background: '#f8fafc', fontSize: 11, fontWeight: 700,
                 color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0'
               }}>
-                <div>{t('setup.bankName')}</div><div>{t('setup.iban')}</div><div>Currency</div><div></div>
+                <div>{t('setup.bankName')}</div><div>{t('setup.iban')}</div><div>{t('setup.currency')}</div><div></div>
               </div>
               {bankAccounts.map(acc => (
                 <div key={acc.id} style={{
@@ -648,13 +645,7 @@ export default function Setup() {
           </div>
 
           <div style={{ marginTop: 24, padding: 16, borderRadius: 10, background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
-            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-              <strong>Legal Notice:</strong> ClearFlow S.L. acts solely as a data processor under GDPR Article 28. 
-              You (the data controller) retain full ownership of your business data. 
-              We process your data only to provide the reconciliation service you requested. 
-              We do not perform tax analysis, financial auditing, or regulatory reporting on your behalf. 
-              If you require a Data Processing Agreement (DPA), contact us at dpa@clearflow.app.
-            </div>
+            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: t('setup.legalNotice') }} />
           </div>
         </div>
       )}
