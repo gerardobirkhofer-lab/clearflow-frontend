@@ -22,7 +22,7 @@ export default function PostLoginHub() {
       icon: '🔁',
       title: 'Iniciar SmartCheck',
       desc: 'Subí documentos y verificá tus cobros',
-      path: '/upload-center',
+      path: '/smartcheck-wizard',
       color: '#059669',
       bg: '#f0fdf4',
     },

@@ -20,6 +20,7 @@ import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
 import MismatchTracker from './pages/MismatchTracker';
 import SmartCheckStatus from './pages/SmartCheckStatus';
+import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
@@ -99,6 +100,7 @@ function AppContent() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
+          <Route path="/smartcheck-wizard" element={<SmartCheckWizard />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
