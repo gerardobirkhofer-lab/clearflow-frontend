@@ -5,7 +5,7 @@ interface BackButtonProps {
   label?: string;
 }
 
-export default function BackButton({ to = '/dashboard', label = '← Back to Dashboard' }: BackButtonProps) {
+export default function BackButton({ to = '/dashboard', label = '← Volver al Panel' }: BackButtonProps) {
   const navigate = useNavigate();
   return (
     <button

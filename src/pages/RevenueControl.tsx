@@ -57,11 +57,11 @@ export default function RevenueControl() {
       {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          🔁 Closing the Loop
+          🔁 Control de Ingresos
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Revenue Control</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Control de Ingresos</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          From invoice to bank. Every euro tracked.
+          De la factura al banco. Cada euro trackeado.
         </p>
       </div>
 
@@ -122,7 +122,7 @@ export default function RevenueControl() {
                     fontWeight: 600,
                     color: step.fees.actual > step.fees.expected ? '#991b1b' : '#166534',
                   }}>
-                    Fee: {step.fees.actual}% (contrato: {step.fees.expected}%)
+                    Comisión: {step.fees.actual}% (contrato: {step.fees.expected}%)
                     {step.fees.actual > step.fees.expected && ' ⚠️'}
                   </div>
                 )}
@@ -182,27 +182,27 @@ export default function RevenueControl() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <span style={{ fontSize: 24 }}>🚨</span>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#991b1b' }}>
-              Fee Discrepancy Detected
+              Discrepancia de Comisión Detectada
             </div>
           </div>
           <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-            The actual fee charged by the provider ({feeDiscrepancy.actual}%) is higher than the contracted fee ({feeDiscrepancy.expected}%).
-            On this transaction alone, you were overcharged by <strong>{formatMoney(totalInvoiced * (feeDiscrepancy.actual - feeDiscrepancy.expected) / 100)}</strong>.
+            La comisión real cobrada por el proveedor ({feeDiscrepancy.actual}%) es mayor que la comisión contratada ({feeDiscrepancy.expected}%).
+            Solo en esta transacción, te cobraron de más <strong>{formatMoney(totalInvoiced * (feeDiscrepancy.actual - feeDiscrepancy.expected) / 100)}</strong>.
           </p>
         </div>
       )}
 
       {/* WHAT THIS MEANS */}
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>What ClearFlow checks for you:</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>Qué controla ClearFlow por vos:</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
           {[
-            { icon: '✅', text: 'Every invoice matches a TPV collection' },
-            { icon: '✅', text: 'Every TPV collection matches a bank deposit' },
-            { icon: '⚠️', text: 'Fees match the contract (not higher)' },
-            { icon: '⚠️', text: 'No duplicate settlements' },
-            { icon: '🔍', text: 'Late settlements flagged automatically' },
-            { icon: '📊', text: 'Daily report sent to your email' },
+            { icon: '✅', text: 'Cada factura coincide con una cobranza TPV' },
+            { icon: '✅', text: 'Cada cobranza TPV coincide con un depósito bancario' },
+            { icon: '⚠️', text: 'Las comisiones coinciden con el contrato (no más altas)' },
+            { icon: '⚠️', text: 'Sin liquidaciones duplicadas' },
+            { icon: '🔍', text: 'Liquidaciones tardías marcadas automáticamente' },
+            { icon: '📊', text: 'Informe diario enviado a tu email' },
           ].map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, background: 'white', borderRadius: 8, border: '1px solid #e2e8f0' }}>
               <span>{item.icon}</span>
@@ -213,7 +213,7 @@ export default function RevenueControl() {
 
         <div style={{ marginTop: 20, padding: 16, borderRadius: 8, background: 'white', border: '1px dashed #cbd5e1' }}>
           <div style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic' }}>
-            💡 This is the <strong>Revenue Control</strong> module. In the full implementation, ClearFlow connects to your invoicing system and TPV to track every euro from sale to bank — automatically.
+            💡 Este es el módulo <strong>Control de Ingresos</strong>. En la implementación completa, ClearFlow se conecta a tu sistema de facturación y TPV para trackear cada euro desde la venta hasta el banco — automáticamente.
           </div>
         </div>
       </div>

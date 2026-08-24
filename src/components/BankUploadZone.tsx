@@ -33,7 +33,7 @@ export default function BankUploadZone({ onUploadComplete }: Props) {
 
   const uploadFile = async (file: File) => {
     if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) {
-      setError('Only CSV files are accepted');
+      setError('Solo se aceptan archivos CSV');
       return;
     }
     setUploading(true);
@@ -50,7 +50,7 @@ export default function BankUploadZone({ onUploadComplete }: Props) {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      if (!res.ok) throw new Error(data.detail || 'Error al cargar');
       onUploadComplete(data);
     } catch (err: any) {
       setError(err.message);
@@ -78,11 +78,11 @@ export default function BankUploadZone({ onUploadComplete }: Props) {
       >
         <div style={{ fontSize: 48, marginBottom: 12 }}>📁</div>
         <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>
-          {uploading ? 'Uploading...' : 'Drop your bank CSV here'}
+          {uploading ? 'Cargando...' : 'Arrastrá tu CSV bancario acá'}
         </div>
-        <div style={{ color: '#64748b', fontSize: 14 }}>or click to open Finder</div>
+        <div style={{ color: '#64748b', fontSize: 14 }}>o hacé clic para abrir el Finder</div>
         <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 12 }}>
-          Supports: Santander, BBVA, CaixaBank, Sabadell, generic CSV
+          Soporta: Santander, BBVA, CaixaBank, Sabadell, CSV genérico
         </div>
         <input id="file-input" type="file" accept=".csv,.CSV,.txt" onChange={handleFileSelect} style={{ display: 'none' }} />
       </div>

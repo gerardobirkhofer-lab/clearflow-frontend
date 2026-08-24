@@ -70,7 +70,7 @@ export default function Reconciliation() {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      if (!res.ok) throw new Error(data.detail || 'Error al cargar');
       setUploadResult(`✅ ${data.message}`);
       setProviderFile(null);
       fetchStatus(tenant.id);
@@ -92,7 +92,7 @@ export default function Reconciliation() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Reconciliation failed');
+      if (!res.ok) throw new Error(data.detail || 'SmartCheck falló');
       setResult(data);
       fetchStatus(tenant.id);
     } catch (err: any) {
@@ -116,34 +116,34 @@ export default function Reconciliation() {
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
       <BackButton />
-      <h1 style={{ marginBottom: 8 }}>Reconciliation</h1>
+      <h1 style={{ marginBottom: 8 }}>SmartCheck</h1>
       <p style={{ color: '#64748b', marginBottom: 32 }}>
-        Match your bank transactions with provider reports to find discrepancies.
+        Compará tus transacciones bancarias con los informes de proveedores para encontrar discrepancias.
       </p>
 
       {/* Status Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 40 }}>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a' }}>{status?.bank_transactions ?? 0}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Bank Transactions</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Trans. Bancarias</div>
         </div>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: '#0f172a' }}>{status?.provider_transactions ?? 0}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Provider Transactions</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Trans. Proveedores</div>
         </div>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{status?.matched_bank ?? 0}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Matched</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Conciliadas</div>
         </div>
         <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: '#f59e0b' }}>{pendingCount}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Pending</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Pendientes</div>
         </div>
       </div>
 
       {/* Upload Provider Report */}
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 32 }}>
-        <h3 style={{ margin: '0 0 16px 0' }}>Upload Provider Report</h3>
+        <h3 style={{ margin: '0 0 16px 0' }}>Cargar Informe de Proveedor</h3>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
           <select
             value={providerName}
@@ -151,10 +151,10 @@ export default function Reconciliation() {
             style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}
           >
             <option value="stripe">Stripe</option>
-            <option value="tpv">TPV / Card Terminal</option>
+            <option value="tpv">TPV / Terminal</option>
             <option value="paypal">PayPal</option>
             <option value="bizum">Bizum</option>
-            <option value="transferencia">Bank Transfer</option>
+            <option value="transferencia">Transferencia Bancaria</option>
           </select>
           <input
             type="file"
@@ -176,7 +176,7 @@ export default function Reconciliation() {
               cursor: providerFile && !uploading ? 'pointer' : 'not-allowed',
             }}
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? 'Cargando...' : 'Cargar'}
           </button>
         </div>
         {uploadResult && (
@@ -209,7 +209,7 @@ export default function Reconciliation() {
             boxShadow: '0 4px 14px rgba(99, 91, 255, 0.3)',
           }}
         >
-          {running ? '⏳ Running Reconciliation...' : '⚡ Run Reconciliation'}
+          {running ? '⏳ Ejecutando SmartCheck...' : '⚡ Ejecutar SmartCheck'}
         </button>
       </div>
 
@@ -220,7 +220,7 @@ export default function Reconciliation() {
           {result.matched.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <h3 style={{ color: '#166534', marginBottom: 16 }}>
-                ✅ Matched ({result.matched.length})
+                ✅ Conciliadas ({result.matched.length})
               </h3>
               {result.matched.map((m: Match, i: number) => (
                 <div
@@ -239,7 +239,7 @@ export default function Reconciliation() {
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{m.bank.concept}</div>
                     <div style={{ fontSize: 12, color: '#64748b' }}>
-                      Bank: {formatDate(m.bank.date)} · Provider: {m.provider.provider_name}
+                      Banco: {formatDate(m.bank.date)} · Proveedor: {m.provider.provider_name}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -255,7 +255,7 @@ export default function Reconciliation() {
           {result.unmatched_bank.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <h3 style={{ color: '#991b1b', marginBottom: 16 }}>
-                ⚠️ Unmatched Bank Transactions ({result.unmatched_bank.length})
+                ⚠️ Trans. Bancarias sin Conciliar ({result.unmatched_bank.length})
               </h3>
               {result.unmatched_bank.map((tx: Unmatched) => (
                 <div
@@ -285,7 +285,7 @@ export default function Reconciliation() {
           {result.unmatched_provider.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <h3 style={{ color: '#92400e', marginBottom: 16 }}>
-                ⚠️ Unmatched Provider Transactions ({result.unmatched_provider.length})
+                ⚠️ Trans. de Proveedor sin Conciliar ({result.unmatched_provider.length})
               </h3>
               {result.unmatched_provider.map((tx: Unmatched) => (
                 <div
@@ -322,7 +322,7 @@ export default function Reconciliation() {
             marginTop: 24,
           }}>
             <div style={{ fontSize: 18, fontWeight: 600, color: '#0f172a' }}>
-              Summary: {result.summary.matched_count} matched, {result.summary.unmatched_bank_count} unmatched bank, {result.summary.unmatched_provider_count} unmatched provider
+              Resumen: {result.summary.matched_count} conciliadas, {result.summary.unmatched_bank_count} sin conciliar banco, {result.summary.unmatched_provider_count} sin conciliar proveedor
             </div>
           </div>
         </div>

@@ -42,7 +42,7 @@ export default function Upload() {
     
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
     if (!tenant.id) {
-      setResult('❌ Error: No tenant selected. Please log in and select a store first.');
+      setResult('❌ Error: No hay tienda seleccionada. Iniciá sesión y seleccioná una tienda primero.');
       return;
     }
     
@@ -52,7 +52,6 @@ export default function Upload() {
     const token = localStorage.getItem('token');
     
     try {
-      // Send files one by one
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
@@ -60,14 +59,12 @@ export default function Upload() {
         
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
           body: formData,
         });
         
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+        if (!res.ok) throw new Error(data.detail || 'Error al cargar');
         setResult(`✅ ${data.message}`);
       }
       
@@ -82,8 +79,8 @@ export default function Upload() {
   return (
     <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 20px', fontFamily: 'sans-serif' }}>
       <BackButton />
-      <h1 style={{ marginBottom: 8 }}>Upload Documentation</h1>
-      <p style={{ color: '#64748b', marginBottom: 32 }}>Drag and drop your bank statements or provider reports below.</p>
+      <h1 style={{ marginBottom: 8 }}>Cargar Documentación</h1>
+      <p style={{ color: '#64748b', marginBottom: 32 }}>Arrastrá y soltá tus extractos bancarios o informes de proveedores acá.</p>
 
       <div
         onDragOver={onDragOver}
@@ -102,52 +99,28 @@ export default function Upload() {
       >
         <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
         <h3 style={{ margin: 0, color: '#0f172a' }}>
-          {isDragging ? 'Drop files here!' : 'Drag & drop files here'}
+          {isDragging ? '¡Soltá los archivos!' : 'Arrastrá y soltá archivos acá'}
         </h3>
-        <p style={{ color: '#64748b', marginTop: 8 }}>or click to browse from your computer</p>
-        <input
-          type="file"
-          multiple
-          onChange={onFileSelect}
-          style={{ display: 'none' }}
-          id="file-input"
-          accept=".csv,.xlsx,.xls"
-        />
-        <label
-          htmlFor="file-input"
-          style={{
-            display: 'inline-block',
-            marginTop: 16,
-            padding: '10px 24px',
-            background: '#635bff',
-            color: 'white',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Browse Files
+        <p style={{ color: '#64748b', marginTop: 8 }}>o hacé clic para buscar en tu computadora</p>
+        <input type="file" multiple onChange={onFileSelect} style={{ display: 'none' }} id="file-input" accept=".csv,.xlsx,.xls" />
+        <label htmlFor="file-input" style={{
+          display: 'inline-block', marginTop: 16, padding: '10px 24px',
+          background: '#635bff', color: 'white', borderRadius: 8,
+          fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        }}>
+          Buscar Archivos
         </label>
       </div>
 
       {files.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <h3 style={{ marginBottom: 12 }}>Selected Files ({files.length})</h3>
+          <h3 style={{ marginBottom: 12 }}>Archivos seleccionados ({files.length})</h3>
           {files.map((file, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                borderRadius: 8,
-                border: '1px solid #e2e8f0',
-                background: 'white',
-                marginBottom: 8,
-              }}
-            >
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
+              background: 'white', marginBottom: 8,
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 20 }}>📄</span>
                 <div>
@@ -155,19 +128,11 @@ export default function Upload() {
                   <div style={{ fontSize: 12, color: '#64748b' }}>{(file.size / 1024).toFixed(1)} KB</div>
                 </div>
               </div>
-              <button
-                onClick={() => removeFile(i)}
-                style={{
-                  padding: '4px 12px',
-                  background: '#fef2f2',
-                  color: '#991b1b',
-                  border: 'none',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                Remove
+              <button onClick={() => removeFile(i)} style={{
+                padding: '4px 12px', background: '#fef2f2', color: '#991b1b',
+                border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              }}>
+                Quitar
               </button>
             </div>
           ))}
@@ -176,48 +141,30 @@ export default function Upload() {
 
       {result && (
         <div style={{
-          padding: 16,
-          borderRadius: 8,
+          padding: 16, borderRadius: 8,
           background: result.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
           color: result.startsWith('✅') ? '#166534' : '#991b1b',
-          marginBottom: 24,
-          fontSize: 14,
+          marginBottom: 24, fontSize: 14,
         }}>
           {result}
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 12 }}>
-        <button
-          onClick={processFiles}
-          disabled={files.length === 0 || uploading}
-          style={{
-            padding: '12px 32px',
-            background: files.length > 0 && !uploading ? '#635bff' : '#cbd5e1',
-            color: 'white',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: files.length > 0 && !uploading ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {uploading ? '⏳ Processing...' : '⚡ Process Files'}
+        <button onClick={processFiles} disabled={files.length === 0 || uploading} style={{
+          padding: '12px 32px',
+          background: files.length > 0 && !uploading ? '#635bff' : '#cbd5e1',
+          color: 'white', border: 'none', borderRadius: 8,
+          fontSize: 16, fontWeight: 600,
+          cursor: files.length > 0 && !uploading ? 'pointer' : 'not-allowed',
+        }}>
+          {uploading ? '⏳ Procesando...' : '⚡ Procesar Archivos'}
         </button>
-        <button
-          onClick={() => navigate('/dashboard')}
-          style={{
-            padding: '12px 32px',
-            background: '#f1f5f9',
-            color: '#475569',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Back to Dashboard
+        <button onClick={() => navigate('/dashboard')} style={{
+          padding: '12px 32px', background: '#f1f5f9', color: '#475569',
+          border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer',
+        }}>
+          Volver al Panel
         </button>
       </div>
     </div>
