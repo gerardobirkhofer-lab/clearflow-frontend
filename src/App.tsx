@@ -41,7 +41,8 @@ function AppContent() {
     window.location.href = '/';
   };
 
-  // Ocultar menú en onboarding (primera vez)
+  // Ocultar menú en onboarding, hub y wizard (experiencia limpia)
+  const hideNav = location.pathname === '/welcome' || location.pathname === '/wizard' || location.pathname === '/hub' || location.pathname === '/smartcheck-wizard';
   const hideNav = location.pathname === '/welcome' || location.pathname === '/wizard';
 
   // Helper para redirigir según estado de onboarding
