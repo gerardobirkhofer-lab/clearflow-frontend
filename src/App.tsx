@@ -19,7 +19,7 @@ import Login from './pages/Login';
 import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
 import MismatchTracker from './pages/MismatchTracker';
-import Reconciliation from './pages/Reconciliation';
+import SmartCheckStatus from './pages/SmartCheckStatus';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
@@ -91,7 +91,7 @@ function AppContent() {
           <Route path="/mismatch-tracker" element={<MismatchTracker />} />
           <Route path="/dispute-tracker" element={<DisputeTracker />} />
           <Route path="/communications" element={<Communications />} />
-          <Route path="/reconciliation" element={<Reconciliation />} />
+          <Route path="/reconciliation" element={<SmartCheckStatus />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
           <Route path="/upload-center" element={<DocUploadCenter />} />
           <Route path="/reports" element={<Reports />} />
