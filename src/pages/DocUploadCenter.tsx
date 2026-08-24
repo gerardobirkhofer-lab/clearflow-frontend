@@ -205,7 +205,7 @@ export default function DocUploadCenter() {
     try {
       const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
       if (!tenant.id) {
-        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', message: 'No tenant selected' } : u));
+        setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', message: 'No hay tienda seleccionada' } : u));
         return;
       }
       const token = localStorage.getItem('token');
