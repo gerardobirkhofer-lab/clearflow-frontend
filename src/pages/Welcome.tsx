@@ -7,6 +7,11 @@ export default function Welcome() {
 
   const selectRole = (role: 'owner' | 'advisor') => {
     localStorage.setItem('userRole', role);
+    // Limpiar progreso viejo para empezar fresco
+    localStorage.removeItem('onboardingProgress');
+    navigate('/wizard');
+  };
+    localStorage.setItem('userRole', role);
     navigate('/tenant-selector');
   };
 

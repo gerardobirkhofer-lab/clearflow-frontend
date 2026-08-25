@@ -43,6 +43,26 @@ export default function OnboardingWizard() {
   const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Leer rol pre-seleccionado desde Welcome
+  const savedRole = localStorage.getItem('userRole') as Role;
+
+  const [state, setState] = useState<WizardState>({
+    role: savedRole,
+    roleName: savedRole === 'owner' ? 'Dueño de Negocio' : savedRole === 'advisor' ? 'Asesor / Contador' : '',
+    storeCount: 1,
+    stores: [{ name: '', type: 'physical' }],
+    providers: JSON.parse(JSON.stringify(AVAILABLE_PROVIDERS)),
+    cloudChoice: null,
+  });
+
+  // Si el rol ya viene del Welcome, saltear al paso 2 directo
+  useEffect(() => {
+    if (savedRole) {
+      setStep(2);
+    }
+  }, [savedRole]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [state, setState] = useState<WizardState>({
     role: null,
     roleName: '',
