@@ -56,14 +56,7 @@ export default function OnboardingWizard() {
     cloudChoice: null,
   });
 
-  const [state, setState] = useState<WizardState>({
-    role: savedRole,
-    roleName: savedRole === 'owner' ? 'Dueño de Negocio' : savedRole === 'advisor' ? 'Asesor / Contador' : '',
-    storeCount: 1,
-    stores: [{ name: '', type: 'physical' }],
-    providers: JSON.parse(JSON.stringify(AVAILABLE_PROVIDERS)),
-    cloudChoice: null,
-  });
+
 
   // Si el rol ya viene del Welcome, saltear al paso 2 directo
   useEffect(() => {
@@ -72,16 +65,20 @@ export default function OnboardingWizard() {
     }
   }, [savedRole]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [state, setState] = useState<WizardState>({
-    role: null,
-    roleName: '',
-    storeCount: 1,
-    stores: [{ name: '', type: 'physical' }],
-    providers: JSON.parse(JSON.stringify(AVAILABLE_PROVIDERS)),
-    cloudChoice: null,
-  });
 
-  // Cargar progreso guardado
+
+  // Cargar progreso guardado (solo si no viene del Welcome con rol ya elegido)
+  useEffect(() => {
+    if (savedRole) return; // Empezar fresco si viene del Welcome
+    const saved = localStorage.getItem('onboardingProgress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setState(parsed.state);
+        setStep(parsed.step);
+      } catch {}
+    }
+  }, []);
   useEffect(() => {
     const saved = localStorage.getItem('onboardingProgress');
     if (saved) {
