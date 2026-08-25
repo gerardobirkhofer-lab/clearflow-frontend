@@ -56,30 +56,16 @@ export default function OnboardingWizard() {
     cloudChoice: null,
   });
 
-
-
   // Si el rol ya viene del Welcome, saltear al paso 2 directo
   useEffect(() => {
     if (savedRole) {
       setStep(2);
     }
   }, [savedRole]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   // Cargar progreso guardado (solo si no viene del Welcome con rol ya elegido)
   useEffect(() => {
     if (savedRole) return; // Empezar fresco si viene del Welcome
-    const saved = localStorage.getItem('onboardingProgress');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setState(parsed.state);
-        setStep(parsed.step);
-      } catch {}
-    }
-  }, []);
-  useEffect(() => {
     const saved = localStorage.getItem('onboardingProgress');
     if (saved) {
       try {
@@ -234,24 +220,6 @@ export default function OnboardingWizard() {
             </div>
 
             {state.stores.length > 0 && state.stores.map((store, idx) => (
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 8 }}>
-                {t('wizard.storeCount', 'Cantidad')}
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={state.storeCount}
-                onChange={e => {
-                  const count = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
-                  const stores = Array(count).fill(null).map((_, i) => state.stores[i] || { name: '', type: 'physical' as StoreType });
-                  updateState({ storeCount: count, stores });
-                }}
-                style={{ width: 100, padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 16 }}
-              />
-            </div>
-
-            {state.stores.map((store, idx) => (
               <div key={idx} style={{
                 padding: 20, background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 12,
               }}>
