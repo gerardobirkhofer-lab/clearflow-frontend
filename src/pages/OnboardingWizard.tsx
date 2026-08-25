@@ -50,6 +50,15 @@ export default function OnboardingWizard() {
   const [state, setState] = useState<WizardState>({
     role: savedRole,
     roleName: savedRole === 'owner' ? 'Dueño de Negocio' : savedRole === 'advisor' ? 'Asesor / Contador' : '',
+    storeCount: 0,
+    stores: [],
+    providers: JSON.parse(JSON.stringify(AVAILABLE_PROVIDERS)),
+    cloudChoice: null,
+  });
+
+  const [state, setState] = useState<WizardState>({
+    role: savedRole,
+    roleName: savedRole === 'owner' ? 'Dueño de Negocio' : savedRole === 'advisor' ? 'Asesor / Contador' : '',
     storeCount: 1,
     stores: [{ name: '', type: 'physical' }],
     providers: JSON.parse(JSON.stringify(AVAILABLE_PROVIDERS)),
@@ -98,7 +107,7 @@ export default function OnboardingWizard() {
   const canProceed = () => {
     switch (step) {
       case 1: return state.role !== null;
-      case 2: return state.stores.every(s => s.name.trim() !== '');
+      case 2: return state.storeCount > 0 && state.stores.every(s => s.name.trim() !== '');
       case 3: return state.providers.some(p => p.selected);
       case 4: return state.cloudChoice !== null;
       case 5: return true;
@@ -204,6 +213,30 @@ export default function OnboardingWizard() {
             </p>
 
             <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 8 }}>
+                {t('wizard.storeCount', 'Cantidad')}
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={20}
+                value={state.storeCount || ''}
+                placeholder="Ej: 2"
+                onChange={e => {
+                  const raw = e.target.value;
+                  if (raw === '') {
+                    updateState({ storeCount: 0, stores: [] });
+                    return;
+                  }
+                  const count = Math.max(0, Math.min(20, parseInt(raw) || 0));
+                  const stores = count > 0 ? Array(count).fill(null).map((_, i) => state.stores[i] || { name: '', type: 'physical' as StoreType }) : [];
+                  updateState({ storeCount: count, stores });
+                }}
+                style={{ width: 100, padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 16 }}
+              />
+            </div>
+
+            {state.stores.length > 0 && state.stores.map((store, idx) => (
               <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 8 }}>
                 {t('wizard.storeCount', 'Cantidad')}
               </label>
