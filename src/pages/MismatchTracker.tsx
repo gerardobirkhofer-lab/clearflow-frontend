@@ -37,10 +37,70 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [reportFrequency, setReportFrequency] = useState<'daily' | 'weekly' | 'immediate'>('weekly');
+  const [smartCheckMessage, setSmartCheckMessage] = useState<string | null>(null);
 
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
 
   const loadDemoData = () => {
+    const raw = localStorage.getItem('lastSmartCheck');
+    if (raw) {
+      try {
+        const sc = JSON.parse(raw);
+        const result = sc.result || sc;
+        const mismatchesCount = typeof result.mismatches === 'number' ? result.mismatches : 0;
+        const disputesCount = typeof result.disputes === 'number' ? result.disputes : 0;
+
+        if (mismatchesCount > 0 || disputesCount > 0) {
+          const providers = ['Stripe', 'TPV / Redsys', 'Mercado Pago'];
+          const stores = ['Pura Zona Norte', 'Pura Online Shop'];
+          const concepts = ['Payout Settlement', 'Batch Transfer', 'Daily Settlement', 'Weekly Reconciliation', 'Card Payout'];
+
+          const generateItems = (count: number, status: 'unresolved' | 'disputed') => {
+            const items: Mismatch[] = [];
+            const max = Math.min(count, 20);
+            for (let i = 0; i < max; i++) {
+              const expected = Math.floor(Math.random() * 8000) + 500;
+              const diff = -Math.floor(Math.random() * 200) - 5;
+              const received = Math.max(0, expected + diff);
+              const dateStr = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+              items.push({
+                id: `${status === 'disputed' ? 'DS' : 'MM'}-${String(i + 1).padStart(3, '0')}`,
+                concept: `${concepts[i % concepts.length]} #${i + 1}`,
+                expected,
+                received,
+                difference: received - expected,
+                provider: providers[i % providers.length],
+                store: stores[i % stores.length],
+                status,
+                date: dateStr,
+                notes: status === 'disputed' ? 'Dispute opened with provider' : '',
+                cardType: i % 2 === 0 ? 'Credit Card' : 'Debit Card',
+                firstReportedDate: dateStr,
+                timesReported: 1,
+              });
+            }
+            return items;
+          };
+
+          const items = [
+            ...generateItems(mismatchesCount, 'unresolved'),
+            ...generateItems(disputesCount, 'disputed'),
+          ];
+          setMismatches(items);
+          const date = sc.date || sc.createdAt || result.date || '';
+          if (date) {
+            setSmartCheckMessage(`Basado en tu último SmartCheck del ${new Date(date).toLocaleDateString('es-ES')}`);
+          } else {
+            setSmartCheckMessage('Basado en tu último SmartCheck');
+          }
+          return;
+        }
+      } catch {
+        // fall through to default demo data
+      }
+    }
+
+    setSmartCheckMessage(null);
     setMismatches([
       { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-07', notes: 'Fee discrepancy on international card', cardType: 'Credit Card', firstReportedDate: '2026-08-07', timesReported: 1 },
       { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-06', notes: '', cardType: 'Debit Card', firstReportedDate: '2026-08-06', timesReported: 1 },
@@ -296,6 +356,12 @@ ClearFlow Reconciliation System
       {autoCheckMessage && (
         <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 600, fontSize: 14 }}>
           {autoCheckMessage}
+        </div>
+      )}
+
+      {smartCheckMessage && (
+        <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', fontWeight: 600, fontSize: 14 }}>
+          {smartCheckMessage}
         </div>
       )}
 

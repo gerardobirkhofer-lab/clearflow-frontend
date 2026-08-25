@@ -11,7 +11,6 @@ import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
 import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
-import DocUploadCenter from './pages/DocUploadCenter';
 import Setup from './pages/Setup';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
@@ -43,7 +42,8 @@ function AppContent() {
 
   // Ocultar menú en onboarding, hub y wizard (experiencia limpia)
   const hideNav = location.pathname === '/welcome' || location.pathname === '/wizard' || location.pathname === '/hub' || location.pathname === '/smartcheck-wizard';
-  const hideNav = location.pathname === '/welcome' || location.pathname === '/wizard';
+
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // Helper para redirigir según estado de onboarding
   const getHomeRoute = () => {
@@ -56,25 +56,47 @@ function AppContent() {
   return (
     <>
       {isLoggedIn && !hideNav && (
-        <nav style={{ padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 20, background: '#fff', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
-          <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
-          <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
-          <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
-          <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 {t('nav.revenue')}</Link>
-          <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 {t('nav.disputes')}</Link>
-          <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 {t('nav.mismatches')}</Link>
-          <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
-          <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
-          <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
-          <Link to="/upload-center" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.uploadCenter')}</Link>
-          <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
-          <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
-          <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
-          <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
-          <div style={{ flex: 1 }}></div>
-          <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
-        </nav>
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}
+          onMouseLeave={() => setMenuVisible(false)}
+        >
+          {!menuVisible && (
+            <div
+              style={{ height: 10, width: '100%', cursor: 'default' }}
+              onMouseEnter={() => setMenuVisible(true)}
+            />
+          )}
+          <nav
+            style={{
+              padding: '12px 24px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              gap: 20,
+              background: '#fff',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
+              transition: 'transform 0.3s ease',
+            }}
+          >
+            <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
+            <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
+            <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
+            <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
+            <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 {t('nav.revenue')}</Link>
+            <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 {t('nav.disputes')}</Link>
+            <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 {t('nav.mismatches')}</Link>
+            <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
+            <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
+            <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
+            <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
+            <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
+            <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
+            <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
+            <div style={{ flex: 1 }}></div>
+            <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
+          </nav>
+        </div>
       )}
 
       <div style={{ fontFamily: 'sans-serif', background: '#f8fafc', minHeight: '100vh' }}>
@@ -95,7 +117,7 @@ function AppContent() {
           <Route path="/communications" element={<Communications />} />
           <Route path="/reconciliation" element={<SmartCheckStatus />} />
           <Route path="/payment-check" element={<PaymentCheck />} />
-          <Route path="/upload-center" element={<DocUploadCenter />} />
+          <Route path="/upload-center" element={<Navigate to="/smartcheck-wizard" />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/pricing" element={<Pricing />} />

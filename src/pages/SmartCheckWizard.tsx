@@ -160,7 +160,12 @@ export default function SmartCheckWizard() {
     await new Promise(r => setTimeout(r, 1500));
     setPhase('matching');
     await new Promise(r => setTimeout(r, 2000));
-    setResult({ bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 });
+    const result: ProcessingResult = { bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 };
+    setResult(result);
+    localStorage.setItem('lastSmartCheck', JSON.stringify({
+      date: new Date().toISOString(),
+      result: result
+    }));
     setPhase('complete');
     setStep(4);
   };
@@ -171,6 +176,25 @@ export default function SmartCheckWizard() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
           <p>Cargando tu configuración...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const setupComplete = !!localStorage.getItem('tenant') && !!localStorage.getItem('onboardingComplete');
+
+  if (!setupComplete) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400, padding: 40 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
+          <h2 style={{ marginBottom: 8 }}>Necesitás completar tu configuración antes de ejecutar un SmartCheck</h2>
+          <button
+            onClick={() => navigate('/setup')}
+            style={{ padding: '12px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Ir a Configuración
+          </button>
         </div>
       </div>
     );
@@ -381,6 +405,20 @@ export default function SmartCheckWizard() {
             </button>
             <button onClick={() => navigate('/reconciliation')} style={{ padding: '14px 32px', background: 'white', color: '#0f172a', border: '2px solid #e2e8f0', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
               📋 Ver Estado Completo
+            </button>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <button
+              onClick={() => {
+                setStep(1);
+                setUploads([]);
+                setRequiredDocs(prev => prev.map(d => ({ ...d, uploaded: false })));
+                setResult(undefined);
+                setPhase('idle');
+              }}
+              style={{ padding: '14px 32px', background: 'white', color: '#0f172a', border: '2px solid #e2e8f0', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+            >
+              🔄 Hacer otro SmartCheck
             </button>
           </div>
         </div>

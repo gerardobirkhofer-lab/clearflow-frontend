@@ -46,17 +46,19 @@ export default function PostLoginHub() {
     },
   ];
 
-  if (!tenant) {
+  const setupComplete = !!localStorage.getItem('tenant') && !!localStorage.getItem('onboardingComplete');
+
+  if (!setupComplete) {
     return (
       <div style={{ textAlign: 'center', padding: 80, fontFamily: 'sans-serif' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🏪</div>
-        <h2 style={{ marginBottom: 8 }}>No hay tienda seleccionada</h2>
-        <p style={{ color: '#64748b', marginBottom: 24 }}>Seleccioná una tienda para comenzar.</p>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
+        <h2 style={{ marginBottom: 8 }}>Configuración inicial necesaria</h2>
+        <p style={{ color: '#64748b', marginBottom: 24 }}>Completá tu perfil, tiendas y proveedores para comenzar.</p>
         <button
-          onClick={() => navigate('/tenant-selector')}
+          onClick={() => navigate('/setup')}
           style={{ padding: '12px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
         >
-          Ir a seleccionar →
+          ⚙️ Completar Configuración →
         </button>
       </div>
     );

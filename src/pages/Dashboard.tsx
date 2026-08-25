@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<Tx[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30d');
+  const [smartCheckDate, setSmartCheckDate] = useState<string | null>(null);
 
   useEffect(() => {
     const tenantData = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -38,6 +39,33 @@ export default function Dashboard() {
     setTenant(tenantData);
     fetchData(tenantData.id);
   }, []);
+
+  const loadFromLocalStorage = () => {
+    const raw = localStorage.getItem('lastSmartCheck');
+    if (!raw) return false;
+    try {
+      const sc = JSON.parse(raw);
+      const result = sc.result || sc;
+      const date = sc.date || sc.createdAt || result.date || '';
+      setSmartCheckDate(date || null);
+      const totalItems = (result.matched || 0) + (result.mismatches || 0) + (result.disputes || 0);
+      setSummary({
+        total_collected: result.totalAmount || result.total_collected || 0,
+        total_sales: result.totalAmount || result.total_sales || 0,
+        matched_bank: result.matched || 0,
+        matched_provider: 0,
+        pending_bank: result.mismatches || 0,
+        pending_provider: result.disputes || 0,
+        bank_transactions: (result.matched || 0) + (result.mismatches || 0),
+        provider_transactions: (result.matched || 0) + (result.disputes || 0),
+        collection_rate: totalItems > 0 ? ((result.matched || 0) / totalItems * 100) : 0,
+      });
+      setRecent([]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const fetchData = async (tenantId: string) => {
     setLoading(true);
@@ -54,7 +82,16 @@ export default function Dashboard() {
       const dashData = await dashRes.json();
       const recData = await recRes.json();
 
+      const hasData = dashData.summary && (
+        (dashData.summary.bank_transactions || 0) > 0 ||
+        (dashData.summary.provider_transactions || 0) > 0 ||
+        (dashData.recent_activity || []).length > 0
+      );
+
+      if (!hasData) throw new Error('No dashboard data');
+
       setSummary({ ...dashData.summary, ...recData });
+      setSmartCheckDate(null);
 
       const activity = (dashData.recent_activity || [])
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''))
@@ -70,7 +107,10 @@ export default function Dashboard() {
         }));
       setRecent(activity);
     } catch (err: any) {
-      setError(err.message);
+      const loaded = loadFromLocalStorage();
+      if (!loaded) {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -175,6 +215,12 @@ export default function Dashboard() {
             { key: 'type', label: t('common.type') },
           ]}
         />
+      )}
+
+      {smartCheckDate && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 8, color: '#4338ca', fontSize: 13, fontWeight: 600 }}>
+          📊 Último SmartCheck: {new Date(smartCheckDate).toLocaleDateString('es-ES')}
+        </div>
       )}
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>

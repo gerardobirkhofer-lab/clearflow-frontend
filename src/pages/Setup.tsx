@@ -34,6 +34,12 @@ interface CloudConfig {
   provider: string;
 }
 
+interface ProviderFee {
+  type: 'percentage' | 'percentage+fixed';
+  percentage: number;
+  fixed: number;
+}
+
 export default function Setup() {
   const { t, i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy' | 'cloud'>('clients');
@@ -48,6 +54,8 @@ export default function Setup() {
   const [purgeDays, setPurgeDays] = useState(90);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [providerEmails, setProviderEmails] = useState<Record<string, string>>({});
+  const [providerFees, setProviderFees] = useState<Record<string, ProviderFee>>({});
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [language, setLanguage] = useState(localStorage.getItem('clearflow_language') || 'es');
   const [cloudConfig, setCloudConfig] = useState<CloudConfig>(() => {
     const saved = localStorage.getItem('clearflow_cloud_config');
@@ -66,6 +74,8 @@ export default function Setup() {
     if (savedDays) setPurgeDays(Number(savedDays));
     const savedEmails = localStorage.getItem('clearflow_provider_emails');
     if (savedEmails) setProviderEmails(JSON.parse(savedEmails));
+    const savedFees = localStorage.getItem('clearflow_provider_fees');
+    if (savedFees) setProviderFees(JSON.parse(savedFees));
     const savedLang = localStorage.getItem('clearflow_language');
     if (savedLang) setLanguage(savedLang);
     const savedCloud = localStorage.getItem('clearflow_cloud_config');
@@ -103,6 +113,23 @@ export default function Setup() {
     const updated = { ...providerEmails, [provider]: email };
     setProviderEmails(updated);
     localStorage.setItem('clearflow_provider_emails', JSON.stringify(updated));
+  };
+
+  const saveProviderFee = (provider: string, fee: ProviderFee) => {
+    const updated = { ...providerFees, [provider]: fee };
+    setProviderFees(updated);
+    localStorage.setItem('clearflow_provider_fees', JSON.stringify(updated));
+  };
+
+  const updateFeeField = (provider: string, field: keyof ProviderFee, value: string) => {
+    const current = providerFees[provider] || { type: 'percentage' as const, percentage: 0, fixed: 0 };
+    const updated: ProviderFee = { ...current };
+    if (field === 'type') {
+      updated.type = value as 'percentage' | 'percentage+fixed';
+    } else if (field === 'percentage' || field === 'fixed') {
+      updated[field] = value === '' ? 0 : Number(value);
+    }
+    saveProviderFee(provider, updated);
   };
 
   const savePrivacySettings = () => {
@@ -397,20 +424,101 @@ export default function Setup() {
                 { key: 'mercadopago', label: 'Mercado Pago', icon: '🌐' },
                 { key: 'karma', label: 'Karma', icon: '📱' },
               ].map((p) => (
-                <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white' }}>
-                  <div style={{ fontSize: 22 }}>{p.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{p.label}</div>
-                    <input
-                      type="email"
-                      value={providerEmails[p.key] || ''}
-                      onChange={(e) => saveProviderEmail(p.key, e.target.value)}
-                      placeholder={`disputes@${p.key}.com`}
-                      style={{ width: '100%', maxWidth: 320, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                    />
+                <div key={p.key} style={{ borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', overflow: 'hidden' }}>
+                  <div
+                    onClick={() => setExpandedProvider(expandedProvider === p.key ? null : p.key)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', cursor: 'pointer' }}
+                  >
+                    <div style={{ fontSize: 22 }}>{p.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{p.label}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {providerFees[p.key] && (
+                        <span style={{ fontSize: 11, color: '#635bff', fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: '#f5f3ff' }}>💰 Configurado</span>
+                      )}
+                      {providerEmails[p.key] && (
+                        <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>✓ {t('setup.saved')}</span>
+                      )}
+                      <div style={{
+                        width: 24, height: 24, borderRadius: 6, border: '1px solid #e2e8f0',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'white', fontSize: 10, color: '#64748b',
+                        transform: expandedProvider === p.key ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s',
+                      }}>
+                        ▼
+                      </div>
+                    </div>
                   </div>
-                  {providerEmails[p.key] && (
-                    <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}>✓ {t('setup.saved')}</span>
+                  {expandedProvider === p.key && (
+                    <div style={{ padding: '0 18px 18px 18px', borderTop: '1px solid #f1f5f9' }}>
+                      <div style={{ marginBottom: 12, marginTop: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>📧 Email de disputas</label>
+                        <input
+                          type="email"
+                          value={providerEmails[p.key] || ''}
+                          onChange={(e) => saveProviderEmail(p.key, e.target.value)}
+                          placeholder={`disputes@${p.key}.com`}
+                          style={{ width: '100%', maxWidth: 320, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                        />
+                      </div>
+                      <div style={{ marginTop: 16 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>💰 Estructura de Comisiones</div>
+                        <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name={`fee-type-${p.key}`}
+                              checked={(providerFees[p.key]?.type || 'percentage') === 'percentage'}
+                              onChange={() => updateFeeField(p.key, 'type', 'percentage')}
+                            />
+                            Solo porcentaje
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name={`fee-type-${p.key}`}
+                              checked={(providerFees[p.key]?.type || 'percentage') === 'percentage+fixed'}
+                              onChange={() => updateFeeField(p.key, 'type', 'percentage+fixed')}
+                            />
+                            Fijo + porcentaje
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Porcentaje</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={providerFees[p.key]?.percentage ?? ''}
+                                onChange={(e) => updateFeeField(p.key, 'percentage', e.target.value)}
+                                placeholder="2.9"
+                                style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                              />
+                              <span style={{ fontSize: 13, color: '#64748b' }}>%</span>
+                            </div>
+                          </div>
+                          {(providerFees[p.key]?.type || 'percentage') === 'percentage+fixed' && (
+                            <div>
+                              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Fijo por transacción</label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={providerFees[p.key]?.fixed ?? ''}
+                                  onChange={(e) => updateFeeField(p.key, 'fixed', e.target.value)}
+                                  placeholder="0.30"
+                                  style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                                />
+                                <span style={{ fontSize: 13, color: '#64748b' }}>€</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
