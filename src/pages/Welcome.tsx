@@ -11,9 +11,6 @@ export default function Welcome() {
     localStorage.removeItem('onboardingProgress');
     navigate('/wizard');
   };
-    localStorage.setItem('userRole', role);
-    navigate('/tenant-selector');
-  };
 
   return (
     <div style={{
@@ -41,7 +38,7 @@ export default function Welcome() {
           margin: '0 auto 24px',
         }}>C</div>
         <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
-          {t('welcome.title', '¿Cómo usás ClearFlow?')}
+          {t('welcome.title', '¿Cómo usas ClearFlow?')}
         </h1>
         <p style={{ fontSize: 16, color: '#64748b', margin: 0, maxWidth: 420 }}>
           {t('welcome.subtitle', 'Elige tu perfil para personalizar tu experiencia.')}
@@ -129,7 +126,7 @@ export default function Welcome() {
       </div>
 
       <p style={{ marginTop: 40, fontSize: 13, color: '#94a3b8' }}>
-        {t('welcome.changeLater', 'Podés cambiar esto más adelante desde Configuración.')}
+        {t('welcome.changeLater', 'Puedes cambiar esto más adelante desde Configuración.')}
       </p>
     </div>
   );
