@@ -44,7 +44,7 @@ export default function Welcome() {
           {t('welcome.title', '¿Cómo usás ClearFlow?')}
         </h1>
         <p style={{ fontSize: 16, color: '#64748b', margin: 0, maxWidth: 420 }}>
-          {t('welcome.subtitle', 'Elegí tu perfil para personalizar tu experiencia.')}
+          {t('welcome.subtitle', 'Elige tu perfil para personalizar tu experiencia.')}
         </p>
       </div>
 

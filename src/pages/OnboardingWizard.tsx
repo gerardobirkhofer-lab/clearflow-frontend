@@ -133,7 +133,7 @@ export default function OnboardingWizard() {
             color: 'white', fontWeight: 800, fontSize: 20, margin: '0 auto 16px',
           }}>C</div>
           <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-            {t('wizard.title', 'Configurá ClearFlow')}
+            {t('wizard.title', 'Configura ClearFlow')}
           </h1>
           <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
             {t('wizard.subtitle', 'Paso {{step}} de {{total}} — {{desc}}', {
@@ -162,7 +162,7 @@ export default function OnboardingWizard() {
               {t('wizard.step1Title', '¿Quién sos?')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>
-              {t('wizard.step1Desc', 'Elegí el perfil que mejor se adapte a vos. Podés cambiarlo después.')}
+              {t('wizard.step1Desc', 'Elige el perfil que mejor se adapte a ti. Podés cambiarlo después.')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
               {[
@@ -196,11 +196,11 @@ export default function OnboardingWizard() {
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
               {state.role === 'advisor'
-                ? t('wizard.step2AdvisorTitle', '¿Cuántos clientés querés gestionar?')
-                : t('wizard.step2OwnerTitle', '¿Cuántas tiendas/negocios tenés?')}
+                ? t('wizard.step2AdvisorTitle', '¿Cuántos clientés quieres gestionar?')
+                : t('wizard.step2OwnerTitle', '¿Cuántas tiendas/negocios tienes?')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>
-              {t('wizard.step2Desc', 'Configuralos ahora. Siempre podés agregar más después.')}
+              {t('wizard.step2Desc', 'Configúralos ahora. Siempre puedes agregar más después.')}
             </p>
 
             <div style={{ marginBottom: 20 }}>
@@ -337,10 +337,10 @@ export default function OnboardingWizard() {
         {step === 4 && (
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
-              {t('wizard.step4Title', '¿Dónde querés guardar tus datos?')}
+              {t('wizard.step4Title', '¿Dónde quieres guardar tus datos?')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>
-              {t('wizard.step4Desc', 'Tu información, tu decisión. Cambiá esto cuando quieras.')}
+              {t('wizard.step4Desc', 'Tu información, tu decisión. Cambia esto cuando quieras.')}
             </p>
 
             <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
@@ -394,7 +394,7 @@ export default function OnboardingWizard() {
               {t('wizard.readyTitle', '¡Todo listo!')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 32, fontSize: 15 }}>
-              {t('wizard.readyDesc', 'Ya podés empezar a usar ClearFlow. Acá está el resumen de tu configuración:')}
+              {t('wizard.readyDesc', 'Ya puedes empezar a usar ClearFlow. Acá está el resumen de tu configuración:')}
             </p>
 
             <div style={{ textAlign: 'left', maxWidth: 480, margin: '0 auto 32px', background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: 24 }}>

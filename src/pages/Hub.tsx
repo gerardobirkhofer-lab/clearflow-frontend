@@ -119,7 +119,7 @@ export default function Hub() {
               {tenant.name}
             </h1>
             <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>
-              {t('hub.greeting', 'Hola {{name}}, ¿qué querés hacer hoy?', { name: user.name || '' })}
+              {t('hub.greeting', 'Hola {{name}}, ¿qué quieres hacer hoy?', { name: user.name || '' })}
             </p>
           </div>
         </div>

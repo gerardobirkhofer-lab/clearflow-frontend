@@ -90,7 +90,7 @@ export default function PostLoginHub() {
           Buen día. Espero que te encuentres muy bien hoy.
         </p>
         <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 8 }}>
-          ¿Qué querés hacer?
+          ¿Qué quieres hacer?
         </p>
       </div>
 

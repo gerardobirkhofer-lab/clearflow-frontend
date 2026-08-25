@@ -79,7 +79,7 @@ export default function TenantSelector() {
   };
 
   const deleteTenant = async (tenantId: string) => {
-    if (!confirm('¿Estás seguro de que querés eliminar esta tienda/cliente?')) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar esta tienda/cliente?')) return;
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -103,7 +103,7 @@ export default function TenantSelector() {
           <h1 style={{ margin: '0 0 8px 0', fontSize: 28 }}>Bienvenido de nuevo, {user.name || 'Usuario'}</h1>
           <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
             {tenants.length === 0 
-              ? "Configurá tu primera tienda para comenzar." 
+              ? "Configura tu primera tienda para comenzar." 
               : "Seleccioná una tienda para entrar a tu panel."}
           </p>
         </div>
