@@ -65,6 +65,13 @@ export default function Setup() {
   });
   const [cloudConnected, setCloudConnected] = useState(false);
 
+  // Detectar rol del usuario para mostrar textos correctos
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isOwner = user.role === 'self_owner';
+  const portfolioLabel = isOwner ? 'Cartera de Negocios' : t('setup.clientPortfolio');
+  const addLabel = isOwner ? 'Agregar Negocio' : t('setup.addClient');
+  const nameLabel = isOwner ? 'Nombre del Negocio' : t('setup.clientName');
+
   useEffect(() => {
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
     if (tenant.id) setTenantId(tenant.id);
@@ -226,7 +233,7 @@ export default function Setup() {
           {clients.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
               <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('setup.clientPortfolio')}</div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{portfolioLabel}</div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{clients.length}</div>
               </div>
               <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
@@ -245,7 +252,11 @@ export default function Setup() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('setup.clientPortfolio')}</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{portfolioLabel}</h2>
+            <button onClick={() => setShowAddClient(true)} style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', background: '#635bff',
+              color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}>+ {addLabel}</button>
             <button onClick={() => setShowAddClient(true)} style={{
               padding: '8px 16px', borderRadius: 8, border: 'none', background: '#635bff',
               color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -254,14 +265,14 @@ export default function Setup() {
 
           {showAddClient && (
             <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', marginBottom: 20 }}>
-              <h3 style={{ marginTop: 0, fontSize: 15 }}>{t('setup.addClient')}</h3>
+              <h3 style={{ marginTop: 0, fontSize: 15 }}>{addLabel}</h3>
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
                 addClient(fd.get('name') as string, fd.get('email') as string);
               }}>
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{t('setup.clientName')}</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{nameLabel}</label>
                   <input name="name" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Pura Alegria S.L." />
                 </div>
                 <div style={{ marginBottom: 16 }}>
