@@ -12,7 +12,7 @@ interface UploadingFile {
   message?: string;
 }
 
-type ProcessingPhase = 'uploading' | 'analyzing' | 'matching' | 'complete' | 'error' | 'idle';
+type WizardPhase = 'uploading' | 'analyzing' | 'matching' | 'complete' | 'error' | 'idle';
 type WizardStep = 1 | 2 | 3 | 4;
 
 interface ProcessingResult {
@@ -46,7 +46,7 @@ export default function SmartCheckWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>(1);
   const [uploads, setUploads] = useState<UploadingFile[]>([]);
-  const [phase, setPhase] = useState<ProcessingPhase>('idle');
+  const [phase, setPhase] = useState<WizardPhase>('idle');
   const [result, setResult] = useState<ProcessingResult | undefined>();
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -361,7 +361,7 @@ export default function SmartCheckWizard() {
   if (step === 3) {
     return (
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '100px 20px', fontFamily: 'sans-serif', textAlign: 'center' }}>
-        <ProcessingBanner phase={phase} result={result} />
+        <ProcessingBanner phase={phase as any} result={result} />
         <p style={{ color: '#64748b', marginTop: 24 }}>Actualizando tu estado continuo...</p>
       </div>
     );

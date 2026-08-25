@@ -71,28 +71,6 @@ export default function Login({ onLogin }: LoginProps) {
         localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
         navigate('/hub');
       }
-      const onboardingComplete = localStorage.getItem('onboardingComplete');
-      if (!onboardingComplete) {
-        navigate('/welcome');
-        return;
-      }
-      
-      // Onboarding done - go to dashboard or tenant selector
-      try {
-        const tenantRes = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
-          headers: { Authorization: `Bearer ${data.token}` }
-        });
-        const tenantData = await tenantRes.json();
-        const tenantCount = tenantData.tenants?.length || 0;
-        if (data.user.role === 'accountant' || tenantCount === 0) {
-          navigate('/tenants');
-        } else {
-          navigate('/dashboard');
-        }
-      } catch {
-        localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-        navigate('/dashboard');
-      }
     } catch (err: any) {
       // DEMO FALLBACK: if backend is down, use demo mode
       localStorage.clear();
@@ -102,12 +80,6 @@ export default function Login({ onLogin }: LoginProps) {
       localStorage.setItem('onboardingComplete', 'true');
       if (onLogin) onLogin();
       navigate('/hub');
-      localStorage.clear();
-      localStorage.setItem('token', DEMO_TOKEN);
-      localStorage.setItem('user', JSON.stringify(DEMO_USER));
-      localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-      if (onLogin) onLogin();
-      navigate('/dashboard');
     }
   };
 
