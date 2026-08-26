@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import BackButton from '../components/BackButton';
 
@@ -15,7 +15,16 @@ export default function Profitability() {
   const [costs, setCosts] = useState<CostItem[]>([]);
   const [showAddCost, setShowAddCost] = useState(false);
 
-  const stores: any[] = [];
+  const [smartData, setSmartData] = useState<any>(null);
+  useEffect(() => {
+    const raw = localStorage.getItem('lastSmartCheck');
+    if (raw) setSmartData(JSON.parse(raw));
+  }, []);
+
+  const result = smartData?.result;
+  const stores = result ? [
+    { id: 1, name: 'Demo Restaurant', revenue: result.totalAmount || 0, providerFees: (result.totalAmount || 0) * 0.035 }
+  ] : [];
   const currentStore = stores.find(s => s.id === selectedStore);
 
   const monthlyCostTotal = costs.reduce((sum, c) => {
