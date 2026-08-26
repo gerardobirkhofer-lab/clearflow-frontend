@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface BackButtonProps {
   to?: string;
@@ -6,10 +6,9 @@ interface BackButtonProps {
 }
 
 export default function BackButton({ to = '/dashboard', label = '← Volver al Panel' }: BackButtonProps) {
-  const navigate = useNavigate();
   return (
-    <button
-      onClick={() => navigate(to)}
+    <Link
+      to={to}
       style={{
         background: 'none',
         border: 'none',
@@ -18,13 +17,14 @@ export default function BackButton({ to = '/dashboard', label = '← Volver al P
         fontSize: 14,
         fontWeight: 500,
         marginBottom: 16,
-        padding: '4px 0',
-        display: 'flex',
+        padding: '8px 0',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: 6
+        gap: 6,
+        textDecoration: 'none'
       }}
     >
       {label}
-    </button>
+    </Link>
   );
 }
