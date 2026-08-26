@@ -197,7 +197,8 @@
     "comingSoon": "Coming soon — upload CSV for now",
     "currency": "Currency",
     "stores": "STORES",
-    "legalNotice": "<strong>Legal Notice:</strong> ClearFlow S.L. acts solely as a data processor under GDPR Article 28. You (the data controller) retain full ownership of your business data. We process your data only to provide the reconciliation service you requested. We do not perform tax analysis, financial auditing, or regulatory reporting on your behalf. If you require a Data Processing Agreement (DPA), contact us at dpa@clearflow.app."
+    "legalNotice": "<strong>Legal Notice:</strong> ClearFlow S.L. acts solely as a data processor under GDPR Article 28. You (the data controller) retain full ownership of your business data. We process your data only to provide the reconciliation service you requested. We do not perform tax analysis, financial auditing, or regulatory reporting on your behalf. If you require a Data Processing Agreement (DPA), contact us at dpa@clearflow.app.",
+    "businessPortfolio": "Business Portfolio"
   },
   "upload": {
     "title": "Upload Center",

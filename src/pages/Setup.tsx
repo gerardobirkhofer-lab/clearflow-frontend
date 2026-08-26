@@ -68,7 +68,7 @@ export default function Setup() {
   // Detectar rol del usuario para mostrar textos correctos
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isOwner = user.role === 'self_owner';
-  const portfolioLabel = isOwner ? 'Cartera de Negocios' : t('setup.clientPortfolio');
+  const portfolioLabel = isOwner ? t('setup.businessPortfolio') : t('setup.clientPortfolio');
   const addLabel = isOwner ? 'Agregar Negocio' : t('setup.addClient');
   const nameLabel = isOwner ? 'Nombre del Negocio' : t('setup.clientName');
 

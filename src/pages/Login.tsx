@@ -42,7 +42,8 @@ export default function Login({ onLogin }: LoginProps) {
         throw new Error('backend-error');
       }
       
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
@@ -73,7 +74,8 @@ export default function Login({ onLogin }: LoginProps) {
       }
     } catch (err: any) {
       // DEMO FALLBACK: if backend is down, use demo mode
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.setItem('token', DEMO_TOKEN);
       localStorage.setItem('user', JSON.stringify(DEMO_USER));
       localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));

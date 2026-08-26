@@ -197,7 +197,8 @@
     "comingSoon": "Próximamente — carga CSV por ahora",
     "currency": "Moneda",
     "stores": "TIENDAS",
-    "legalNotice": "<strong>Aviso Legal:</strong> ClearFlow S.L. actúa únicamente como procesador de datos bajo el Artículo 28 del GDPR. Vos (el responsable del tratamiento) mantenés la propiedad total de tus datos comerciales. Procesamos tus datos únicamente para proporcionar el servicio de SmartCheck que solicitaste. No realizamos análisis fiscal, auditoría financiera ni reportes regulatorios en tu nombre. Si necesitás un Acuerdo de Procesamiento de Datos (DPA), contactanos en dpa@clearflow.app."
+    "legalNotice": "<strong>Aviso Legal:</strong> ClearFlow S.L. actúa únicamente como procesador de datos bajo el Artículo 28 del GDPR. Vos (el responsable del tratamiento) mantenés la propiedad total de tus datos comerciales. Procesamos tus datos únicamente para proporcionar el servicio de SmartCheck que solicitaste. No realizamos análisis fiscal, auditoría financiera ni reportes regulatorios en tu nombre. Si necesitás un Acuerdo de Procesamiento de Datos (DPA), contactanos en dpa@clearflow.app.",
+    "businessPortfolio": "Cartera de Negocios"
   },
   "upload": {
     "title": "Centro de Carga",
