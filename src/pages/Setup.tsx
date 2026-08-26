@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import StripeConnect from '../components/StripeConnect';
-import BackButton from '../components/BackButton';
 
 interface Client {
   id: string;
@@ -169,7 +168,23 @@ export default function Setup() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-      <BackButton to="/hub" label="← Volver al Panel" />
+      <button
+          onClick={() => window.location.href = '/hub'}
+          style={{
+            display: 'inline-block',
+            padding: '10px 18px',
+            marginBottom: 20,
+            backgroundColor: '#f1f5f9',
+            border: '1px solid #cbd5e1',
+            borderRadius: 8,
+            color: '#475569',
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          ← Volver al Panel
+        </button>
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
           ⚙️ {t('setup.title')}
