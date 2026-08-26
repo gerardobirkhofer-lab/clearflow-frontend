@@ -516,8 +516,8 @@ export default function Setup() {
                               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Fijo por transacción</label>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <input
-                                  type="number"
-                                  step="0.01"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={providerFees[p.key]?.fixed ?? ''}
                                   onChange={(e) => updateFeeField(p.key, 'fixed', e.target.value)}
                                   placeholder="0.30"
