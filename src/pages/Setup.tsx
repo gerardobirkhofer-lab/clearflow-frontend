@@ -134,7 +134,7 @@ export default function Setup() {
     if (field === 'type') {
       updated.type = value as 'percentage' | 'percentage+fixed';
     } else if (field === 'percentage' || field === 'fixed') {
-      updated[field] = value === '' ? 0 : Number(value);
+      updated[field] = value === '' ? 0 : Number(value.replace(',', '.'));
     }
     saveProviderFee(provider, updated);
   };
