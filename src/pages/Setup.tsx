@@ -503,8 +503,8 @@ export default function Setup() {
                               <input
                                 type="text"
                                 inputMode="decimal"
-                                value={providerFees[p.key]?.percentage ?? ''}
-                                onChange={(e) => updateFeeField(p.key, 'percentage', e.target.value)}
+                                defaultValue={providerFees[p.key]?.percentage ?? ''}
+                                onBlur={(e) => updateFeeField(p.key, 'percentage', e.target.value)}
                                 placeholder="2.9"
                                 style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
                               />
@@ -518,8 +518,8 @@ export default function Setup() {
                                 <input
                                   type="text"
                                   inputMode="decimal"
-                                  value={providerFees[p.key]?.fixed ?? ''}
-                                  onChange={(e) => updateFeeField(p.key, 'fixed', e.target.value)}
+                                  defaultValue={providerFees[p.key]?.fixed ?? ''}
+                                  onBlur={(e) => updateFeeField(p.key, 'fixed', e.target.value)}
                                   placeholder="0.30"
                                   style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
                                 />
