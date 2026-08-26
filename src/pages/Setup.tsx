@@ -508,20 +508,6 @@ export default function Setup() {
                                 placeholder="2.9"
                                 style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
                               />
-                          </label>
-                        </div>
-                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Porcentaje</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={providerFees[p.key]?.percentage ?? ''}
-                                onChange={(e) => updateFeeField(p.key, 'percentage', e.target.value)}
-                                placeholder="2.9"
-                                style={{ width: 80, padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                              />
                               <span style={{ fontSize: 13, color: '#64748b' }}>%</span>
                             </div>
                           </div>
