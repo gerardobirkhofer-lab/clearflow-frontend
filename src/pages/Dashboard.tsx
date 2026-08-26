@@ -268,10 +268,10 @@ export default function Dashboard() {
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
         <h2 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 700 }}>⚡ Acciones Rápidas</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-          <Link to="/mismatches" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link to="/mismatch-tracker" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             ⚠️ Ver Discrepancias
           </Link>
-          <Link to="/disputes" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ffedd5', background: '#fff7ed', color: '#9a3412', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link to="/dispute-tracker" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ffedd5', background: '#fff7ed', color: '#9a3412', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             🔴 Ver Disputas Abiertas
           </Link>
           <Link to="/communications" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #dbeafe', background: '#eff6ff', color: '#1e40af', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -280,7 +280,7 @@ export default function Dashboard() {
           <Link to="/reports" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #d1fae5', background: '#f0fdf4', color: '#166534', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             📊 Ver Informes
           </Link>
-          <Link to="/revenue" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7e22ce', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link to="/revenue-control" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7e22ce', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             💰 Revenue Control (Beta)
           </Link>
           <Link to="/statistics" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ccfbf1', background: '#f0fdfa', color: '#0f766e', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
