@@ -281,13 +281,13 @@ export default function Dashboard() {
             📊 Ver Informes
           </Link>
           <Link to="/revenue-control" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7e22ce', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            💰 Revenue Control (Beta)
+            💰 Control de Ingresos (Beta)
           </Link>
           <Link to="/statistics" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ccfbf1', background: '#f0fdfa', color: '#0f766e', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📈 Statistics
+            📈 Estadísticas
           </Link>
           <Link to="/profitability" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fef08a', background: '#fefce8', color: '#854d0e', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📉 Profitability
+            📉 Rentabilidad
           </Link>
         </div>
       </div>
