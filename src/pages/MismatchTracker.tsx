@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
@@ -40,6 +40,11 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [smartCheckMessage, setSmartCheckMessage] = useState<string | null>(null);
 
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+
+  // Cargar automáticamente desde localStorage al montar
+  useEffect(() => {
+    loadDemoData();
+  }, []);
 
   const loadDemoData = () => {
     const raw = localStorage.getItem('lastSmartCheck');
@@ -312,18 +317,6 @@ ClearFlow Reconciliation System
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          {mismatches.length === 0 && (
-            <button
-              onClick={loadDemoData}
-              style={{
-                padding: '10px 20px', borderRadius: 8, border: '1px solid #c7d2fe',
-                background: '#eef2ff', color: '#4338ca', fontSize: 13, fontWeight: 600,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-              }}
-            >
-              🎮 {t('mismatchTracker.loadDemo')}
-            </button>
-          )}
           <button
             onClick={autoCheckResolutions}
             style={{
@@ -631,19 +624,7 @@ ClearFlow Reconciliation System
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
             <div style={{ fontWeight: 600 }}>{t('common.noData')}</div>
-            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters or load demo data to see how the tracker works.</div>
-            {mismatches.length === 0 && (
-              <button
-                onClick={loadDemoData}
-                style={{
-                  padding: '10px 20px', borderRadius: 8, border: '1px solid #c7d2fe',
-                  background: '#eef2ff', color: '#4338ca', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                🎮 {t('mismatchTracker.loadDemo')}
-              </button>
-            )}
+            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters to see results.</div>
           </div>
         )}
       </div>

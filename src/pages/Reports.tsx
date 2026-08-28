@@ -19,6 +19,7 @@ interface ReportCard {
 export default function Reports() {
   const { t } = useTranslation();
   const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [viewingReport, setViewingReport] = useState<ReportCard | null>(null);
 
   const stores = [
     { id: 'all', name: t('reports.store') + ' ' + t('common.all') },
@@ -193,6 +194,14 @@ export default function Reports() {
 
   const active = reports.find(r => r.id === activeReport);
 
+  const formatCell = (row: any, key: string) => {
+    const val = row[key];
+    if (typeof val === 'number') {
+      return formatMoney(val);
+    }
+    return String(val ?? '-');
+  };
+
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
@@ -222,17 +231,29 @@ export default function Reports() {
             <div style={{ fontSize: 32, marginBottom: 16 }}>{report.icon}</div>
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{t(report.titleKey)}</div>
             <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>{t(report.descKey)}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} {t('reports.records')}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setViewingReport(report)}
+                style={{
+                  flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
+                  background: 'white', color: '#0f172a', fontSize: 13,
+                  fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                👁️ {t('reports.view') || 'Ver'}
+              </button>
               <button
                 onClick={() => setActiveReport(report.id)}
                 style={{
-                  padding: '10px 20px', borderRadius: 8, border: 'none',
+                  flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none',
                   background: '#0f172a', color: 'white', fontSize: 13,
                   fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                {t('reports.download')}
+                📥 {t('reports.download')}
               </button>
             </div>
           </div>
@@ -245,6 +266,72 @@ export default function Reports() {
           <strong>{t('reports.usage')}:</strong> {t('reports.usageDesc')}
         </div>
       </div>
+
+      {/* VIEW MODAL */}
+      {viewingReport && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 960,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.2)', maxHeight: '90vh', overflow: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+                {viewingReport.icon} {t(viewingReport.titleKey)}
+              </h2>
+              <button
+                onClick={() => setViewingReport(null)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}
+              >
+                ✕ {t('common.close')}
+              </button>
+            </div>
+
+            <div style={{ overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: 12 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    {viewingReport.columns.map(col => (
+                      <th key={col.key} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {viewingReport.data.map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      {viewingReport.columns.map(col => (
+                        <td key={col.key} style={{ padding: '10px 16px', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          {formatCell(row, col.key)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setViewingReport(null)}
+                style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}
+              >
+                {t('common.close')}
+              </button>
+              <button
+                onClick={() => { setActiveReport(viewingReport.id); setViewingReport(null); }}
+                style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                📥 {t('reports.download')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EXPORT MODAL */}
       {active && (
