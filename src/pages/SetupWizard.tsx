@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 interface Store {
   id: string;
   name: string;
+  type: string;
   address: string;
   nif: string;
   city: string;
@@ -34,7 +35,7 @@ export default function SetupWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [storeCount, setStoreCount] = useState(1);
-  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', address: '', nif: '', city: '', province: '' }]);
+  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', type: '', address: '', nif: '', city: '', province: '' }]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>({});
   const [bankMode, setBankMode] = useState<'shared' | 'separate'>('shared');
@@ -94,7 +95,7 @@ export default function SetupWizard() {
     setStoreCount(count);
     const newStores: Store[] = [];
     for (let i = 0; i < count; i++) {
-      newStores.push(stores[i] || { id: String(i + 1), name: '', address: '', nif: '', city: '', province: '' });
+      newStores.push(stores[i] || { id: String(i + 1), name: '', type: '', address: '', nif: '', city: '', province: '' });
     }
     setStores(newStores);
   };
@@ -217,9 +218,24 @@ export default function SetupWizard() {
                   Tienda / Negocio #{i + 1}
                 </h3>
                 <div style={{ display: 'grid', gap: 16 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del negocio</label>
-                    <input value={store.name} onChange={e => updateStore(i, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del negocio</label>
+                      <input value={store.name} onChange={e => updateStore(i, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Tipo de negocio</label>
+                      <select value={store.type} onChange={e => updateStore(i, 'type', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
+                        <option value="">Seleccionar...</option>
+                        <option value="restaurant">Restaurante fisico</option>
+                        <option value="bar">Bar / Cafeteria</option>
+                        <option value="online">Tienda online</option>
+                        <option value="delivery">Delivery / Takeaway</option>
+                        <option value="retail">Tienda fisica</option>
+                        <option value="service">Servicios profesionales</option>
+                        <option value="other">Otro</option>
+                      </select>
+                    </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
