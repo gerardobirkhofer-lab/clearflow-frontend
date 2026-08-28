@@ -5,6 +5,7 @@ interface Store {
   id: string;
   name: string;
   type: string;
+  company: string;
   address: string;
   nif: string;
   city: string;
@@ -35,7 +36,7 @@ export default function SetupWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [storeCount, setStoreCount] = useState(1);
-  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', type: '', address: '', nif: '', city: '', province: '' }]);
+  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', type: '', company: '', address: '', nif: '', city: '', province: '' }]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>({});
   const [bankMode, setBankMode] = useState<'shared' | 'separate'>('shared');
@@ -95,7 +96,7 @@ export default function SetupWizard() {
     setStoreCount(count);
     const newStores: Store[] = [];
     for (let i = 0; i < count; i++) {
-      newStores.push(stores[i] || { id: String(i + 1), name: '', type: '', address: '', nif: '', city: '', province: '' });
+      newStores.push(stores[i] || { id: String(i + 1), name: '', type: '', company: '', address: '', nif: '', city: '', province: '' });
     }
     setStores(newStores);
   };
@@ -236,6 +237,11 @@ export default function SetupWizard() {
                         <option value="other">Otro</option>
                       </select>
                     </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Sociedad / Grupo Legal (opcional)</label>
+                    <input value={store.company} onChange={e => updateStore(i, 'company', e.target.value)} placeholder="Ej: Pura Gastronomia S.L." style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Si tienes varias tiendas bajo la misma sociedad, usa el mismo nombre aqui.</div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
