@@ -12,6 +12,7 @@ import Profitability from './pages/Profitability';
 import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
 import Setup from './pages/Setup';
+import SetupWizard from './pages/SetupWizard';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
@@ -40,12 +41,12 @@ function AppContent() {
     window.location.href = '/';
   };
 
-  // Ocultar menú en onboarding, hub y wizard (experiencia limpia)
-  const hideNav = location.pathname === '/welcome' || location.pathname === '/wizard' || location.pathname === '/hub' || location.pathname === '/smartcheck-wizard';
+  // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
+  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Helper para redirigir según estado de onboarding
+  // Helper para redirigir segun estado de onboarding
   const getHomeRoute = () => {
     if (!isLoggedIn) return <Landing />;
     const onboardingComplete = localStorage.getItem('onboardingComplete');
@@ -104,6 +105,7 @@ function AppContent() {
           <Route path="/" element={getHomeRoute()} />
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
+          <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
           <Route path="/hub" element={<PostLoginHub />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />

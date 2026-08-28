@@ -6,10 +6,11 @@ export default function Welcome() {
   const { t } = useTranslation();
 
   const selectRole = (role: 'owner' | 'advisor') => {
+    const setup = JSON.parse(localStorage.getItem('clearflowSetup') || '{}');
+    setup.userRole = role;
+    localStorage.setItem('clearflowSetup', JSON.stringify(setup));
     localStorage.setItem('userRole', role);
-    // Limpiar progreso viejo para empezar fresco
-    localStorage.removeItem('onboardingProgress');
-    navigate('/wizard');
+    navigate('/setup-wizard');
   };
 
   return (
@@ -23,25 +24,18 @@ export default function Welcome() {
       fontFamily: 'sans-serif',
       padding: '40px 20px',
     }}>
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      <div style={{ textAlign: 'center', marginBottom: 48, maxWidth: 560 }}>
         <div style={{
-          width: 64,
-          height: 64,
-          borderRadius: 16,
-          background: '#635bff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontWeight: 800,
-          fontSize: 28,
+          width: 64, height: 64, borderRadius: 16, background: '#635bff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontWeight: 800, fontSize: 28,
           margin: '0 auto 24px',
         }}>C</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
-          {t('welcome.title', '¿Cómo usas ClearFlow?')}
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>
+          {t('welcome.title', 'Bienvenido a ClearFlow')}
         </h1>
-        <p style={{ fontSize: 16, color: '#64748b', margin: 0, maxWidth: 420 }}>
-          {t('welcome.subtitle', 'Elige tu perfil para personalizar tu experiencia.')}
+        <p style={{ fontSize: 16, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+          Gracias por confiarnos el control dinámico vía algoritmos de que tu esfuerzo diario llegue en tiempo y forma a tu cuenta bancaria.
         </p>
       </div>
 
@@ -56,12 +50,8 @@ export default function Welcome() {
         <button
           onClick={() => selectRole('owner')}
           style={{
-            padding: 40,
-            borderRadius: 16,
-            border: '2px solid #e2e8f0',
-            background: 'white',
-            cursor: 'pointer',
-            textAlign: 'left',
+            padding: 40, borderRadius: 16, border: '2px solid #e2e8f0',
+            background: 'white', cursor: 'pointer', textAlign: 'left',
             transition: 'all 0.2s',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
@@ -81,10 +71,10 @@ export default function Welcome() {
             {t('welcome.ownerTitle', 'Soy Dueño de Negocio')}
           </h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-            {t('welcome.ownerDesc', 'Gestiono uno o varios locales, tiendas online o restaurantes. Quiero saber exactamente cuánto cobré, qué falta y dónde está mi dinero.')}
+            Gestiono uno o varios locales, tiendas online o restaurantes. Quiero saber exactamente cuánto cobré, qué falta y dónde está mi dinero.
           </p>
           <div style={{ marginTop: 20, color: '#635bff', fontWeight: 600, fontSize: 14 }}>
-            {t('welcome.select', 'Seleccionar →')}
+            Seleccionar →
           </div>
         </button>
 
@@ -92,12 +82,8 @@ export default function Welcome() {
         <button
           onClick={() => selectRole('advisor')}
           style={{
-            padding: 40,
-            borderRadius: 16,
-            border: '2px solid #e2e8f0',
-            background: 'white',
-            cursor: 'pointer',
-            textAlign: 'left',
+            padding: 40, borderRadius: 16, border: '2px solid #e2e8f0',
+            background: 'white', cursor: 'pointer', textAlign: 'left',
             transition: 'all 0.2s',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
@@ -117,16 +103,16 @@ export default function Welcome() {
             {t('welcome.advisorTitle', 'Soy Asesor / Contador')}
           </h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-            {t('welcome.advisorDesc', 'Trabajo con múltiples clientes. Necesito una herramienta que me permita revisar y disputar pagos de todos mis clientes en un solo lugar.')}
+            Trabajo con múltiples clientes. Necesito una herramienta que me permita revisar y disputar pagos de todos mis clientes en un solo lugar.
           </p>
           <div style={{ marginTop: 20, color: '#635bff', fontWeight: 600, fontSize: 14 }}>
-            {t('welcome.select', 'Seleccionar →')}
+            Seleccionar →
           </div>
         </button>
       </div>
 
       <p style={{ marginTop: 40, fontSize: 13, color: '#94a3b8' }}>
-        {t('welcome.changeLater', 'Puedes cambiar esto más adelante desde Configuración.')}
+        Puedes cambiar esto más adelante desde Configuración.
       </p>
     </div>
   );

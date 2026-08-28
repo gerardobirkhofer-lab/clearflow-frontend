@@ -1,422 +1,514 @@
 import { useState, useEffect } from 'react';
-import BackButton from '../components/BackButton';
+import { useNavigate } from 'react-router-dom';
 
-interface ProviderType {
+interface Store {
   id: string;
   name: string;
-  icon: string;
+  address: string;
+  nif: string;
+  city: string;
+  province: string;
 }
 
 interface ProviderConfig {
+  id: string;
   name: string;
-  provider_type: string;
-  settlement_mode: 'per_transaction' | 'weekly' | 'monthly';
-  credit_delay_days: number;
-  debit_delay_days: number;
-  transfer_delay_days: number;
-  batch_day_of_week: string;
-  batch_frequency: string;
-  fee_percent: number;
-  fee_fixed: number;
-  monthly_fee: number;
-  bank_account_id: number | null;
+  email: string;
+  fee_percent: string;
+  fee_fixed: string;
+  has_iva: boolean;
+  iva_percent: string;
+  monthly_fee: string;
 }
 
 interface BankAccount {
-  id: number;
-  name: string;
+  id: string;
   bank_name: string;
+  account_name: string;
   iban: string;
+  account_number: string;
+  assigned_store_ids: string[];
 }
 
 export default function SetupWizard() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [providerTypes, setProviderTypes] = useState<ProviderType[]>([]);
+  const [storeCount, setStoreCount] = useState(1);
+  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', address: '', nif: '', city: '', province: '' }]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>({});
+  const [bankMode, setBankMode] = useState<'shared' | 'separate'>('shared');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [newAccount, setNewAccount] = useState({ name: '', bank_name: '', iban: '', account_number: '' });
-  const [savedProviders, setSavedProviders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [cloudChoice, setCloudChoice] = useState('clearflow');
+  const totalSteps = 7;
 
+  const providerOptions = [
+    { id: 'stripe', name: 'Stripe', icon: '💳' },
+    { id: 'redsys', name: 'TPV / Redsys', icon: '🏧' },
+    { id: 'mercadopago', name: 'Mercado Pago', icon: '💰' },
+    { id: 'tpv', name: 'TPV Físico', icon: '📠' },
+    { id: 'paypal', name: 'PayPal', icon: '🅿️' },
+    { id: 'sumup', name: 'SumUp', icon: '🔷' },
+  ];
+
+  // Load existing setup
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/types`)
-      .then(r => r.json())
-      .then(data => setProviderTypes(data.types || []));
-    
-    fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`)
-      .then(r => r.json())
-      .then(data => setBankAccounts(data.accounts || []));
-    
-    fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`)
-      .then(r => r.json())
-      .then(data => setSavedProviders(data.providers || []));
+    const saved = localStorage.getItem('clearflowSetup');
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        if (s.stores) setStores(s.stores);
+        if (s.storeCount) setStoreCount(s.storeCount);
+        if (s.selectedProviders) setSelectedProviders(s.selectedProviders);
+        if (s.providerConfigs) setProviderConfigs(s.providerConfigs);
+        if (s.bankMode) setBankMode(s.bankMode);
+        if (s.bankAccounts) setBankAccounts(s.bankAccounts);
+        if (s.cloudChoice) setCloudChoice(s.cloudChoice);
+      } catch {}
+    }
   }, []);
 
-  const toggleProvider = (id: string) => {
-    setSelectedProviders(prev => 
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
-    if (!providerConfigs[id]) {
-      setProviderConfigs(prev => ({
-        ...prev,
-        [id]: {
-          name: providerTypes.find(p => p.id === id)?.name + ' Account',
-          provider_type: id,
-          settlement_mode: 'per_transaction',
-          credit_delay_days: 2,
-          debit_delay_days: 1,
-          transfer_delay_days: 0,
-          batch_day_of_week: 'friday',
-          batch_frequency: 'weekly',
-          fee_percent: 1.5,
-          fee_fixed: 0.25,
-          monthly_fee: 0,
-          bank_account_id: null,
-        }
-      }));
-    }
+  const saveSetup = (partial: any = {}) => {
+    const existing = JSON.parse(localStorage.getItem('clearflowSetup') || '{}');
+    const updated = {
+      ...existing,
+      stores,
+      storeCount,
+      selectedProviders,
+      providerConfigs,
+      bankMode,
+      bankAccounts,
+      cloudChoice,
+      ...partial,
+    };
+    localStorage.setItem('clearflowSetup', JSON.stringify(updated));
   };
 
-  const updateConfig = (providerId: string, field: string, value: any) => {
+  const updateStore = (index: number, field: keyof Store, value: string) => {
+    const updated = [...stores];
+    updated[index] = { ...updated[index], [field]: value };
+    setStores(updated);
+  };
+
+  const handleStoreCountChange = (count: number) => {
+    setStoreCount(count);
+    const newStores: Store[] = [];
+    for (let i = 0; i < count; i++) {
+      newStores.push(stores[i] || { id: String(i + 1), name: '', address: '', nif: '', city: '', province: '' });
+    }
+    setStores(newStores);
+  };
+
+  const toggleProvider = (id: string) => {
+    setSelectedProviders(prev => {
+      const exists = prev.includes(id);
+      const updated = exists ? prev.filter(p => p !== id) : [...prev, id];
+      if (!exists) {
+        setProviderConfigs(cf => ({
+          ...cf,
+          [id]: { id, name: providerOptions.find(p => p.id === id)?.name || id, email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '0' },
+        }));
+      }
+      return updated;
+    });
+  };
+
+  const updateProviderConfig = (id: string, field: keyof ProviderConfig, value: any) => {
     setProviderConfigs(prev => ({
       ...prev,
-      [providerId]: { ...prev[providerId], [field]: value }
+      [id]: { ...prev[id], [field]: value },
     }));
   };
 
-  const addBankAccount = async () => {
-    if (!newAccount.name) return;
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAccount),
-    });
-    const data = await res.json();
-    setBankAccounts(prev => [...prev, data]);
-    setNewAccount({ name: '', bank_name: '', iban: '', account_number: '' });
-  };
-
-  const saveProviders = async () => {
-    setLoading(true);
-    for (const providerId of selectedProviders) {
-      const config = providerConfigs[providerId];
-      await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+  const handleBankModeChange = (mode: 'shared' | 'separate') => {
+    setBankMode(mode);
+    const count = mode === 'shared' ? 1 : stores.length;
+    const newAccounts: BankAccount[] = [];
+    for (let i = 0; i < count; i++) {
+      const existing = bankAccounts[i];
+      newAccounts.push(existing || {
+        id: String(i + 1),
+        bank_name: '',
+        account_name: mode === 'shared' ? 'Cuenta Principal' : `Cuenta ${stores[i]?.name || 'Tienda ' + (i + 1)}`,
+        iban: '',
+        account_number: '',
+        assigned_store_ids: mode === 'shared' ? stores.map(s => s.id) : [stores[i]?.id],
       });
     }
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`);
-    const data = await res.json();
-    setSavedProviders(data.providers || []);
-    setLoading(false);
-    setStep(4);
+    setBankAccounts(newAccounts);
   };
 
-  const deleteProvider = async (id: number) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/${id}`, { method: 'DELETE' });
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/providers/`);
-    const data = await res.json();
-    setSavedProviders(data.providers || []);
+  const updateBankAccount = (index: number, field: keyof BankAccount, value: any) => {
+    const updated = [...bankAccounts];
+    updated[index] = { ...updated[index], [field]: value };
+    setBankAccounts(updated);
   };
 
-  const deleteAccount = async (id: number) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/${id}`, { method: 'DELETE' });
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-accounts/`);
-    const data = await res.json();
-    setBankAccounts(data.accounts || []);
+  const nextStep = () => {
+    saveSetup();
+    if (step < totalSteps) setStep(step + 1);
+    else {
+      localStorage.setItem('onboardingComplete', 'true');
+      saveSetup({ completedAt: new Date().toISOString() });
+      navigate('/upload-center');
+    }
   };
+
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const canProceed = () => {
+    switch (step) {
+      case 1: return stores.every(s => s.name.trim() && s.address.trim() && s.nif.trim());
+      case 2: return selectedProviders.length > 0;
+      case 3: return selectedProviders.every(id => {
+        const c = providerConfigs[id];
+        return c && c.email.trim() && c.fee_percent.trim();
+      });
+      case 4: return true; // bank mode always has a default
+      case 5: return bankAccounts.every(b => b.bank_name.trim() && b.iban.trim());
+      case 6: return true;
+      default: return true;
+    }
+  };
+
+  const progress = (step / totalSteps) * 100;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
-      <BackButton />
-      <h1 style={{ marginBottom: 8 }}>ClearFlow Setup</h1>
-      <p style={{ color: '#64748b', marginBottom: 32 }}>Set up your bank accounts first, then configure your collection providers for accurate reconciliation.</p>
-
-      {/* Progress bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 40 }}>
-        {[1, 2, 3].map(s => (
-          <div key={s} style={{
-            flex: 1,
-            height: 4,
-            borderRadius: 2,
-            background: s <= step ? '#635bff' : '#e2e8f0',
-          }} />
-        ))}
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a', minHeight: '100vh' }}>
+      {/* Progress */}
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Configuracion de ClearFlow</h1>
+          <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Paso {step} de {totalSteps}</span>
+        </div>
+        <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: '#635bff', borderRadius: 3, transition: 'width 0.3s' }} />
+        </div>
       </div>
 
-      {/* STEP 1: BANK ACCOUNTS */}
+      {/* STEP 1: Tiendas */}
       {step === 1 && (
         <div>
-          <h2 style={{ marginBottom: 16 }}>Step 1: Bank Accounts</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Add the bank accounts where your providers deposit funds. You'll link providers to these accounts in the next step.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuantas tiendas o negocios tienes?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica cuantos locales, restaurantes o tiendas online gestionas.</p>
 
-          {bankAccounts.length > 0 && (
-            <div style={{ marginBottom: 32 }}>
-              <h3 style={{ fontSize: 14, color: '#64748b', marginBottom: 12 }}>Your Accounts</h3>
-              {bankAccounts.map(acc => (
-                <div key={acc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: '#f8fafc', borderRadius: 8, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{acc.name}</div>
-                    <div style={{ fontSize: 13, color: '#64748b' }}>{acc.bank_name} • {acc.iban}</div>
-                  </div>
-                  <button onClick={() => deleteAccount(acc.id)} style={{ padding: '6px 12px', background: '#fef2f2', color: '#991b1b', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Remove</button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ padding: 24, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', marginBottom: 32 }}>
-            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Add New Account</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Account Name</label>
-                <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Santander Business" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Bank Name</label>
-                <input value={newAccount.bank_name} onChange={e => setNewAccount(p => ({ ...p, bank_name: e.target.value }))} placeholder="e.g. Santander" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>IBAN</label>
-                <input value={newAccount.iban} onChange={e => setNewAccount(p => ({ ...p, iban: e.target.value }))} placeholder="ES91..." style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Account Number</label>
-                <input value={newAccount.account_number} onChange={e => setNewAccount(p => ({ ...p, account_number: e.target.value }))} placeholder="Optional" style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-              </div>
-            </div>
-            <button onClick={addBankAccount} style={{ marginTop: 16, padding: '10px 24px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-              + Add Account
-            </button>
-          </div>
-
-          <button
-            onClick={() => setStep(2)}
-            disabled={bankAccounts.length === 0}
-            style={{
-              padding: '12px 32px',
-              background: bankAccounts.length > 0 ? '#635bff' : '#cbd5e1',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: bankAccounts.length > 0 ? 'pointer' : 'not-allowed',
-            }}
-          >
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* STEP 2: SELECT PROVIDERS */}
-      {step === 2 && (
-        <div>
-          <h2 style={{ marginBottom: 16 }}>Step 2: Select Your Collection Providers</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Which platforms do you use to collect payments?</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-            {providerTypes.map(pt => (
-              <div
-                key={pt.id}
-                onClick={() => toggleProvider(pt.id)}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <button
+                key={n}
+                onClick={() => handleStoreCountChange(n)}
                 style={{
-                  padding: 20,
-                  borderRadius: 12,
-                  border: `2px solid ${selectedProviders.includes(pt.id) ? '#635bff' : '#e2e8f0'}`,
-                  background: selectedProviders.includes(pt.id) ? '#f5f3ff' : 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  textAlign: 'center',
+                  padding: '16px 32px', borderRadius: 12, border: storeCount === n ? '2px solid #635bff' : '2px solid #e2e8f0',
+                  background: storeCount === n ? '#635bff' : 'white', color: storeCount === n ? 'white' : '#0f172a',
+                  fontSize: 18, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                <div style={{ fontSize: 32, marginBottom: 8 }}>{pt.icon}</div>
-                <div style={{ fontWeight: 600, color: '#0f172a' }}>{pt.name}</div>
-                {selectedProviders.includes(pt.id) && (
-                  <div style={{ marginTop: 8, color: '#635bff', fontSize: 12, fontWeight: 600 }}>✓ Selected</div>
-                )}
+                {n}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {stores.map((store, i) => (
+              <div key={store.id} style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', marginBottom: 16, textTransform: 'uppercase' }}>
+                  Tienda / Negocio #{i + 1}
+                </h3>
+                <div style={{ display: 'grid', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del negocio</label>
+                    <input value={store.name} onChange={e => updateStore(i, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion</label>
+                      <input value={store.address} onChange={e => updateStore(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF</label>
+                      <input value={store.nif} onChange={e => updateStore(i, 'nif', e.target.value)} placeholder="B-12345678" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
+                      <input value={store.city} onChange={e => updateStore(i, 'city', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
+                      <input value={store.province} onChange={e => updateStore(i, 'province', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-            <button onClick={() => setStep(1)} style={{ padding: '12px 32px', background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-              ← Back
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={selectedProviders.length === 0}
-              style={{
-                padding: '12px 32px',
-                background: selectedProviders.length > 0 ? '#635bff' : '#cbd5e1',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 16,
-                fontWeight: 600,
-                cursor: selectedProviders.length > 0 ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Continue →
-            </button>
+        </div>
+      )}
+
+      {/* STEP 2: Proveedores */}
+      {step === 2 && (
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Que proveedores de cobro usas?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Selecciona todos los sistemas de pago que utilizas en tus tiendas.</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {providerOptions.map(p => {
+              const selected = selectedProviders.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => toggleProvider(p.id)}
+                  style={{
+                    padding: 24, borderRadius: 12, border: selected ? '2px solid #635bff' : '2px solid #e2e8f0',
+                    background: selected ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'left',
+                    boxShadow: selected ? '0 4px 12px rgba(99,91,255,0.1)' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>{p.icon}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{p.name}</div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: selected ? '#635bff' : '#94a3b8', fontWeight: 600 }}>
+                    {selected ? '✓ Seleccionado' : 'Clic para seleccionar'}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* STEP 3: CONFIGURE PROVIDERS */}
+      {/* STEP 3: Configurar proveedores */}
       {step === 3 && (
         <div>
-          <h2 style={{ marginBottom: 16 }}>Step 3: Configure Each Provider</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Set settlement timing, fees, and link each provider to one of your bank accounts.</p>
-          
-          {selectedProviders.map(providerId => {
-            const pt = providerTypes.find(p => p.id === providerId);
-            const config = providerConfigs[providerId];
-            return (
-              <div key={providerId} style={{ marginBottom: 32, padding: 24, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <span style={{ fontSize: 24 }}>{pt?.icon}</span>
-                  <h3 style={{ margin: 0 }}>{pt?.name}</h3>
-                </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Configura tus proveedores</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto y las comisiones para cada proveedor seleccionado.</p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nickname</label>
-                    <input
-                      value={config.name}
-                      onChange={e => updateConfig(providerId, 'name', e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Settlement Type</label>
-                    <select
-                      value={config.settlement_mode}
-                      onChange={e => updateConfig(providerId, 'settlement_mode', e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
-                    >
-                      <option value="per_transaction">Per Transaction (T+N)</option>
-                      <option value="weekly">Weekly Batch</option>
-                      <option value="monthly">Monthly Batch</option>
-                    </select>
-                  </div>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {selectedProviders.map(pid => {
+              const cfg = providerConfigs[pid] || {};
+              const pInfo = providerOptions.find(p => p.id === pid);
+              return (
+                <div key={pid} style={{ padding: 28, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 24 }}>{pInfo?.icon}</span> {pInfo?.name}
+                  </h3>
 
-                {config.settlement_mode === 'per_transaction' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 16 }}>
+                  <div style={{ display: 'grid', gap: 16 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Credit Card T+N</label>
-                      <input type="number" value={config.credit_delay_days} onChange={e => updateConfig(providerId, 'credit_delay_days', parseInt(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Email de consultas y reclamaciones</label>
+                      <input value={cfg.email || ''} onChange={e => updateProviderConfig(pid, 'email', e.target.value)} placeholder="soporte@stripe.com" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Debit Card T+N</label>
-                      <input type="number" value={config.debit_delay_days} onChange={e => updateConfig(providerId, 'debit_delay_days', parseInt(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Transfer T+N</label>
-                      <input type="number" value={config.transfer_delay_days} onChange={e => updateConfig(providerId, 'transfer_delay_days', parseInt(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-                    </div>
-                  </div>
-                )}
 
-                {config.settlement_mode !== 'per_transaction' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Batch Day</label>
-                      <select value={config.batch_day_of_week} onChange={e => updateConfig(providerId, 'batch_day_of_week', e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                        <option value="monday">Monday</option>
-                        <option value="tuesday">Tuesday</option>
-                        <option value="wednesday">Wednesday</option>
-                        <option value="thursday">Thursday</option>
-                        <option value="friday">Friday</option>
-                      </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>% Comision</label>
+                        <input value={cfg.fee_percent || ''} onChange={e => updateProviderConfig(pid, 'fee_percent', e.target.value)} placeholder="2.9" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Fee fijo (EUR)</label>
+                        <input value={cfg.fee_fixed || ''} onChange={e => updateProviderConfig(pid, 'fee_fixed', e.target.value)} placeholder="0.25" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Cuota mensual (EUR)</label>
+                        <input value={cfg.monthly_fee || ''} onChange={e => updateProviderConfig(pid, 'monthly_fee', e.target.value)} placeholder="0" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                      </div>
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Frequency</label>
-                      <select value={config.batch_frequency} onChange={e => updateConfig(providerId, 'batch_frequency', e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                        <option value="weekly">Weekly</option>
-                        <option value="biweekly">Bi-weekly</option>
-                        <option value="monthly">Monthly</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 16 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Fee %</label>
-                    <input type="number" step="0.01" value={config.fee_percent} onChange={e => updateConfig(providerId, 'fee_percent', parseFloat(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Fixed Fee (€)</label>
-                    <input type="number" step="0.01" value={config.fee_fixed} onChange={e => updateConfig(providerId, 'fee_fixed', parseFloat(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Monthly Fee (€)</label>
-                    <input type="number" step="0.01" value={config.monthly_fee} onChange={e => updateConfig(providerId, 'monthly_fee', parseFloat(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#f8fafc', borderRadius: 8 }}>
+                      <input
+                        type="checkbox"
+                        id={`iva-${pid}`}
+                        checked={cfg.has_iva || false}
+                        onChange={e => updateProviderConfig(pid, 'has_iva', e.target.checked)}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                      />
+                      <label htmlFor={`iva-${pid}`} style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', cursor: 'pointer' }}>
+                        Los fees incluyen IVA
+                      </label>
+                    </div>
+
+                    {cfg.has_iva && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>% IVA aplicado</label>
+                        <input value={cfg.iva_percent || '21'} onChange={e => updateProviderConfig(pid, 'iva_percent', e.target.value)} placeholder="21" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Deposits To</label>
-                  <select
-                    value={config.bank_account_id || ''}
-                    onChange={e => updateConfig(providerId, 'bank_account_id', e.target.value ? parseInt(e.target.value) : null)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
-                  >
-                    <option value="">Select bank account...</option>
-                    {bankAccounts.map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.name} ({acc.bank_name})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            );
-          })}
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button onClick={() => setStep(2)} style={{ padding: '12px 32px', background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-              ← Back
-            </button>
-            <button onClick={saveProviders} disabled={loading} style={{ padding: '12px 32px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? 'Saving...' : '✓ Complete Setup'}
-            </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* STEP 4: SUCCESS */}
+      {/* STEP 4: Modo bancario */}
       {step === 4 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ fontSize: 64, marginBottom: 24 }}>🎉</div>
-          <h2 style={{ marginBottom: 12 }}>Setup Complete!</h2>
-          <p style={{ color: '#64748b', marginBottom: 32 }}>Your providers and bank accounts are configured. You can now upload bank statements and start reconciling.</p>
-          
-          {savedProviders.length > 0 && (
-            <div style={{ textAlign: 'left', maxWidth: 600, margin: '0 auto 32px' }}>
-              <h3 style={{ fontSize: 14, color: '#64748b', marginBottom: 12 }}>Configured Providers</h3>
-              {savedProviders.map(p => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: '#f0fdf4', borderRadius: 8, marginBottom: 8, border: '1px solid #bbf7d0' }}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{p.name}</div>
-                    <div style={{ fontSize: 13, color: '#64748b' }}>
-                      {p.settlement_mode === 'per_transaction' 
-                        ? `Credit T+${p.credit_delay_days}, Debit T+${p.debit_delay_days}` 
-                        : `${p.batch_frequency} on ${p.batch_day_of_week}`}
-                      {' • '}{p.fee_percent}% + €{p.fee_fixed}
-                    </div>
-                  </div>
-                  <button onClick={() => deleteProvider(p.id)} style={{ padding: '6px 12px', background: 'white', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Delete</button>
-                </div>
-              ))}
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Como manejas tus cuentas bancarias?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica si todas tus tiendas usan la misma cuenta o cada una tiene la suya.</p>
+
+          {stores.length === 1 ? (
+            <div style={{ padding: 20, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: 24 }}>
+              <div style={{ fontWeight: 700, color: '#166534' }}>✓ Tienes una sola tienda, asi que usaras una unica cuenta bancaria.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <button
+                onClick={() => handleBankModeChange('shared')}
+                style={{
+                  padding: 28, borderRadius: 12, border: bankMode === 'shared' ? '2px solid #635bff' : '2px solid #e2e8f0',
+                  background: bankMode === 'shared' ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🏦</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>Una cuenta para todas</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Todas las tiendas depositan en la misma cuenta bancaria</div>
+              </button>
+              <button
+                onClick={() => handleBankModeChange('separate')}
+                style={{
+                  padding: 28, borderRadius: 12, border: bankMode === 'separate' ? '2px solid #635bff' : '2px solid #e2e8f0',
+                  background: bankMode === 'separate' ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🏦🏦</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>Cada tienda, su cuenta</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Cada tienda tiene su propia cuenta bancaria</div>
+              </button>
             </div>
           )}
-
-          <a href="/bank-upload" style={{ display: 'inline-block', padding: '14px 40px', background: '#635bff', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
-            Go to Bank Upload →
-          </a>
         </div>
       )}
+
+      {/* STEP 5: Cuentas bancarias */}
+      {step === 5 && (
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Datos de tus cuentas bancarias</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Completa los datos de cada cuenta que recibe los depositos de tus proveedores.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {bankAccounts.map((acc, i) => (
+              <div key={acc.id} style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', marginBottom: 16, textTransform: 'uppercase' }}>
+                  {bankMode === 'shared' ? 'Cuenta Principal' : `Cuenta para: ${stores[i]?.name || 'Tienda ' + (i + 1)}`}
+                </h3>
+                <div style={{ display: 'grid', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Banco</label>
+                      <input value={acc.bank_name} onChange={e => updateBankAccount(i, 'bank_name', e.target.value)} placeholder="Santander" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre de la cuenta</label>
+                      <input value={acc.account_name} onChange={e => updateBankAccount(i, 'account_name', e.target.value)} placeholder="Cuenta Principal Pura" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>IBAN</label>
+                    <input value={acc.iban} onChange={e => updateBankAccount(i, 'iban', e.target.value)} placeholder="ES91 0049 1800 1123 4567 8901" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Numero de cuenta (opcional)</label>
+                    <input value={acc.account_number} onChange={e => updateBankAccount(i, 'account_number', e.target.value)} placeholder="0049 1800 11 2345678901" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 6: Cloud */}
+      {step === 6 && (
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Donde queres almacenar tus documentos?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Elegi la opcion de almacenamiento que prefieras para tus archivos de conciliacion.</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <button
+              onClick={() => setCloudChoice('clearflow')}
+              style={{
+                padding: 28, borderRadius: 12, border: cloudChoice === 'clearflow' ? '2px solid #635bff' : '2px solid #e2e8f0',
+                background: cloudChoice === 'clearflow' ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: 28, marginBottom: 8 }}>☁️</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Cloud de ClearFlow</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Almacenamiento seguro gestionado por nosotros. Incluido en tu plan.</div>
+            </button>
+            <button
+              onClick={() => setCloudChoice('own')}
+              style={{
+                padding: 28, borderRadius: 12, border: cloudChoice === 'own' ? '2px solid #635bff' : '2px solid #e2e8f0',
+                background: cloudChoice === 'own' ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Mi propio cloud</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Conecta tu propio almacenamiento (Google Drive, Dropbox, AWS S3, etc.)</div>
+            </button>
+          </div>
+
+          {cloudChoice === 'own' && (
+            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
+                <strong>Nota:</strong> La configuracion de tu propio cloud se realizara en una sesion posterior con nuestro equipo de soporte tecnico.
+                Por ahora usaremos el almacenamiento de ClearFlow.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 7: Complete */}
+      {step === 7 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div style={{ fontSize: 64, marginBottom: 24 }}>🎉</div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>¡Configuracion completada!</h2>
+          <p style={{ color: '#64748b', fontSize: 16, maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.6 }}>
+            Todo tu setup esta guardado. Ahora podes cargar tus documentos y ejecutar tu primer SmartCheck.
+          </p>
+
+          <div style={{ background: '#f8fafc', borderRadius: 12, padding: 24, maxWidth: 480, margin: '0 auto 32px', textAlign: 'left' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase' }}>Resumen de tu configuracion</h3>
+            <div style={{ fontSize: 13, color: '#0f172a', lineHeight: 1.8 }}>
+              <div>🏪 <strong>{stores.length}</strong> {stores.length === 1 ? 'tienda' : 'tiendas'} configuradas</div>
+              <div>💳 <strong>{selectedProviders.length}</strong> proveedores de cobro</div>
+              <div>🏦 <strong>{bankAccounts.length}</strong> {bankAccounts.length === 1 ? 'cuenta bancaria' : 'cuentas bancarias'}</div>
+              <div>☁️ Almacenamiento: {cloudChoice === 'clearflow' ? 'Cloud de ClearFlow' : 'Propio'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NAVIGATION BUTTONS */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid #e2e8f0' }}>
+        <button
+          onClick={prevStep}
+          disabled={step === 1}
+          style={{
+            padding: '12px 28px', borderRadius: 8, border: '1px solid #e2e8f0',
+            background: 'white', color: step === 1 ? '#94a3b8' : '#0f172a',
+            fontSize: 14, fontWeight: 600, cursor: step === 1 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          ← Anterior
+        </button>
+
+        <button
+          onClick={nextStep}
+          disabled={!canProceed()}
+          style={{
+            padding: '12px 32px', borderRadius: 8, border: 'none',
+            background: canProceed() ? '#635bff' : '#cbd5e1', color: 'white',
+            fontSize: 15, fontWeight: 600, cursor: canProceed() ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {step === totalSteps ? 'Ir a cargar documentos →' : 'Siguiente →'}
+        </button>
+      </div>
     </div>
   );
 }
