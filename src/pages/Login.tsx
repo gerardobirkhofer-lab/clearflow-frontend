@@ -79,9 +79,13 @@ export default function Login({ onLogin }: LoginProps) {
       localStorage.setItem('token', DEMO_TOKEN);
       localStorage.setItem('user', JSON.stringify(DEMO_USER));
       localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-      localStorage.setItem('onboardingComplete', 'true');
       if (onLogin) onLogin();
-      navigate('/hub');
+      const onboardingComplete = localStorage.getItem('onboardingComplete');
+      if (!onboardingComplete) {
+        navigate('/welcome');
+      } else {
+        navigate('/hub');
+      }
     }
   };
 
