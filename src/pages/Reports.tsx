@@ -4,6 +4,8 @@ import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+const formatNumber = (n: number) => new Intl.NumberFormat('es-ES').format(n);
+const formatPct = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) + '%';
 
 interface ReportCard {
   id: string;
@@ -196,7 +198,15 @@ export default function Reports() {
 
   const formatCell = (row: any, key: string) => {
     const val = row[key];
+    if (typeof val === 'string') return val;
     if (typeof val === 'number') {
+      const k = key.toLowerCase();
+      if (k.includes('pct') || k.includes('margin') || k.includes('change')) {
+        return formatPct(val);
+      }
+      if (k.includes('days') || k.includes('transactions') || k.includes('txns')) {
+        return formatNumber(val);
+      }
       return formatMoney(val);
     }
     return String(val ?? '-');

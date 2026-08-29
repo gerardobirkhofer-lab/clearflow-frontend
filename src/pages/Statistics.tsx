@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
+const formatNumber = (n: number) => new Intl.NumberFormat('es-ES').format(n || 0);
+const formatPct = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n || 0) + '%';
 
 export default function Statistics() {
   const { t } = useTranslation();
@@ -120,7 +122,7 @@ export default function Statistics() {
                       <div style={{ width: `${(p.amount / totalRevenue) * 100}%`, height: '100%', background: '#635bff', borderRadius: 4 }} />
                     </div>
                     <div style={{ width: 80, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>{formatMoney(p.amount)}</div>
-                    <div style={{ width: 60, textAlign: 'right', fontSize: 12, color: '#64748b' }}>{p.txns} txns</div>
+                    <div style={{ width: 60, textAlign: 'right', fontSize: 12, color: '#64748b' }}>{formatNumber(p.txns)} txns</div>
                     <div style={{ width: 80, textAlign: 'right', fontSize: 12, color: '#991b1b' }}>{formatMoney(p.fees)} fees</div>
                   </div>
                 ))}
@@ -135,7 +137,7 @@ export default function Statistics() {
                   <div key={c.type} style={{ padding: 16, borderRadius: 8, background: '#f8fafc' }}>
                     <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>{c.type}</div>
                     <div style={{ fontSize: 20, fontWeight: 800 }}>{formatMoney(c.amount)}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.pct}% del total</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{formatPct(c.pct)} del total</div>
                   </div>
                 ))}
               </div>
