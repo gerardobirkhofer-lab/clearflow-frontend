@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface Society {
+  id: string;
+  name: string;
+  nif: string;
+  address: string;
+  city: string;
+  province: string;
+}
+
 interface Store {
   id: string;
+  societyId: string;
   name: string;
   type: string;
   company: string;
@@ -21,6 +31,10 @@ interface ProviderConfig {
   has_iva: boolean;
   iva_percent: string;
   monthly_fee: string;
+  payout_days: string;
+  is_virtual_account: boolean;
+  transfer_days: string;
+  transfer_threshold: string;
 }
 
 interface BankAccount {
@@ -35,14 +49,16 @@ interface BankAccount {
 export default function SetupWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [societyCount, setSocietyCount] = useState(1);
+  const [societies, setSocieties] = useState<Society[]>([{ id: '1', name: '', nif: '', address: '', city: '', province: '' }]);
   const [storeCount, setStoreCount] = useState(1);
-  const [stores, setStores] = useState<Store[]>([{ id: '1', name: '', type: '', company: '', address: '', nif: '', city: '', province: '' }]);
+  const [stores, setStores] = useState<Store[]>([{ id: '1', societyId: '1', name: '', type: '', company: '', address: '', nif: '', city: '', province: '' }]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [providerConfigs, setProviderConfigs] = useState<Record<string, ProviderConfig>>({});
   const [bankMode, setBankMode] = useState<'shared' | 'separate'>('shared');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cloudChoice, setCloudChoice] = useState('clearflow');
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   const providerOptions = [
     { id: 'stripe', name: 'Stripe', icon: '💳' },
@@ -59,6 +75,8 @@ export default function SetupWizard() {
     if (saved) {
       try {
         const s = JSON.parse(saved);
+        if (s.societies) setSocieties(s.societies);
+        if (s.societyCount) setSocietyCount(s.societyCount);
         if (s.stores) setStores(s.stores);
         if (s.storeCount) setStoreCount(s.storeCount);
         if (s.selectedProviders) setSelectedProviders(s.selectedProviders);
@@ -74,6 +92,8 @@ export default function SetupWizard() {
     const existing = JSON.parse(localStorage.getItem('clearflowSetup') || '{}');
     const updated = {
       ...existing,
+      societies,
+      societyCount,
       stores,
       storeCount,
       selectedProviders,
@@ -86,6 +106,21 @@ export default function SetupWizard() {
     localStorage.setItem('clearflowSetup', JSON.stringify(updated));
   };
 
+  const updateSociety = (index: number, field: keyof Society, value: string) => {
+    const updated = [...societies];
+    updated[index] = { ...updated[index], [field]: value };
+    setSocieties(updated);
+  };
+
+  const handleSocietyCountChange = (count: number) => {
+    setSocietyCount(count);
+    const newSocieties: Society[] = [];
+    for (let i = 0; i < count; i++) {
+      newSocieties.push(societies[i] || { id: String(i + 1), name: '', nif: '', address: '', city: '', province: '' });
+    }
+    setSocieties(newSocieties);
+  };
+
   const updateStore = (index: number, field: keyof Store, value: string) => {
     const updated = [...stores];
     updated[index] = { ...updated[index], [field]: value };
@@ -96,7 +131,8 @@ export default function SetupWizard() {
     setStoreCount(count);
     const newStores: Store[] = [];
     for (let i = 0; i < count; i++) {
-      newStores.push(stores[i] || { id: String(i + 1), name: '', type: '', company: '', address: '', nif: '', city: '', province: '' });
+      const existing = stores[i];
+      newStores.push(existing || { id: String(i + 1), societyId: societies[0]?.id || '1', name: '', type: '', company: '', address: '', nif: '', city: '', province: '' });
     }
     setStores(newStores);
   };
@@ -108,7 +144,7 @@ export default function SetupWizard() {
       if (!exists) {
         setProviderConfigs(cf => ({
           ...cf,
-          [id]: { id, name: providerOptions.find(p => p.id === id)?.name || id, email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '0' },
+          [id]: { id, name: providerOptions.find(p => p.id === id)?.name || id, email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '0', payout_days: '3', is_virtual_account: false, transfer_days: '2', transfer_threshold: '100' },
         }));
       }
       return updated;
@@ -162,15 +198,16 @@ export default function SetupWizard() {
 
   const canProceed = () => {
     switch (step) {
-      case 1: return stores.every(s => s.name.trim() && s.address.trim() && s.nif.trim());
-      case 2: return selectedProviders.length > 0;
-      case 3: return selectedProviders.every(id => {
+      case 1: return societies.every(s => s.name.trim() && s.nif.trim());
+      case 2: return stores.every(s => s.name.trim() && s.address.trim() && s.nif.trim() && s.societyId);
+      case 3: return selectedProviders.length > 0;
+      case 4: return selectedProviders.every(id => {
         const c = providerConfigs[id];
-        return c && c.email.trim() && c.fee_percent.trim();
+        return c && c.email.trim() && c.fee_percent.trim() && c.payout_days.trim();
       });
-      case 4: return true; // bank mode always has a default
-      case 5: return bankAccounts.every(b => b.bank_name.trim() && b.iban.trim());
-      case 6: return true;
+      case 5: return true;
+      case 6: return bankAccounts.every(b => b.bank_name.trim() && b.iban.trim());
+      case 7: return true;
       default: return true;
     }
   };
@@ -190,11 +227,71 @@ export default function SetupWizard() {
         </div>
       </div>
 
-      {/* STEP 1: Tiendas */}
+      {/* STEP 1: Sociedades */}
       {step === 1 && (
         <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuantas sociedades o grupos legales tienes?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Cada sociedad puede tener una o varias tiendas. Si tienes todo bajo una sola sociedad, selecciona 1.</p>
+
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <button
+                key={n}
+                onClick={() => handleSocietyCountChange(n)}
+                style={{
+                  padding: '16px 32px', borderRadius: 12, border: societyCount === n ? '2px solid #635bff' : '2px solid #e2e8f0',
+                  background: societyCount === n ? '#635bff' : 'white', color: societyCount === n ? 'white' : '#0f172a',
+                  fontSize: 18, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {societies.map((society, i) => (
+              <div key={society.id} style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', marginBottom: 16, textTransform: 'uppercase' }}>
+                  Sociedad / Grupo Legal #{i + 1}
+                </h3>
+                <div style={{ display: 'grid', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Razon social</label>
+                      <input value={society.name} onChange={e => updateSociety(i, 'name', e.target.value)} placeholder="Ej: Pura Gastronomia S.L." style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF</label>
+                      <input value={society.nif} onChange={e => updateSociety(i, 'nif', e.target.value)} placeholder="B-12345678" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion fiscal</label>
+                    <input value={society.address} onChange={e => updateSociety(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
+                      <input value={society.city} onChange={e => updateSociety(i, 'city', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
+                      <input value={society.province} onChange={e => updateSociety(i, 'province', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2: Tiendas */}
+      {step === 2 && (
+        <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuantas tiendas o negocios tienes?</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica cuantos locales, restaurantes o tiendas online gestionas.</p>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica cuantos locales, restaurantes o tiendas online gestionas en total.</p>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             {[1, 2, 3, 4, 5].map(n => (
@@ -225,6 +322,17 @@ export default function SetupWizard() {
                       <input value={store.name} onChange={e => updateStore(i, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                     </div>
                     <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Sociedad a la que pertenece</label>
+                      <select value={store.societyId} onChange={e => updateStore(i, 'societyId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
+                        <option value="">Seleccionar sociedad...</option>
+                        {societies.map(s => (
+                          <option key={s.id} value={s.id}>{s.name || `Sociedad ${s.id}`}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Tipo de negocio</label>
                       <select value={store.type} onChange={e => updateStore(i, 'type', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
                         <option value="">Seleccionar...</option>
@@ -237,21 +345,14 @@ export default function SetupWizard() {
                         <option value="other">Otro</option>
                       </select>
                     </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF (si es diferente a la sociedad)</label>
+                      <input value={store.nif} onChange={e => updateStore(i, 'nif', e.target.value)} placeholder="Herado de la sociedad si se deja vacio" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Sociedad / Grupo Legal (opcional)</label>
-                    <input value={store.company} onChange={e => updateStore(i, 'company', e.target.value)} placeholder="Ej: Pura Gastronomia S.L." style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Si tienes varias tiendas bajo la misma sociedad, usa el mismo nombre aqui.</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion</label>
-                      <input value={store.address} onChange={e => updateStore(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF</label>
-                      <input value={store.nif} onChange={e => updateStore(i, 'nif', e.target.value)} placeholder="B-12345678" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion</label>
+                    <input value={store.address} onChange={e => updateStore(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
@@ -270,8 +371,8 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 2: Proveedores */}
-      {step === 2 && (
+      {/* STEP 3: Proveedores */}
+      {step === 3 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Que proveedores de cobro usas?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Selecciona todos los sistemas de pago que utilizas en tus tiendas.</p>
@@ -301,11 +402,11 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 3: Configurar proveedores */}
-      {step === 3 && (
+      {/* STEP 4: Configurar proveedores */}
+      {step === 4 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Configura tus proveedores</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto y las comisiones para cada proveedor seleccionado.</p>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto, comisiones y plazos de liquidacion para cada proveedor.</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {selectedProviders.map(pid => {
@@ -338,6 +439,40 @@ export default function SetupWizard() {
                       </div>
                     </div>
 
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dias de liquidacion</label>
+                        <input value={cfg.payout_days || ''} onChange={e => updateProviderConfig(pid, 'payout_days', e.target.value)} placeholder="3" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Dias que tarda en acreditarse el dinero.</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#f8fafc', borderRadius: 8 }}>
+                      <input
+                        type="checkbox"
+                        id={`virtual-${pid}`}
+                        checked={cfg.is_virtual_account || false}
+                        onChange={e => updateProviderConfig(pid, 'is_virtual_account', e.target.checked)}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                      />
+                      <label htmlFor={`virtual-${pid}`} style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', cursor: 'pointer' }}>
+                        Este proveedor acumula en cuenta virtual antes de transferir a mi banco
+                      </label>
+                    </div>
+
+                    {cfg.is_virtual_account && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dias de transferencia a banco</label>
+                          <input value={cfg.transfer_days || ''} onChange={e => updateProviderConfig(pid, 'transfer_days', e.target.value)} placeholder="2" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Umbral minimo de transferencia (EUR)</label>
+                          <input value={cfg.transfer_threshold || ''} onChange={e => updateProviderConfig(pid, 'transfer_threshold', e.target.value)} placeholder="100" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#f8fafc', borderRadius: 8 }}>
                       <input
                         type="checkbox"
@@ -365,8 +500,8 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 4: Modo bancario */}
-      {step === 4 && (
+      {/* STEP 5: Modo bancario */}
+      {step === 5 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Como manejas tus cuentas bancarias?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Indica si todas tus tiendas usan la misma cuenta o cada una tiene la suya.</p>
@@ -404,8 +539,8 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 5: Cuentas bancarias */}
-      {step === 5 && (
+      {/* STEP 6: Cuentas bancarias */}
+      {step === 6 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Datos de tus cuentas bancarias</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Completa los datos de cada cuenta que recibe los depositos de tus proveedores.</p>
@@ -442,8 +577,8 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 6: Cloud */}
-      {step === 6 && (
+      {/* STEP 7: Cloud */}
+      {step === 7 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Donde queres almacenar tus documentos?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Elegi la opcion de almacenamiento que prefieras para tus archivos de conciliacion.</p>
@@ -484,8 +619,8 @@ export default function SetupWizard() {
         </div>
       )}
 
-      {/* STEP 7: Complete */}
-      {step === 7 && (
+      {/* STEP 8: Complete */}
+      {step === 8 && (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: 64, marginBottom: 24 }}>🎉</div>
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>¡Configuracion completada!</h2>
@@ -496,7 +631,8 @@ export default function SetupWizard() {
           <div style={{ background: '#f8fafc', borderRadius: 12, padding: 24, maxWidth: 480, margin: '0 auto 32px', textAlign: 'left' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase' }}>Resumen de tu configuracion</h3>
             <div style={{ fontSize: 13, color: '#0f172a', lineHeight: 1.8 }}>
-              <div>🏪 <strong>{stores.length}</strong> {stores.length === 1 ? 'tienda' : 'tiendas'} configuradas</div>
+              <div>🏢 <strong>{societies.length}</strong> {societies.length === 1 ? 'sociedad' : 'sociedades'}</div>
+              <div>🏪 <strong>{stores.length}</strong> {stores.length === 1 ? 'tienda' : 'tiendas'}</div>
               <div>💳 <strong>{selectedProviders.length}</strong> proveedores de cobro</div>
               <div>🏦 <strong>{bankAccounts.length}</strong> {bankAccounts.length === 1 ? 'cuenta bancaria' : 'cuentas bancarias'}</div>
               <div>☁️ Almacenamiento: {cloudChoice === 'clearflow' ? 'Cloud de ClearFlow' : 'Propio'}</div>
