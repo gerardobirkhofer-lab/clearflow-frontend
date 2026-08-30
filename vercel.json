@@ -1,9 +1,9 @@
 {
-  "version": 2,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/app", "dest": "/index.html" },
-    { "src": "/app/(.*)", "dest": "/index.html" },
-    { "src": "/", "dest": "/landing.html" }
+  "rewrites": [
+    { "source": "/app/:path*", "destination": "/index.html" },
+    { "source": "/app", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { "source": "/", "destination": "/landing.html", "permanent": false }
   ]
 }
