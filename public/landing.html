@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClearFlow — Controla tu dinero, sin perder tiempo</title>
+  <title>ClearFlow — Tu dinero, controlado</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -13,6 +13,7 @@
     nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; z-index: 100; }
     nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .logo { font-size: 22px; font-weight: 800; color: #635bff; letter-spacing: -0.5px; }
+    .logo a { text-decoration: none; color: #635bff; }
     .nav-links { display: flex; gap: 32px; align-items: center; }
     .nav-links a { text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; }
     .nav-links a:hover { color: #0f172a; }
@@ -52,7 +53,7 @@
     .pricing { padding: 100px 0; background: #ffffff; }
     .pricing h2 { text-align: center; font-size: 36px; font-weight: 800; margin-bottom: 16px; }
     .pricing-sub { text-align: center; color: #64748b; font-size: 18px; margin-bottom: 64px; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; max-width: 800px; margin: 0 auto; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 960px; margin: 0 auto; }
     .plan { padding: 40px 32px; background: white; border-radius: 20px; border: 2px solid #e2e8f0; text-align: center; }
     .plan.popular { border-color: #635bff; position: relative; }
     .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #635bff; color: white; padding: 4px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; }
@@ -77,6 +78,8 @@
     .cta .btn { background: white; color: #635bff; font-size: 16px; padding: 14px 32px; }
     footer { padding: 48px 0; background: #0f172a; color: #94a3b8; text-align: center; font-size: 14px; }
     footer a { color: #cbd5e1; text-decoration: none; margin: 0 16px; }
+    .back-link { display: inline-block; margin-bottom: 20px; color: #635bff; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
     @media (max-width: 768px) {
       .hero h1 { font-size: 36px; }
       .nav-links { display: none; }
@@ -85,9 +88,10 @@
   </style>
 </head>
 <body>
+
   <nav>
     <div class="container">
-      <div class="logo">⚡ ClearFlow</div>
+      <div class="logo"><a href="/">⚡ ClearView</a></div>
       <div class="nav-links">
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#precios">Precios</a>
@@ -99,14 +103,15 @@
 
   <section class="hero">
     <div class="container">
+      <a href="/" class="back-link">← Volver a ClearView</a>
       <h1>Tu dinero, <span>controlado.</span></h1>
-      <p>Algoritmos que reconcilian tus cobros, comisiones y cuentas bancarias en segundos. Sin hojas de cálculo. Sin sorpresas. Sin perder dinero.</p>
+      <p>Sistema creado en base a algoritmos que controlan en milisegundos todo el flujo de dinero de tu negocio, para que tu esfuerzo se vea reflejado en tiempo y forma en tu cuenta bancaria.</p>
       <div class="hero-buttons">
         <a href="/app" class="btn btn-primary btn-large">Probar ClearFlow →</a>
         <a href="#como-funciona" class="btn btn-outline btn-large">Ver cómo funciona</a>
       </div>
       <div class="hero-trust">
-        🔒 Conciliación bancaria automatizada · 📊 Dashboard en tiempo real · 🚀 Setup en 5 minutos
+        🔒 Control de flujo de caja automatizado · 📊 Dashboard en tiempo real · 🚀 Setup en 5 minutos
       </div>
     </div>
   </section>
@@ -117,13 +122,13 @@
       <div class="problems-grid">
         <div class="problem-card">
           <div class="icon">😤</div>
-          <h3>Stripe dice una cosa, tu banco otra</h3>
+          <h3>Stripe, Redsys o tu banco dicen cosas distintas</h3>
           <p>Las liquidadoras de tarjetas te reportan un monto, pero en tu cuenta bancaria llega menos. ¿Dónde quedó la diferencia?</p>
         </div>
         <div class="problem-card">
           <div class="icon">⏰</div>
           <h3>Horas perdidas en Excel</h3>
-          <p>Cruzar extractos bancarios con reportes de Stripe, Redsys y Mercado Pago a mano te roba tiempo que podrías usar en hacer crecer tu negocio.</p>
+          <p>Cruzar extractos bancarios con reportes de Stripe, Redsys, Mercado Pago y otras pasarelas a mano te roba tiempo que podrías usar en hacer crecer tu negocio.</p>
         </div>
         <div class="problem-card">
           <div class="icon">💸</div>
@@ -141,8 +146,8 @@
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
-          <h3>Configurá tu negocio</h3>
-          <p>Indicá tus tiendas, qué proveedores de cobro usás, tus cuentas bancarias y los fees que pagás.</p>
+          <h3>Configura tu negocio</h3>
+          <p>Indica tus tiendas, qué proveedores de cobro usás, tus cuentas bancarias y los fees que pagás.</p>
         </div>
         <div class="step">
           <div class="step-num">2</div>
@@ -151,8 +156,8 @@
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <h3>Recibí tu informe</h3>
-          <p>En segundos, ClearFlow cruza todo, detecta discrepancias, disputas y pagos pendientes. Te enviamos el informe por email.</p>
+          <h3>Accedé a tu panel</h3>
+          <p>En segundos, ClearFlow cruza todo y te muestra dashboard, discrepancias, disputas, pagos pendientes, emails automáticos y mucho más.</p>
         </div>
       </div>
     </div>
@@ -169,7 +174,7 @@
         </div>
         <div class="feature">
           <div class="feature-icon">⚡</div>
-          <h3>Reconciliación en segundos</h3>
+          <h3>Control en milisegundos</h3>
           <p>Cruza miles de transacciones bancarias con los reportes de tus liquidadoras en tiempo real.</p>
         </div>
         <div class="feature">
@@ -199,30 +204,43 @@
   <section class="pricing" id="precios">
     <div class="container">
       <h2>Simple y transparente</h2>
-      <p class="pricing-sub">Un solo plan. Todo incluido. Sin sorpresas.</p>
+      <p class="pricing-sub">Elige el plan que se adapte a tu negocio.</p>
       <div class="pricing-grid">
+        <div class="plan">
+          <div class="plan-name">Plan Básico</div>
+          <div class="plan-price">19€ <span>/ mes</span></div>
+          <div class="plan-desc">Para emprendedores y negocios con una sola tienda</div>
+          <ul class="plan-features">
+            <li>Control de hasta 3 tiendas</li>
+            <li>Dashboard en tiempo real</li>
+            <li>Detección de discrepancias</li>
+            <li>Informes por email</li>
+            <li>Soporte por email</li>
+          </ul>
+          <a href="/app" class="btn btn-outline" style="width:100%">Elegir plan básico</a>
+        </div>
         <div class="plan popular">
           <div class="plan-badge">RECOMENDADO</div>
-          <div class="plan-name">Plan Mensual</div>
+          <div class="plan-name">Plan Profesional</div>
           <div class="plan-price">49€ <span>/ mes</span></div>
           <div class="plan-desc">Ideal para dueños de negocios y asesores contables</div>
           <ul class="plan-features">
-            <li>Reconciliación ilimitada</li>
+            <li>Control ilimitado</li>
             <li>Hasta 10 tiendas / negocios</li>
             <li>Dashboard en tiempo real</li>
             <li>Informes por email</li>
             <li>Detección de discrepancias</li>
             <li>Multi-sociedad</li>
-            <li>Soporte por email</li>
+            <li>Soporte prioritario</li>
           </ul>
           <a href="/app" class="btn btn-primary" style="width:100%">Empezar ahora →</a>
         </div>
         <div class="plan">
           <div class="plan-name">Plan Anual</div>
           <div class="plan-price">470€ <span>/ año</span></div>
-          <div class="plan-desc">Ahorrá 2 meses. Todo lo del plan mensual.</div>
+          <div class="plan-desc">Ahorrá 2 meses. Todo lo del plan profesional.</div>
           <ul class="plan-features">
-            <li>Reconciliación ilimitada</li>
+            <li>Control ilimitado</li>
             <li>Hasta 10 tiendas / negocios</li>
             <li>Dashboard en tiempo real</li>
             <li>Informes por email</li>
@@ -241,10 +259,10 @@
       <h2>Quiénes somos</h2>
       <div class="about-content">
         <p>ClearFlow nació de una necesidad real: los dueños de negocios en España y Latinoamérica pierden tiempo y dinero controlando manualmente sus cobros, comisiones y cuentas bancarias.</p>
-        <p>Nuestro equipo combina experiencia en tecnología, finanzas y el sector gastronómico para construir una herramienta que realmente entiende los problemas de los empresarios.</p>
-        <p>No vendemos software. Vendemos tranquilidad.</p>
+        <p>Nuestro equipo combina experiencia en tecnología, finanzas y gestión empresarial para construir herramientas que realmente entienden los problemas de empresarios y entrepreneurs de cualquier sector.</p>
+        <p>No vendemos software. Vendemos tranquilidad y tiempo.</p>
         <div class="about-stats">
-          <div class="stat"><div class="stat-num">&lt;10s</div><div class="stat-label">Por reconciliación</div></div>
+          <div class="stat"><div class="stat-num">&lt;10s</div><div class="stat-label">Por análisis</div></div>
           <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Automatizado</div></div>
           <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Disponible</div></div>
         </div>
@@ -262,15 +280,16 @@
 
   <footer>
     <div class="container">
-      <p style="margin-bottom: 16px;"><strong style="color: white;">⚡ ClearFlow</strong> — Controlá tu dinero, sin perder tiempo.</p>
+      <p style="margin-bottom: 16px;"><strong style="color: white;">⚡ ClearFlow</strong> — Un producto de ClearView S.L.</p>
       <p>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#precios">Precios</a>
         <a href="#nosotros">Nosotros</a>
-        <a href="mailto:hola@clearflow.io">Contacto</a>
+        <a href="mailto:hola@clearview.io">Contacto</a>
       </p>
-      <p style="margin-top: 16px; font-size: 12px;">© 2026 ClearFlow. Todos los derechos reservados.</p>
+      <p style="margin-top: 16px; font-size: 12px;">© 2026 ClearView S.L. Todos los derechos reservados.</p>
     </div>
   </footer>
+
 </body>
 </html>
