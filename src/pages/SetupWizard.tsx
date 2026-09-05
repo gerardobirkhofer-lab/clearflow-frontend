@@ -219,7 +219,7 @@ export default function SetupWizard() {
       {/* Progress */}
       <div style={{ marginBottom: 40 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Configuracion de ClearFlow</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Configuración de ClearFlow</h1>
           <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Paso {step} de {totalSteps}</span>
         </div>
         <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
@@ -230,7 +230,7 @@ export default function SetupWizard() {
       {/* STEP 1: Sociedades */}
       {step === 1 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuantas sociedades o grupos legales tienes?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas sociedades o grupos legales tienes?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Cada sociedad puede tener una o varias tiendas. Si tienes todo bajo una sola sociedad, selecciona 1.</p>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
@@ -267,7 +267,7 @@ export default function SetupWizard() {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion fiscal</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección fiscal</label>
                     <input value={society.address} onChange={e => updateSociety(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -290,7 +290,7 @@ export default function SetupWizard() {
       {/* STEP 2: Tiendas */}
       {step === 2 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuantas tiendas o negocios tienes?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas tiendas o negocios tienes?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Indica cuantos locales, restaurantes o tiendas online gestionas en total.</p>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
@@ -351,7 +351,7 @@ export default function SetupWizard() {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Direccion</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección</label>
                     <input value={store.address} onChange={e => updateStore(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -374,7 +374,7 @@ export default function SetupWizard() {
       {/* STEP 3: Proveedores */}
       {step === 3 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Que proveedores de cobro usas?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Qué proveedores de cobro usas?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Selecciona todos los sistemas de pago que utilizas en tus tiendas.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
@@ -503,7 +503,7 @@ export default function SetupWizard() {
       {/* STEP 5: Modo bancario */}
       {step === 5 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Como manejas tus cuentas bancarias?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cómo manejas tus cuentas bancarias?</h2>
           <p style={{ color: '#64748b', marginBottom: 24 }}>Indica si todas tus tiendas usan la misma cuenta o cada una tiene la suya.</p>
 
           {stores.length === 1 ? (
@@ -580,8 +580,8 @@ export default function SetupWizard() {
       {/* STEP 7: Cloud */}
       {step === 7 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Donde queres almacenar tus documentos?</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Elegi la opcion de almacenamiento que prefieras para tus archivos de conciliacion.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Donde quieres almacenar tus documentos?</h2>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Elige la opción de almacenamiento que prefieras para tus archivos de conciliacion.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <button
@@ -611,7 +611,7 @@ export default function SetupWizard() {
           {cloudChoice === 'own' && (
             <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
-                <strong>Nota:</strong> La configuracion de tu propio cloud se realizara en una sesion posterior con nuestro equipo de soporte tecnico.
+                <strong>Nota:</strong> La configuración de tu propio cloud se realizara en una sesion posterior con nuestro equipo de soporte tecnico.
                 Por ahora usaremos el almacenamiento de ClearFlow.
               </p>
             </div>
@@ -623,13 +623,13 @@ export default function SetupWizard() {
       {step === 8 && (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: 64, marginBottom: 24 }}>🎉</div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>¡Configuracion completada!</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>¡Configuración completada!</h2>
           <p style={{ color: '#64748b', fontSize: 16, maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.6 }}>
-            Todo tu setup esta guardado. Ahora podes cargar tus documentos y ejecutar tu primer SmartCheck.
+            Todo tu setup esta guardado. Ahora puedes cargar tus documentos y ejecutar tu primer SmartCheck.
           </p>
 
           <div style={{ background: '#f8fafc', borderRadius: 12, padding: 24, maxWidth: 480, margin: '0 auto 32px', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase' }}>Resumen de tu configuracion</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase' }}>Resumen de tu configuración</h3>
             <div style={{ fontSize: 13, color: '#0f172a', lineHeight: 1.8 }}>
               <div>🏢 <strong>{societies.length}</strong> {societies.length === 1 ? 'sociedad' : 'sociedades'}</div>
               <div>🏪 <strong>{stores.length}</strong> {stores.length === 1 ? 'tienda' : 'tiendas'}</div>

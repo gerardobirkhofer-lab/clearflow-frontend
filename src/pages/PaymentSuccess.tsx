@@ -19,25 +19,25 @@ export default function PaymentSuccess() {
     }
   }, [sessionId]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Verifying payment...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Verificando pago...</div>;
 
   return (
     <div style={{ maxWidth: 600, margin: '60px auto', textAlign: 'center', fontFamily: 'sans-serif' }}>
       <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
-      <h1 style={{ color: '#1a1a1a', marginBottom: 10 }}>Payment Successful!</h1>
+      <h1 style={{ color: '#1a1a1a', marginBottom: 10 }}>¡Pago confirmado!</h1>
       <p style={{ color: '#666', fontSize: 16, marginBottom: 30 }}>
-        Thank you for your purchase. Your payment has been confirmed.
+        Gracias por tu compra. Tu pago ha sido confirmado.
       </p>
 
       {session && (
         <div style={{ background: '#f6f9fc', borderRadius: 12, padding: 24, marginBottom: 30, textAlign: 'left' }}>
-          <p><strong>Amount:</strong> {(session.amount_total / 100).toFixed(2)} {session.currency?.toUpperCase()}</p>
-          <p><strong>Status:</strong> {session.payment_status}</p>
-          <p><strong>Customer:</strong> {session.customer_email}</p>
+          <p><strong>Importe:</strong> {(session.amount_total / 100).toFixed(2)} {session.currency?.toUpperCase()}</p>
+          <p><strong>Estado:</strong> {session.payment_status}</p>
+          <p><strong>Cliente:</strong> {session.customer_email}</p>
         </div>
       )}
 
-      <Link to="/" style={{
+      <Link to="/dashboard" style={{
         display: 'inline-block',
         background: '#635bff',
         color: 'white',
@@ -46,7 +46,7 @@ export default function PaymentSuccess() {
         textDecoration: 'none',
         fontWeight: 600
       }}>
-        Back to Dashboard
+        Volver al Panel
       </Link>
     </div>
   );
