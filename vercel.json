@@ -1,7 +1,29 @@
 {
   "rewrites": [
+    { "source": "/landing.html", "destination": "/landing.html" },
+    { "source": "/clearview.html", "destination": "/clearview.html" },
     { "source": "/app/:path*", "destination": "/index.html" },
-    { "source": "/app", "destination": "/index.html" }
+    { "source": "/app", "destination": "/index.html" },
+    { "source": "/hub", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/statistics", "destination": "/index.html" },
+    { "source": "/profitability", "destination": "/index.html" },
+    { "source": "/revenue-control", "destination": "/index.html" },
+    { "source": "/mismatch-tracker", "destination": "/index.html" },
+    { "source": "/dispute-tracker", "destination": "/index.html" },
+    { "source": "/communications", "destination": "/index.html" },
+    { "source": "/reports", "destination": "/index.html" },
+    { "source": "/reconciliation", "destination": "/index.html" },
+    { "source": "/smartcheck-wizard", "destination": "/index.html" },
+    { "source": "/setup", "destination": "/index.html" },
+    { "source": "/setup-wizard", "destination": "/index.html" },
+    { "source": "/tenant-selector", "destination": "/index.html" },
+    { "source": "/pricing", "destination": "/index.html" },
+    { "source": "/payment-success", "destination": "/index.html" },
+    { "source": "/payment-cancel", "destination": "/index.html" },
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/welcome", "destination": "/index.html" },
+    { "source": "/wizard", "destination": "/index.html" }
   ],
   "redirects": [
     { "source": "/", "destination": "/clearview.html", "permanent": false },
