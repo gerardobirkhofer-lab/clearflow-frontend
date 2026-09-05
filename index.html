@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8">
     <title>ClearFlow</title>
-    <style>
+    <script>
+      // Redirect all API calls from stale Render URL to Railway production
+      (function() {
+        var RAILWAY = 'https://clearflow-api-production.up.railway.app';
+        var origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+          if (typeof url === 'string' && url.indexOf('clearflow-api-hl4o.onrender.com') !== -1) {
+            url = url.replace('https://clearflow-api-hl4o.onrender.com', RAILWAY);
+          }
+          return origFetch.call(this, url, opts);
+        };
+      })();
+    </script>
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
