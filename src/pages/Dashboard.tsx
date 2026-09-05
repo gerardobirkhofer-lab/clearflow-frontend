@@ -9,8 +9,6 @@ const API = (import.meta.env.VITE_API_URL || '').includes('railway')
   ? import.meta.env.VITE_API_URL
   : 'https://clearflow-api-production.up.railway.app';
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
-const API = import.meta.env.VITE_API_URL;
-const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 interface Tx {
   id: number;
