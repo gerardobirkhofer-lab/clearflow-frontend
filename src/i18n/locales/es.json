@@ -197,7 +197,7 @@
     "comingSoon": "Próximamente — carga CSV por ahora",
     "currency": "Moneda",
     "stores": "TIENDAS",
-    "legalNotice": "<strong>Aviso Legal:</strong> ClearFlow S.L. actúa únicamente como procesador de datos bajo el Artículo 28 del GDPR. Vos (el responsable del tratamiento) mantenés la propiedad total de tus datos comerciales. Procesamos tus datos únicamente para proporcionar el servicio de SmartCheck que solicitaste. No realizamos análisis fiscal, auditoría financiera ni reportes regulatorios en tu nombre. Si necesitás un Acuerdo de Procesamiento de Datos (DPA), contactanos en dpa@clearflow.app.",
+    "legalNotice": "<strong>Aviso Legal:</strong> ClearFlow S.L. actúa únicamente como procesador de datos bajo el Artículo 28 del GDPR. Tú (el responsable del tratamiento) mantienes la propiedad total de tus datos comerciales. Procesamos tus datos únicamente para proporcionar el servicio de SmartCheck que solicitaste. No realizamos análisis fiscal, auditoría financiera ni reportes regulatorios en tu nombre. Si necesitas un Acuerdo de Procesamiento de Datos (DPA), contáctanos en dpa@clearflow.app.",
     "businessPortfolio": "Cartera de Negocios"
   },
   "upload": {
@@ -292,21 +292,21 @@
     "advisorTitle": "Soy Asesor / Contador",
     "advisorDesc": "Trabajo con múltiples clientes. Necesito una herramienta que me permita revisar y disputar pagos de todos mis clientes en un solo lugar.",
     "select": "Seleccionar →",
-    "changeLater": "Podés cambiar esto más adelante desde Configuración."
+    "changeLater": "Puedes cambiar esto más adelante desde Configuración."
   },
   "hub": {
     "greeting": "Hola {{name}}, ¿qué quieres hacer hoy?",
     "switchStore": "Cambiar tienda / cliente",
     "noTenant": "No hay tienda seleccionada",
-    "selectTenant": "Seleccioná una tienda para comenzar.",
+    "selectTenant": "Selecciona una tienda para comenzar.",
     "goSelect": "Ir a seleccionar →",
     "open": "Abrir →",
     "upload": "Cargar Archivos",
-    "uploadDesc": "Subí extractos bancarios, informes TPV o archivos de proveedores.",
+    "uploadDesc": "Sube extractos bancarios, informes TPV o archivos de proveedores.",
     "smartcheck": "SmartCheck",
     "smartcheckDesc": "Verifica que todo lo cobrado llegó al banco y detecta diferencias.",
     "dashboard": "Panel de Control",
-    "dashboardDesc": "Mirá el estado general de tu negocio en un solo vistazo.",
+    "dashboardDesc": "Mira el estado general de tu negocio en un solo vistazo.",
     "disputes": "Disputas",
     "disputesDesc": "Reclama pagos pendientes o faltantes a tus proveedores.",
     "mismatches": "Discrepancias",
@@ -338,7 +338,7 @@
     "title": "Configura ClearFlow",
     "subtitle": "Paso {{step}} de {{total}} — {{desc}}",
     "step1Title": "¿Quién sos?",
-    "step1Desc": "Elige el perfil que mejor se adapte a ti. Podés cambiarlo después.",
+    "step1Desc": "Elige el perfil que mejor se adapte a ti. Puedes cambiarlo después.",
     "step2OwnerTitle": "¿Cuántas tiendas/negocios tienes?",
     "step2AdvisorTitle": "¿Cuántos clientés quieres gestionar?",
     "step2Desc": "Configúralos ahora. Siempre puedes agregar más después.",
@@ -346,7 +346,7 @@
     "storeN": "Tienda {{n}}",
     "clientN": "Cliente {{n}}",
     "step3Title": "¿Qué proveedores de pago usas?",
-    "step3Desc": "Tildá los que uses. Después configuraremos cada uno.",
+    "step3Desc": "Marca los que uses. Después configuraremos cada uno.",
     "disputeEmails": "Emails de contacto para disputas",
     "disputeEmailsDesc": "Cuando detectemos un pago faltante, el sistema mandará un email automático a esta dirección.",
     "step4Title": "¿Dónde quieres guardar tus datos?",
@@ -368,12 +368,12 @@
     "last90d": "Últimos 90 días",
     "yearToDate": "Año en curso",
     "emptyTitle": "Aún no hay estadísticas",
-    "emptyDesc": "Cargá extractos bancarios e informes de proveedores para ver tu scorecard de salud, desglose por tipo de tarjeta y tendencias mensuales."
+    "emptyDesc": "Carga extractos bancarios e informes de proveedores para ver tu scorecard de salud, desglose por tipo de tarjeta y tendencias mensuales."
   },
   "profitability": {
     "title": "Rentabilidad",
     "intelligence": "Inteligencia de Negocio",
-    "subtitle": "Mirá si tu negocio realmente está ganando plata. Ingresos menos comisiones menos costos = ganancia real.",
+    "subtitle": "Mira si tu negocio realmente está ganando plata. Ingresos menos comisiones menos costos = ganancia real.",
     "emptyTitle": "Aún no hay datos de tiendas",
     "emptyDesc": "Completa la configuración de tu tienda y carga datos de transacciones para ver el análisis de rentabilidad.",
     "analyzing": "Analizando:",
@@ -391,7 +391,7 @@
     "weekly": "Semanal",
     "monthly": "Mensual",
     "add": "Agregar",
-    "noCosts": "Aún no hay costos agregados. Hacé clic en \"+ Agregar Costo\" para empezar a trackear tus gastos.",
+    "noCosts": "Aún no hay costos agregados. Haz clic en \"+ Agregar Costo\" para empezar a trackear tus gastos.",
     "cost": "Costo",
     "monthlyEquiv": "Equiv. Mensual",
     "totalMonthlyCosts": "Total Costos Mensuales"

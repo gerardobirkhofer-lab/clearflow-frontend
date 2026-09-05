@@ -21,7 +21,7 @@ export default function Hub() {
     {
       icon: '📁',
       title: t('hub.upload', 'Cargar Archivos'),
-      desc: t('hub.uploadDesc', 'Subí extractos bancarios, informes TPV o archivos de proveedores.'),
+      desc: t('hub.uploadDesc', 'Sube extractos bancarios, informes TPV o archivos de proveedores.'),
       path: '/upload-center',
       color: '#635bff',
       bg: '#f5f3ff',
@@ -30,7 +30,7 @@ export default function Hub() {
     {
       icon: '🔁',
       title: t('hub.smartcheck', 'SmartCheck'),
-      desc: t('hub.smartcheckDesc', 'Verificá que todo lo cobrado llegó al banco y detectá diferencias.'),
+      desc: t('hub.smartcheckDesc', 'Verifica que todo lo cobrado llegó al banco y detecta diferencias.'),
       path: '/reconciliation',
       color: '#059669',
       bg: '#f0fdf4',
@@ -39,7 +39,7 @@ export default function Hub() {
     {
       icon: '📊',
       title: t('hub.dashboard', 'Panel de Control'),
-      desc: t('hub.dashboardDesc', 'Mirá el estado general de tu negocio en un solo vistazo.'),
+      desc: t('hub.dashboardDesc', 'Mira el estado general de tu negocio en un solo vistazo.'),
       path: '/dashboard',
       color: '#0f172a',
       bg: '#f8fafc',
@@ -48,7 +48,7 @@ export default function Hub() {
     {
       icon: '🎯',
       title: t('hub.disputes', 'Disputas'),
-      desc: t('hub.disputesDesc', 'Reclamá pagos pendientes o faltantes a tus proveedores.'),
+      desc: t('hub.disputesDesc', 'Reclama pagos pendientes o faltantes a tus proveedores.'),
       path: '/dispute-tracker',
       color: '#dc2626',
       bg: '#fef2f2',
@@ -57,7 +57,7 @@ export default function Hub() {
     {
       icon: '🔍',
       title: t('hub.mismatches', 'Discrepancias'),
-      desc: t('hub.mismatchesDesc', 'Revisá diferencias detectadas entre lo esperado y lo recibido.'),
+      desc: t('hub.mismatchesDesc', 'Revisa diferencias detectadas entre lo esperado y lo recibido.'),
       path: '/mismatch-tracker',
       color: '#d97706',
       bg: '#fffbeb',
@@ -75,7 +75,7 @@ export default function Hub() {
     {
       icon: '📄',
       title: t('hub.reports', 'Informes'),
-      desc: t('hub.reportsDesc', 'Descargá reportes en PDF o Excel para tu contador.'),
+      desc: t('hub.reportsDesc', 'Descarga reportes en PDF o Excel para tu contador.'),
       path: '/reports',
       color: '#0891b2',
       bg: '#ecfeff',
@@ -84,7 +84,7 @@ export default function Hub() {
     {
       icon: '⚙️',
       title: t('hub.setup', 'Configuración'),
-      desc: t('hub.setupDesc', 'Gestioná tiendas, proveedores, cuentas bancarias e idioma.'),
+      desc: t('hub.setupDesc', 'Gestiona tiendas, proveedores, cuentas bancarias e idioma.'),
       path: '/setup',
       color: '#64748b',
       bg: '#f1f5f9',
@@ -97,7 +97,7 @@ export default function Hub() {
       <div style={{ textAlign: 'center', padding: 80, fontFamily: 'sans-serif' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🏪</div>
         <h2 style={{ marginBottom: 8 }}>{t('hub.noTenant', 'No hay tienda seleccionada')}</h2>
-        <p style={{ color: '#64748b', marginBottom: 24 }}>{t('hub.selectTenant', 'Seleccioná una tienda para comenzar.')}</p>
+        <p style={{ color: '#64748b', marginBottom: 24 }}>{t('hub.selectTenant', 'Selecciona una tienda para comenzar.')}</p>
         <button
           onClick={() => navigate('/tenant-selector')}
           style={{ padding: '12px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}

@@ -321,7 +321,7 @@ export default function DocUploadCenter() {
         <input ref={fileInputRef} type="file" accept=".csv" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
         <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Arrastrá todos tus CSVs aquí</div>
-        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 8 }}>o hacé clic para buscar</div>
+        <div style={{ color: '#64748b', fontSize: 14, marginBottom: 8 }}>o haz clic para buscar</div>
         <div style={{ color: '#94a3b8', fontSize: 12 }}>
           Detectamos automáticamente: Santander, BBVA, CaixaBank, Stripe, Redsys, PayPal, Mercado Pago y más.
         </div>

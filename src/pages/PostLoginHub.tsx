@@ -24,7 +24,7 @@ export default function PostLoginHub() {
       id: 'smartcheck',
       icon: '🔁',
       title: 'Iniciar SmartCheck',
-      desc: 'Subí documentos y verificá tus cobros en segundos',
+      desc: 'Sube documentos y verifica tus cobros en segundos',
       path: '/smartcheck-wizard',
       color: '#059669',
       bg: '#f0fdf4',
@@ -158,7 +158,7 @@ export default function PostLoginHub() {
   const categories = [
     { key: 'operaciones', label: '🚀 Operaciones', desc: 'Acciones del día a día' },
     { key: 'analisis', label: '📊 Análisis', desc: 'Entendé tu negocio' },
-    { key: 'acciones', label: '⚡ Acciones', desc: 'Gestioná problemas y oportunidades' },
+    { key: 'acciones', label: '⚡ Acciones', desc: 'Gestiona problemas y oportunidades' },
     { key: 'config', label: '⚙️ Configuración', desc: 'Ajustá tu cuenta' },
   ];
 
@@ -169,7 +169,7 @@ export default function PostLoginHub() {
       <div style={{ textAlign: 'center', padding: 80, fontFamily: 'sans-serif' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
         <h2 style={{ marginBottom: 8 }}>Configuración inicial necesaria</h2>
-        <p style={{ color: '#64748b', marginBottom: 24 }}>Completá tu perfil, tiendas y proveedores para comenzar.</p>
+        <p style={{ color: '#64748b', marginBottom: 24 }}>Completa tu perfil, tiendas y proveedores para comenzar.</p>
         <button
           onClick={() => navigate('/setup')}
           style={{ padding: '12px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}

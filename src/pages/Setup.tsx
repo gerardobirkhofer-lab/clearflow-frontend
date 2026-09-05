@@ -712,7 +712,7 @@ export default function Setup() {
 
             {autoPurge && (
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t('setup.deleteAfter') || 'Delete data older than:'}</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t('setup.deleteAfter') || 'Eliminar datos anteriores a:'}</label>
                 <select
                   value={purgeDays}
                   onChange={(e) => setPurgeDays(Number(e.target.value))}
@@ -733,7 +733,7 @@ export default function Setup() {
                 color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
               }}
             >
-              {t('setup.saveRetention') || 'Save Retention Settings'}
+              {t('setup.saveRetention') || 'Guardar Configuración de Retención'}
             </button>
           </div>
 
@@ -763,7 +763,7 @@ export default function Setup() {
                     background: '#dc2626', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   }}
                 >
-                  {t('setup.yesDelete') || 'Yes, Delete Everything'}
+                  {t('setup.yesDelete') || 'Sí, Eliminar Todo'}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}

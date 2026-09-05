@@ -154,7 +154,7 @@ export default function OnboardingWizard() {
               {t('wizard.step1Title', '¿Quién sos?')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>
-              {t('wizard.step1Desc', 'Elige el perfil que mejor se adapte a ti. Podés cambiarlo después.')}
+              {t('wizard.step1Desc', 'Elige el perfil que mejor se adapte a ti. Puedes cambiarlo después.')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
               {[
@@ -271,10 +271,10 @@ export default function OnboardingWizard() {
         {step === 3 && (
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>
-              {t('wizard.step3Title', '¿Qué proveedores de pago usás?')}
+              {t('wizard.step3Title', '¿Qué proveedores de pago usas?')}
             </h2>
             <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>
-              {t('wizard.step3Desc', 'Tildá los que uses. Después configuraremos cada uno.')}
+              {t('wizard.step3Desc', 'Marca los que uses. Después configuraremos cada uno.')}
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>

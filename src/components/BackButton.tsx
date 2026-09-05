@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface BackButtonProps {
   to?: string;
@@ -14,23 +14,17 @@ export default function BackButton({
   showHome = true,
 }: BackButtonProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Detectar si podemos volver atrás en el history
-  const canGoBack = location.key !== 'default';
 
   const handleBack = () => {
     if (to) {
       navigate(to);
-    } else if (canGoBack) {
-      navigate(-1);
     } else {
-      navigate(fallbackTo);
+      navigate(-1);
     }
   };
 
   const handleHome = () => {
-    navigate('/hub');
+    navigate(fallbackTo);
   };
 
   return (
@@ -52,7 +46,7 @@ export default function BackButton({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        ← {label || (to ? 'Volver' : 'Atrás')}
+        ← {label || 'Volver'}
       </button>
       {showHome && (
         <button

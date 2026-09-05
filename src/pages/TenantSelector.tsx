@@ -104,7 +104,7 @@ export default function TenantSelector() {
           <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
             {tenants.length === 0 
               ? "Configura tu primera tienda para comenzar." 
-              : "Seleccioná una tienda para entrar a tu panel."}
+              : "Selecciona una tienda para entrar a tu panel."}
           </p>
         </div>
         
@@ -186,13 +186,13 @@ export default function TenantSelector() {
                     onClick={() => saveEdit(t.id)}
                     style={{ flex: 1, padding: '8px', background: '#635bff', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
-                    Save
+                    Guardar
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
                     style={{ flex: 1, padding: '8px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
-                    Cancel
+                    Cancelar
                   </button>
                 </div>
               </div>
@@ -210,13 +210,13 @@ export default function TenantSelector() {
                     onClick={e => { e.stopPropagation(); startEdit(t); }}
                     style={{ flex: 1, padding: '6px 12px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                   >
-                    ✏️ Edit
+                    ✏️ Editar
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); deleteTenant(t.id); }}
                     style={{ flex: 1, padding: '6px 12px', background: '#fef2f2', color: '#991b1b', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                   >
-                    🗑️ Delete
+                    🗑️ Eliminar
                   </button>
                 </div>
               </>
@@ -264,7 +264,7 @@ export default function TenantSelector() {
               cursor: newTenantName ? 'pointer' : 'not-allowed',
             }}
           >
-            Create
+            Crear
           </button>
         </div>
       </div>

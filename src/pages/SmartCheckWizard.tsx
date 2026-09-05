@@ -148,7 +148,7 @@ export default function SmartCheckWizard() {
     const tenantId = tenantData.id;
 
     if (!tenantId) {
-      return { success: false, message: 'No hay tenant configurado. Completá el setup primero.' };
+      return { success: false, message: 'No hay tenant configurado. Completa el setup primero.' };
     }
 
     const formData = new FormData();
@@ -286,7 +286,7 @@ export default function SmartCheckWizard() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
         <div style={{ textAlign: 'center', maxWidth: 400, padding: 40 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
-          <h2 style={{ marginBottom: 8 }}>Necesitás completar tu configuración antes de ejecutar un SmartCheck</h2>
+          <h2 style={{ marginBottom: 8 }}>Necesitas completar tu configuración antes de ejecutar un SmartCheck</h2>
           <button onClick={() => navigate('/setup')} style={{ padding: '12px 24px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Ir a Configuración
           </button>
@@ -337,7 +337,7 @@ export default function SmartCheckWizard() {
         <BackButton />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>PASO 2 DE 4</div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>Subí tus archivos</h1>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>Sube tus archivos</h1>
           <p style={{ color: '#64748b', marginTop: 4 }}>Solo los documentos que faltan. Detectamos automáticamente cada tipo.</p>
         </div>
         <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }}>
@@ -357,7 +357,7 @@ export default function SmartCheckWizard() {
           <input ref={fileInputRef} type="file" accept=".csv" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
           <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Arrastrá tus CSVs aquí</div>
-          <div style={{ color: '#64748b', fontSize: 14 }}>o hacé clic para buscar</div>
+          <div style={{ color: '#64748b', fontSize: 14 }}>o haz clic para buscar</div>
           <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>Formatos: CSV de {bankName}, Stripe, Redsys, Informe Z...</div>
         </div>
         {uploads.length > 0 && (
