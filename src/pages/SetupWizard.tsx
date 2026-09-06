@@ -59,6 +59,24 @@ export default function SetupWizard() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cloudChoice, setCloudChoice] = useState('clearflow');
   const totalSteps = 8;
+  const [societySubStep, setSocietySubStep] = useState(0);
+  const [storeSubStep, setStoreSubStep] = useState(0);
+
+  // Auto-initialize bank accounts when reaching step 6 if empty
+  useEffect(() => {
+    if (step === 6 && bankAccounts.length === 0 && stores.length > 0) {
+      setBankMode('shared');
+      setBankAccounts([{
+        id: '1',
+        bank_name: '',
+        account_name: 'Cuenta Principal',
+        iban: '',
+        account_number: '',
+        assigned_store_ids: stores.map(s => s.id),
+      }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const providerOptions = [
     { id: 'stripe', name: 'Stripe', icon: '💳' },
@@ -184,8 +202,15 @@ export default function SetupWizard() {
 
   const nextStep = () => {
     saveSetup();
-    if (step < totalSteps) setStep(step + 1);
-    else {
+    if (step === 1 && societySubStep < societies.length - 1) {
+      setSocietySubStep(societySubStep + 1);
+    } else if (step === 2 && storeSubStep < stores.length - 1) {
+      setStoreSubStep(storeSubStep + 1);
+    } else if (step < totalSteps) {
+      setStep(step + 1);
+      setSocietySubStep(0);
+      setStoreSubStep(0);
+    } else {
       localStorage.setItem('onboardingComplete', 'true');
       saveSetup({ completedAt: new Date().toISOString() });
       navigate('/upload-center');
@@ -193,7 +218,15 @@ export default function SetupWizard() {
   };
 
   const prevStep = () => {
-    if (step > 1) setStep(step - 1);
+    if (step === 1 && societySubStep > 0) {
+      setSocietySubStep(societySubStep - 1);
+    } else if (step === 2 && storeSubStep > 0) {
+      setStoreSubStep(storeSubStep - 1);
+    } else if (step > 1) {
+      setStep(step - 1);
+      if (step === 2) setSocietySubStep(societies.length - 1);
+      if (step === 3) setStoreSubStep(stores.length - 1);
+    }
   };
 
   const canProceed = () => {
@@ -206,7 +239,7 @@ export default function SetupWizard() {
         return c && c.email.trim() && c.fee_percent.trim() && c.payout_days.trim();
       });
       case 5: return true;
-      case 6: return bankAccounts.every(b => b.bank_name.trim() && b.iban.trim());
+      case 6: return bankAccounts.length > 0 && bankAccounts.every(b => b.bank_name.trim() && b.iban.trim());
       case 7: return true;
       default: return true;
     }
@@ -227,147 +260,199 @@ export default function SetupWizard() {
         </div>
       </div>
 
-      {/* STEP 1: Sociedades */}
+      {/* STEP 1: Sociedades - una por pantalla */}
       {step === 1 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas sociedades o grupos legales tienes?</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Cada sociedad puede tener una o varias tiendas. Si tienes todo bajo una sola sociedad, selecciona 1.</p>
+          {societySubStep === 0 && societies.length === 1 && !societies[0].name && (
+            <>
+              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas sociedades o grupos legales tienes?</h2>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total. Puedes tener hasta 20 sociedades.</p>
+              <div style={{ marginBottom: 32 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={societyCount || ''}
+                  onChange={e => {
+                    const raw = e.target.value;
+                    if (raw === '') { handleSocietyCountChange(1); return; }
+                    const count = Math.max(1, Math.min(20, parseInt(raw) || 1));
+                    handleSocietyCountChange(count);
+                  }}
+                  style={{ width: 120, padding: '12px 16px', borderRadius: 10, border: '2px solid #e2e8f0', fontSize: 18, fontWeight: 700, textAlign: 'center' }}
+                />
+              </div>
+            </>
+          )}
 
-          <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <button
-                key={n}
-                onClick={() => handleSocietyCountChange(n)}
-                style={{
-                  padding: '16px 32px', borderRadius: 12, border: societyCount === n ? '2px solid #635bff' : '2px solid #e2e8f0',
-                  background: societyCount === n ? '#635bff' : 'white', color: societyCount === n ? 'white' : '#0f172a',
-                  fontSize: 18, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {societies.map((society, i) => (
-              <div key={society.id} style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', marginBottom: 16, textTransform: 'uppercase' }}>
-                  Sociedad / Grupo Legal #{i + 1}
+          {societies.length > 0 && (
+            <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', textTransform: 'uppercase', margin: 0 }}>
+                  Sociedad / Grupo Legal #{societySubStep + 1}
                 </h3>
-                <div style={{ display: 'grid', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Razon social</label>
-                      <input value={society.name} onChange={e => updateSociety(i, 'name', e.target.value)} placeholder="Ej: Pura Gastronomia S.L." style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF</label>
-                      <input value={society.nif} onChange={e => updateSociety(i, 'nif', e.target.value)} placeholder="B-12345678" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{societySubStep + 1} de {societies.length}</span>
+              </div>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Razón social</label>
+                    <input value={societies[societySubStep]?.name || ''} onChange={e => updateSociety(societySubStep, 'name', e.target.value)} placeholder="Ej: Pura Gastronomía S.L." style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección fiscal</label>
-                    <input value={society.address} onChange={e => updateSociety(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF</label>
+                    <input value={societies[societySubStep]?.nif || ''} onChange={e => updateSociety(societySubStep, 'nif', e.target.value)} placeholder="B-12345678" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
-                      <input value={society.city} onChange={e => updateSociety(i, 'city', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
-                      <input value={society.province} onChange={e => updateSociety(i, 'province', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección fiscal</label>
+                  <input value={societies[societySubStep]?.address || ''} onChange={e => updateSociety(societySubStep, 'address', e.target.value)} placeholder="Calle y número" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
+                    <input value={societies[societySubStep]?.city || ''} onChange={e => updateSociety(societySubStep, 'city', e.target.value)} placeholder="Málaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
+                    <input value={societies[societySubStep]?.province || ''} onChange={e => updateSociety(societySubStep, 'province', e.target.value)} placeholder="Málaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Mini navegación rápida entre sociedades */}
+          {societies.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+              {societies.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSocietySubStep(i)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    border: i === societySubStep ? '2px solid #635bff' : '1px solid #e2e8f0',
+                    background: i === societySubStep ? '#635bff' : societies[i]?.name.trim() ? '#f0fdf4' : 'white',
+                    color: i === societySubStep ? 'white' : societies[i]?.name.trim() ? '#166534' : '#64748b',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  }}
+                  title={`Sociedad ${i + 1}${societies[i]?.name.trim() ? '' : ' (incompleta)'}`}
+                >
+                  {societies[i]?.name.trim() ? '✓' : i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* STEP 2: Tiendas */}
+      {/* STEP 2: Tiendas - una por pantalla */}
       {step === 2 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas tiendas o negocios tienes?</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica cuantos locales, restaurantes o tiendas online gestionas en total.</p>
+          {storeSubStep === 0 && stores.length === 1 && !stores[0].name && (
+            <>
+              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas tiendas o negocios tienes?</h2>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total de locales, restaurantes o tiendas online. Puedes tener hasta 50.</p>
+              <div style={{ marginBottom: 32 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={storeCount || ''}
+                  onChange={e => {
+                    const raw = e.target.value;
+                    if (raw === '') { handleStoreCountChange(1); return; }
+                    const count = Math.max(1, Math.min(50, parseInt(raw) || 1));
+                    handleStoreCountChange(count);
+                  }}
+                  style={{ width: 120, padding: '12px 16px', borderRadius: 10, border: '2px solid #e2e8f0', fontSize: 18, fontWeight: 700, textAlign: 'center' }}
+                />
+              </div>
+            </>
+          )}
 
-          <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <button
-                key={n}
-                onClick={() => handleStoreCountChange(n)}
-                style={{
-                  padding: '16px 32px', borderRadius: 12, border: storeCount === n ? '2px solid #635bff' : '2px solid #e2e8f0',
-                  background: storeCount === n ? '#635bff' : 'white', color: storeCount === n ? 'white' : '#0f172a',
-                  fontSize: 18, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {stores.map((store, i) => (
-              <div key={store.id} style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', marginBottom: 16, textTransform: 'uppercase' }}>
-                  Tienda / Negocio #{i + 1}
+          {stores.length > 0 && (
+            <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fafafa' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#635bff', textTransform: 'uppercase', margin: 0 }}>
+                  Tienda / Negocio #{storeSubStep + 1}
                 </h3>
-                <div style={{ display: 'grid', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del negocio</label>
-                      <input value={store.name} onChange={e => updateStore(i, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Sociedad a la que pertenece</label>
-                      <select value={store.societyId} onChange={e => updateStore(i, 'societyId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-                        <option value="">Seleccionar sociedad...</option>
-                        {societies.map(s => (
-                          <option key={s.id} value={s.id}>{s.name || `Sociedad ${s.id}`}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Tipo de negocio</label>
-                      <select value={store.type} onChange={e => updateStore(i, 'type', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-                        <option value="">Seleccionar...</option>
-                        <option value="restaurant">Restaurante fisico</option>
-                        <option value="bar">Bar / Cafeteria</option>
-                        <option value="online">Tienda online</option>
-                        <option value="delivery">Delivery / Takeaway</option>
-                        <option value="retail">Tienda fisica</option>
-                        <option value="service">Servicios profesionales</option>
-                        <option value="other">Otro</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF (si es diferente a la sociedad)</label>
-                      <input value={store.nif} onChange={e => updateStore(i, 'nif', e.target.value)} placeholder="Herado de la sociedad si se deja vacio" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{storeSubStep + 1} de {stores.length}</span>
+              </div>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del negocio</label>
+                    <input value={stores[storeSubStep]?.name || ''} onChange={e => updateStore(storeSubStep, 'name', e.target.value)} placeholder="Ej: Pura Zona Norte" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección</label>
-                    <input value={store.address} onChange={e => updateStore(i, 'address', e.target.value)} placeholder="Calle y numero" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Sociedad a la que pertenece</label>
+                    <select value={stores[storeSubStep]?.societyId || ''} onChange={e => updateStore(storeSubStep, 'societyId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
+                      <option value="">Seleccionar sociedad...</option>
+                      {societies.map(s => (
+                        <option key={s.id} value={s.id}>{s.name || `Sociedad ${s.id}`}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
-                      <input value={store.city} onChange={e => updateStore(i, 'city', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
-                      <input value={store.province} onChange={e => updateStore(i, 'province', e.target.value)} placeholder="Malaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
-                    </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Tipo de negocio</label>
+                    <select value={stores[storeSubStep]?.type || ''} onChange={e => updateStore(storeSubStep, 'type', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
+                      <option value="">Seleccionar...</option>
+                      <option value="restaurant">Restaurante físico</option>
+                      <option value="bar">Bar / Cafetería</option>
+                      <option value="online">Tienda online</option>
+                      <option value="delivery">Delivery / Takeaway</option>
+                      <option value="retail">Tienda física</option>
+                      <option value="service">Servicios profesionales</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>NIF / CIF (si es diferente a la sociedad)</label>
+                    <input value={stores[storeSubStep]?.nif || ''} onChange={e => updateStore(storeSubStep, 'nif', e.target.value)} placeholder="Heredado de la sociedad si se deja vacío" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dirección</label>
+                  <input value={stores[storeSubStep]?.address || ''} onChange={e => updateStore(storeSubStep, 'address', e.target.value)} placeholder="Calle y número" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Ciudad</label>
+                    <input value={stores[storeSubStep]?.city || ''} onChange={e => updateStore(storeSubStep, 'city', e.target.value)} placeholder="Málaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Provincia</label>
+                    <input value={stores[storeSubStep]?.province || ''} onChange={e => updateStore(storeSubStep, 'province', e.target.value)} placeholder="Málaga" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Mini navegación rápida entre tiendas */}
+          {stores.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+              {stores.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setStoreSubStep(i)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    border: i === storeSubStep ? '2px solid #635bff' : '1px solid #e2e8f0',
+                    background: i === storeSubStep ? '#635bff' : stores[i]?.name.trim() ? '#f0fdf4' : 'white',
+                    color: i === storeSubStep ? 'white' : stores[i]?.name.trim() ? '#166534' : '#64748b',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  }}
+                  title={`Tienda ${i + 1}${stores[i]?.name.trim() ? '' : ' (incompleta)'}`}
+                >
+                  {stores[i]?.name.trim() ? '✓' : i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
