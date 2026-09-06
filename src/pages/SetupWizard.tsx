@@ -78,6 +78,22 @@ export default function SetupWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  // Auto-initialize bank accounts when reaching step 6 if empty
+  useEffect(() => {
+    if (step === 6 && bankAccounts.length === 0 && stores.length > 0) {
+      setBankMode('shared');
+      setBankAccounts([{
+        id: '1',
+        bank_name: '',
+        account_name: 'Cuenta Principal',
+        iban: '',
+        account_number: '',
+        assigned_store_ids: stores.map(s => s.id),
+      }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   const providerOptions = [
     { id: 'stripe', name: 'Stripe', icon: '💳' },
     { id: 'redsys', name: 'TPV / Redsys', icon: '🏧' },
