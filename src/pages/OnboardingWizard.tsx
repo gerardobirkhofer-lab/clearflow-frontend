@@ -308,7 +308,7 @@ export default function OnboardingWizard() {
                 <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
                   {t('wizard.disputeEmailsDesc', 'Cuando detectemos un pago faltante, el sistema mandará un email automático a esta dirección.')}
                 </p>
-                {state.providers.filter(p => p.selected).map((provider, idx) => (
+                {state.providers.filter(p => p.selected).map((provider) => (
                   <div key={provider.id} style={{ marginBottom: 12 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>
                       {provider.icon} {provider.name}

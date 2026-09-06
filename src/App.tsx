@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Landing from './pages/Landing';
 import Welcome from './pages/Welcome';
 import OnboardingWizard from './pages/OnboardingWizard';
-import Hub from './pages/Hub';
+import PostLoginHub from './pages/PostLoginHub';
 import PostLoginHub from './pages/PostLoginHub';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';

@@ -80,6 +80,7 @@ async function detectFileType(file: File): Promise<{ type: UploadingFile['detect
 }
 
 export default function DocUploadCenter() {
+  const [uploads, setUploads] = useState<UploadingFile[]>([]);
   const navigate = useNavigate();
   const [uploads, setUploads] = useState<UploadingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);

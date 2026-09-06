@@ -6,7 +6,6 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify('https://clearflow-api-production.up.railway.app'),
   },
-  plugins: [react()],
   server: {
     host: "0.0.0.0",
     port: 3000,
