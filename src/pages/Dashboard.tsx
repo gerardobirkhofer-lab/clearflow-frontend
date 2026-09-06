@@ -29,8 +29,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<any>({});
   const [recent, setRecent] = useState<Tx[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState('30d');
-  const [smartCheckDate, setSmartCheckDate] = useState<string | null>(null);
+    const [smartCheckDate, setSmartCheckDate] = useState<string | null>(null);
 
   useEffect(() => {
     const tenantData = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -158,13 +157,6 @@ export default function Dashboard() {
   const currentTier = tenant?.tier || 'starter';
   const tierStyle = tierColors[currentTier] || tierColors.starter;
 
-  const rangeLabels: Record<string, string> = {
-    '7d': t('dashboard.last7d'),
-    '30d': t('dashboard.last30d'),
-    '90d': t('dashboard.last90d'),
-    'YTD': t('dashboard.yearToDate'),
-  };
-
   return (
     <div className="print-full" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <style>{`
@@ -226,18 +218,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['7d', '30d', '90d', 'YTD'].map(r => (
-            <button key={r} onClick={() => setTimeRange(r)} style={{
-              padding: '10px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
-              background: timeRange === r ? '#0f172a' : 'white',
-              color: timeRange === r ? 'white' : '#64748b',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}>{rangeLabels[r]}</button>
-          ))}
-        </div>
-      </div>
+
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>

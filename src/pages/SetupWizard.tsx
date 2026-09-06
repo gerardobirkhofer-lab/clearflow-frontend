@@ -216,7 +216,7 @@ export default function SetupWizard() {
     } else {
       localStorage.setItem('onboardingComplete', 'true');
       saveSetup({ completedAt: new Date().toISOString() });
-      navigate('/upload-center');
+      navigate('/hub');
     }
   };
 
@@ -504,7 +504,7 @@ export default function SetupWizard() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {selectedProviders.map(pid => {
-              const cfg = providerConfigs[pid] || {};
+              const cfg: ProviderConfig = providerConfigs[pid] || { id: '', name: '', email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '', payout_days: '', is_virtual_account: false, transfer_days: '', transfer_threshold: '' };
               const pInfo = providerOptions.find(p => p.id === pid);
               return (
                 <div key={pid} style={{ padding: 28, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>

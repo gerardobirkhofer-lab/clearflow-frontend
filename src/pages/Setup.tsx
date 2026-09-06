@@ -145,7 +145,7 @@ export default function Setup() {
   };
 
   const saveCloudConfig = () => {
-    localStorage.setItem('clearflow_cloud_config', JSON.stringify(cloudConfig));
+    const { password: _pwd, ...safeCloudConfig } = cloudConfig; localStorage.setItem('clearflow_cloud_config', JSON.stringify(safeCloudConfig));
     setCloudConnected(!!cloudConfig.host && !!cloudConfig.database);
     alert(t('setup.saved') || 'Cloud configuration saved.');
   };

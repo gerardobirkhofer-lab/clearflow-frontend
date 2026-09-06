@@ -37,9 +37,10 @@ export default function Login({ onLogin }: LoginProps) {
       });
       const data = await res.json();
       
-      // If backend fails, use demo mode
+      // Error de credenciales u otro error HTTP: mostrar mensaje real, NO activar demo
       if (!res.ok || data.detail) {
-        throw new Error('backend-error');
+        setError(data.detail || (mode === 'login' ? 'Email o contraseña incorrectos' : 'Error al registrar cuenta'));
+        return;
       }
       
       localStorage.removeItem('token');
@@ -73,18 +74,23 @@ export default function Login({ onLogin }: LoginProps) {
         navigate('/hub');
       }
     } catch (err: any) {
-      // DEMO FALLBACK: if backend is down, use demo mode
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.setItem('token', DEMO_TOKEN);
-      localStorage.setItem('user', JSON.stringify(DEMO_USER));
-      localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-      if (onLogin) onLogin();
-      const onboardingComplete = localStorage.getItem('onboardingComplete');
-      if (!onboardingComplete) {
-        navigate('/welcome');
+      // DEMO FALLBACK SOLO para errores de red (backend caido, sin conexion)
+      const isNetworkError = err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('Failed') || err.message?.includes('Network');
+      if (isNetworkError) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.setItem('token', DEMO_TOKEN);
+        localStorage.setItem('user', JSON.stringify(DEMO_USER));
+        localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
+        if (onLogin) onLogin();
+        const onboardingComplete = localStorage.getItem('onboardingComplete');
+        if (!onboardingComplete) {
+          navigate('/welcome');
+        } else {
+          navigate('/hub');
+        }
       } else {
-        navigate('/hub');
+        setError('Error inesperado. Intenta de nuevo.');
       }
     }
   };

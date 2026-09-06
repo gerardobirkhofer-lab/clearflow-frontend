@@ -5,7 +5,6 @@ import Landing from './pages/Landing';
 import Welcome from './pages/Welcome';
 import OnboardingWizard from './pages/OnboardingWizard';
 import PostLoginHub from './pages/PostLoginHub';
-import PostLoginHub from './pages/PostLoginHub';
 import Dashboard from './pages/Dashboard';
 import Statistics from './pages/Statistics';
 import Profitability from './pages/Profitability';
@@ -36,7 +35,12 @@ function AppContent() {
   }, [location.pathname]);
 
   const handleLogout = () => {
-    localStorage.clear();
+    // Borrar SOLO claves de ClearFlow, no todo el localStorage (puede haber datos de otros sistemas)
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('clearflow') || key === 'token' || key === 'user' || key === 'tenant' || key === 'onboardingComplete') {
+        localStorage.removeItem(key);
+      }
+    });
     setIsLoggedIn(false);
     window.location.href = '/';
   };
