@@ -150,7 +150,10 @@ export default function SetupWizard() {
     const newStores: Store[] = [];
     for (let i = 0; i < count; i++) {
       const existing = stores[i];
-      newStores.push(existing || { id: String(i + 1), societyId: societies[0]?.id || '1', name: '', type: '', company: '', address: '', nif: '', city: '', province: '' });
+      // Round-robin assign society: store 0 → society 0, store 1 → society 1, etc.
+      const societyIdx = societies.length > 0 ? i % societies.length : 0;
+      const defaultSocietyId = societies[societyIdx]?.id || '1';
+      newStores.push(existing || { id: String(i + 1), societyId: defaultSocietyId, name: '', type: '', company: '', address: '', nif: '', city: '', province: '' });
     }
     setStores(newStores);
   };
@@ -231,8 +234,14 @@ export default function SetupWizard() {
 
   const canProceed = () => {
     switch (step) {
-      case 1: return societies.every(s => s.name.trim() && s.nif.trim());
-      case 2: return stores.every(s => s.name.trim() && s.address.trim() && s.nif.trim() && s.societyId);
+      case 1: {
+        const s = societies[societySubStep];
+        return s && s.name.trim() && s.nif.trim();
+      }
+      case 2: {
+        const st = stores[storeSubStep];
+        return st && st.name.trim() && st.address.trim() && st.nif.trim() && st.societyId;
+      }
       case 3: return selectedProviders.length > 0;
       case 4: return selectedProviders.every(id => {
         const c = providerConfigs[id];
