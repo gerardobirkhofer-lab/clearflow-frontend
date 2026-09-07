@@ -194,7 +194,7 @@ export default function RevenueControl() {
 
       {/* WHAT THIS MEANS */}
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>Qué controla ClearFlow por vos:</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>Qué controla ClearFlow por ti:</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
           {[
             { icon: '✅', text: 'Cada factura coincide con una cobranza TPV' },

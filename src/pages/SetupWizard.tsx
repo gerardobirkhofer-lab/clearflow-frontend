@@ -291,12 +291,12 @@ export default function SetupWizard() {
           {societySubStep === 0 && societies.length === 1 && !societies[0].name && (
             <>
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas sociedades o grupos legales tienes?</h2>
-              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total. Puedes tener hasta 20 sociedades.</p>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total. No hay límite de sociedades.</p>
               <div style={{ marginBottom: 32 }}>
                 <input
                   type="number"
                   min={1}
-                  max={20}
+                  max={999}
                   value={societyCount || ''}
                   onChange={e => {
                     const raw = e.target.value;
@@ -377,12 +377,12 @@ export default function SetupWizard() {
           {storeSubStep === 0 && stores.length === 1 && !stores[0].name && (
             <>
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Cuántas tiendas o negocios tienes?</h2>
-              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total de locales, restaurantes o tiendas online. Puedes tener hasta 50.</p>
+              <p style={{ color: '#64748b', marginBottom: 24 }}>Indica el número total de locales, restaurantes o tiendas online. No hay límite de tiendas o negocios.</p>
               <div style={{ marginBottom: 32 }}>
                 <input
                   type="number"
                   min={1}
-                  max={50}
+                  max={999}
                   value={storeCount || ''}
                   onChange={e => {
                     const raw = e.target.value;
@@ -516,7 +516,7 @@ export default function SetupWizard() {
       {step === 4 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Configura tus proveedores</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto, comisiones y plazos de liquidacion para cada proveedor.</p>
+          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto, comisiones y plazos de liquidación para cada proveedor.</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {selectedProviders.map(pid => {
@@ -551,7 +551,7 @@ export default function SetupWizard() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dias de liquidacion</label>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Días de liquidación</label>
                         <input value={cfg.payout_days || ''} onChange={e => updateProviderConfig(pid, 'payout_days', e.target.value)} placeholder="3" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Dias que tarda en acreditarse el dinero.</div>
                       </div>
@@ -573,7 +573,7 @@ export default function SetupWizard() {
                     {cfg.is_virtual_account && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Dias de transferencia a banco</label>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Días de transferencia a banco</label>
                           <input value={cfg.transfer_days || ''} onChange={e => updateProviderConfig(pid, 'transfer_days', e.target.value)} placeholder="2" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
                         </div>
                         <div>

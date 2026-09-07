@@ -356,7 +356,8 @@ export default function SmartCheckWizard() {
         <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={e => { e.preventDefault(); setDragOver(false); }} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()} style={{ border: dragOver ? '2px dashed #635bff' : '2px dashed #cbd5e1', borderRadius: 16, padding: '60px 40px', textAlign: 'center', background: dragOver ? '#f5f3ff' : '#f8fafc', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 24 }}>
           <input ref={fileInputRef} type="file" accept=".csv" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
           <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Arrastrá tus CSVs aquí</div>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Arrastra tus CSVs aquí</div>
+          <div style={{ color: '#64748b', fontSize: 14 }}>o haz clic para buscar</div>
           <div style={{ color: '#64748b', fontSize: 14 }}>o haz clic para buscar</div>
           <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>Formatos: CSV de {bankName}, Stripe, Redsys, Informe Z...</div>
         </div>
@@ -400,6 +401,7 @@ export default function SmartCheckWizard() {
   if (step === 4 && result) {
     return (
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
+        <BackButton />
         <div style={{ padding: 32, borderRadius: 16, background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '2px solid #22c55e', textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
           <h2 style={{ margin: '0 0 8px', fontSize: 22, color: '#166534' }}>¡SmartCheck actualizado!</h2>
