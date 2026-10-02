@@ -116,16 +116,28 @@ export default function SmartCheckWizard() {
     const content = text.slice(0, 2000).toLowerCase();
     const fname = file.name.toLowerCase();
 
-    if (content.includes('iban') || content.includes('concepto') || content.includes('santander') || content.includes('bbva') || content.includes('caixa') || fname.includes('bank') || fname.includes('banco') || fname.includes('extracto')) {
+    // Filename wins. A provider export often has a Concepto column, and a bank
+    // file can mention "Stripe" in a single payout line.
+    if (fname.includes('stripe')) return { type: 'stripe', name: 'Stripe' };
+    if (fname.includes('redsys') || fname.includes('tpv')) return { type: 'redsys', name: 'Redsys' };
+    if (fname.includes('mercado')) return { type: 'mercado_pago', name: 'Mercado Pago' };
+    if (fname.includes('paypal')) return { type: 'paypal', name: 'PayPal' };
+    if (fname.includes('karma')) return { type: 'karma', name: 'Karma' };
+    if (fname.includes('z_report') || fname.includes('informez')) return { type: 'z_report', name: 'Informe Z' };
+    if (fname.includes('santander') || fname.includes('bbva') || fname.includes('caixa') || fname.includes('bank') || fname.includes('banco') || fname.includes('extracto')) {
       return { type: 'bank', name: 'Extracto Bancario' };
     }
-    if (content.includes('stripe') || fname.includes('stripe')) return { type: 'stripe', name: 'Stripe' };
-    if (content.includes('redsys') || content.includes('terminal') || content.includes('comercio') || fname.includes('redsys') || fname.includes('tpv')) return { type: 'redsys', name: 'Redsys' };
-    if (content.includes('mercado pago') || content.includes('mercadopago') || fname.includes('mercado')) return { type: 'mercado_pago', name: 'Mercado Pago' };
-    if (content.includes('paypal') || fname.includes('paypal')) return { type: 'paypal', name: 'PayPal' };
-    if (content.includes('karma') || fname.includes('karma')) return { type: 'karma', name: 'Karma' };
-    if (content.includes('informe z') || content.includes('z report') || fname.includes('z_report') || fname.includes('informez')) return { type: 'z_report', name: 'Informe Z' };
-    if (content.includes('cuenta virtual') || content.includes('virtual') || fname.includes('virtual') || fname.includes('balance')) return { type: 'virtual_account', name: 'Estado Cuenta Virtual' };
+
+    if (content.includes('stripe')) return { type: 'stripe', name: 'Stripe' };
+    if (content.includes('redsys') || content.includes('comercio')) return { type: 'redsys', name: 'Redsys' };
+    if (content.includes('mercado pago') || content.includes('mercadopago')) return { type: 'mercado_pago', name: 'Mercado Pago' };
+    if (content.includes('paypal')) return { type: 'paypal', name: 'PayPal' };
+    if (content.includes('karma')) return { type: 'karma', name: 'Karma' };
+    if (content.includes('informe z') || content.includes('z report')) return { type: 'z_report', name: 'Informe Z' };
+    if (content.includes('cuenta virtual')) return { type: 'virtual_account', name: 'Estado Cuenta Virtual' };
+    if (content.includes('iban') || content.includes('saldo') || content.includes('concepto') || content.includes('santander') || content.includes('bbva') || content.includes('caixa')) {
+      return { type: 'bank', name: 'Extracto Bancario' };
+    }
 
     return { type: 'unknown', name: 'Desconocido' };
   }
