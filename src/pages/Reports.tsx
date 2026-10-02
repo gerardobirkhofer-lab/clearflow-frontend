@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
@@ -22,62 +22,75 @@ export default function Reports() {
   const { t } = useTranslation();
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [viewingReport, setViewingReport] = useState<ReportCard | null>(null);
+  const [accountName, setAccountName] = useState('Tu cuenta');
+  const [dashboardSummaryData, setDashboardSummaryData] = useState<any[]>([]);
+  const [mismatchData, setMismatchData] = useState<any[]>([]);
+  const [reconciliationData, setReconciliationData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) return;
+    if (tenant.name) setAccountName(tenant.name);
+    const headers = { Authorization: `Bearer ${localStorage.getItem('token') || ''}` };
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/dashboard?tenant_id=${tenant.id}`, { headers })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = await res.json();
+        const s = data.summary || {};
+        setDashboardSummaryData([
+          { metric: 'Cobrado en banco', value: formatMoney(Number(s.total_collected) || 0), period: 'Todo' },
+          { metric: 'Ventas de proveedores', value: formatMoney(Number(s.total_sales) || 0), period: 'Todo' },
+          { metric: 'Importe conciliado', value: formatMoney(Number(s.matched_amount) || 0), period: 'Todo' },
+          { metric: 'Movimientos bancarios', value: formatNumber(Number(s.bank_transactions) || 0), period: 'Todo' },
+          { metric: 'Movimientos de proveedor', value: formatNumber(Number(s.provider_transactions) || 0), period: 'Todo' },
+        ]);
+        const unmatched = [
+          ...(data.discrepancies?.unmatched_bank || []).map((row: any) => ({
+            id: `B-${row.id}`,
+            concept: row.concept || '',
+            expected: Number(row.amount) || 0,
+            received: 0,
+            difference: -(Number(row.amount) || 0),
+            provider: 'Banco',
+            store: tenant.name || '',
+            status: 'sin resolver',
+            date: (row.date || '').split('T')[0],
+          })),
+          ...(data.discrepancies?.unmatched_provider || []).map((row: any) => ({
+            id: `P-${row.id}`,
+            concept: row.concept || '',
+            expected: Number(row.amount) || 0,
+            received: 0,
+            difference: -(Number(row.amount) || 0),
+            provider: row.provider_name || 'Proveedor',
+            store: tenant.name || '',
+            status: 'sin resolver',
+            date: (row.date || '').split('T')[0],
+          })),
+        ];
+        setMismatchData(unmatched);
+        setReconciliationData((data.recent_activity || []).map((row: any) => ({
+          date: (row.date || '').split('T')[0],
+          concept: row.concept || '',
+          bankAmount: row.type === 'bank' ? Number(row.amount) || 0 : 0,
+          providerAmount: row.type === 'provider' ? Number(row.amount) || 0 : 0,
+          difference: 0,
+          status: row.matched ? 'coincide' : 'sin coincidir',
+          bank: row.type === 'bank' ? 'Banco' : '',
+          provider: row.provider_name || (row.type === 'provider' ? 'Proveedor' : ''),
+          store: tenant.name || '',
+        })));
+      })
+      .catch(() => {});
+  }, []);
 
   const stores = [
-    { id: 'all', name: t('reports.store') + ' ' + t('common.all') },
-    { id: '1', name: 'Pura Zona Norte' },
-    { id: '2', name: 'Pura Online Shop' },
+    { id: 'all', name: accountName },
   ];
 
-  // --- PROVIDER HEALTH DATA (weighted) ---
-  const providerHealthData = [
-    { provider: 'Stripe', volumePct: 65, feePct: 3.0, weightedCost: 1.95, payoutDays: 3, speedRisk: 1.95, health: 'Healthy', recommendation: 'Negotiate 0.2% reduction = €712/year savings', date: '2026-08-01' },
-    { provider: 'Mercado Pago', volumePct: 20, feePct: 3.0, weightedCost: 0.60, payoutDays: 5, speedRisk: 1.00, health: 'Watch', recommendation: 'Acceptable but monitor fee increases', date: '2026-08-01' },
-    { provider: 'TPV / Redsys', volumePct: 10, feePct: 3.5, weightedCost: 0.35, payoutDays: 7, speedRisk: 0.70, health: 'At Risk', recommendation: 'Push for faster settlement or reduce volume', date: '2026-08-01' },
-    { provider: 'Cash / Other', volumePct: 5, feePct: 0.0, weightedCost: 0.00, payoutDays: 0, speedRisk: 0.00, health: 'Healthy', recommendation: 'No fees — encourage where possible', date: '2026-08-01' },
-  ];
-
-  // --- OTHER DEMO DATASETS ---
-  const dashboardSummaryData = [
-    { metric: 'Ventas Totales', value: '€35.620,00', change: '+12%', period: 'Ago 2026' },
-    { metric: 'Payouts Pendientes', value: '€8.420,00', change: '-3%', period: 'Ago 2026' },
-    { metric: 'Transacciones Conciliadas', value: '1.149', change: '+5%', period: 'Ago 2026' },
-    { metric: 'Transacciones No Conciliadas', value: '23', change: '-8%', period: 'Ago 2026' },
-    { metric: 'Ticket Promedio', value: '€30,52', change: '+2%', period: 'Ago 2026' },
-    { metric: 'Balance Cash Flow', value: '€4.150,00', change: '+18%', period: 'Ago 2026' },
-  ];
-
-  const profitabilityData = [
-    { store: 'Pura Zona Norte', revenue: 15420, fees: 462, costs: 6280, net: 8678, margin: '56,3%', date: '2026-08-01' },
-    { store: 'Pura Online Shop', revenue: 8930, fees: 268, costs: 3100, net: 5562, margin: '62,3%', date: '2026-08-01' },
-    { store: 'Pura Zona Norte', revenue: 14800, fees: 444, costs: 6280, net: 8076, margin: '54,6%', date: '2026-07-01' },
-    { store: 'Pura Online Shop', revenue: 9200, fees: 276, costs: 3100, net: 5824, margin: '63,3%', date: '2026-07-01' },
-  ];
-
-  const mismatchData = [
-    { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-07' },
-    { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-06' },
-    { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resuelto', date: '2026-08-05' },
-    { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'en disputa', date: '2026-08-04' },
-    { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-03' },
-  ];
-
-  const feeAnalysisData = [
-    { provider: 'Stripe', cardType: 'Tarjeta de Crédito', transactions: 342, gross: 15420, feeAmount: 462, feePct: '3,0%', avgTicket: 45.09, payoutDays: 3, date: '2026-08-07' },
-    { provider: 'Stripe', cardType: 'Tarjeta de Débito', transactions: 89, gross: 3200, feeAmount: 96, feePct: '3,0%', avgTicket: 35.96, payoutDays: 3, date: '2026-08-07' },
-    { provider: 'TPV / Redsys', cardType: 'Tarjeta de Crédito', transactions: 310, gross: 6200, feeAmount: 186, feePct: '3,0%', avgTicket: 20.00, payoutDays: 7, date: '2026-08-06' },
-    { provider: 'TPV / Redsys', cardType: 'Tarjeta de Débito', transactions: 210, gross: 2730, feeAmount: 82, feePct: '3,0%', avgTicket: 13.00, payoutDays: 7, date: '2026-08-06' },
-    { provider: 'Mercado Pago', cardType: 'Tarjeta de Crédito', transactions: 150, gross: 5200, feeAmount: 156, feePct: '3,0%', avgTicket: 34.67, payoutDays: 5, date: '2026-08-05' },
-    { provider: 'Mercado Pago', cardType: 'Tarjeta de Débito', transactions: 48, gross: 1944, feeAmount: 58, feePct: '3,0%', avgTicket: 40.50, payoutDays: 5, date: '2026-08-05' },
-  ];
-
-  const reconciliationData = [
-    { date: '2026-08-07', concept: 'Stripe Payout #4821', bankAmount: 5385, providerAmount: 5420, difference: -35, status: 'sin coincidir', bank: 'Santander', provider: 'Stripe', store: 'Pura Zona Norte' },
-    { date: '2026-08-06', concept: 'TPV Settlement', bankAmount: 3180, providerAmount: 3200, difference: -20, status: 'sin coincidir', bank: 'BBVA', provider: 'TPV / Redsys', store: 'Pura Zona Norte' },
-    { date: '2026-08-06', concept: 'Bank Fee', bankAmount: -45, providerAmount: 0, difference: -45, status: 'coincide', bank: 'Santander', provider: 'N/A', store: 'Pura Zona Norte' },
-    { date: '2026-08-05', concept: 'Mercado Pago Batch', bankAmount: 2095, providerAmount: 2095, difference: 0, status: 'coincide', bank: 'Santander', provider: 'Mercado Pago', store: 'Pura Online Shop' },
-    { date: '2026-08-04', concept: 'Stripe Payout #4819', bankAmount: 4770, providerAmount: 4770, difference: 0, status: 'coincide', bank: 'BBVA', provider: 'Stripe', store: 'Pura Online Shop' },
-  ];
+  const profitabilityData: any[] = [];
+  const feeAnalysisData: any[] = [];
+  const providerHealthData: any[] = [];
 
   const reports: ReportCard[] = [
     {

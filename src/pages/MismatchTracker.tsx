@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
 
+const API = import.meta.env.VITE_API_URL;
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
+
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
 interface Mismatch {
@@ -40,82 +43,57 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [smartCheckMessage, setSmartCheckMessage] = useState<string | null>(null);
 
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Cargar automáticamente desde localStorage al montar
   useEffect(() => {
-    loadDemoData();
+    loadFromApi();
   }, []);
 
-  const loadDemoData = () => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (raw) {
-      try {
-        const sc = JSON.parse(raw);
-        const result = sc.result || sc;
-        const mismatchesCount = typeof result.mismatches === 'number' ? result.mismatches : 0;
-        const disputesCount = typeof result.disputes === 'number' ? result.disputes : 0;
+  const toMismatch = (row: any, side: 'bank' | 'provider'): Mismatch => {
+    const amount = Number(row.amount) || 0;
+    const date = (row.date || '').split('T')[0];
+    return {
+      id: `${side === 'bank' ? 'B' : 'P'}-${row.id}`,
+      concept: row.concept || (side === 'bank' ? 'Movimiento bancario' : 'Pago de proveedor'),
+      expected: amount,
+      received: 0,
+      difference: -amount,
+      provider: side === 'bank' ? 'Banco' : (row.provider_name || 'Proveedor'),
+      store: '',
+      status: 'unresolved',
+      date,
+      notes: side === 'bank' ? 'Sin contrapartida en proveedores' : 'Sin coincidencia en el banco',
+      cardType: '',
+      firstReportedDate: date,
+      timesReported: 1,
+    };
+  };
 
-        if (mismatchesCount > 0 || disputesCount > 0) {
-          const providers = ['Stripe', 'TPV / Redsys', 'Mercado Pago'];
-          const stores = ['Pura Zona Norte', 'Pura Online Shop'];
-          const concepts = ['Payout Settlement', 'Batch Transfer', 'Daily Settlement', 'Weekly Reconciliation', 'Card Payout'];
-
-          const generateItems = (count: number, status: 'unresolved' | 'disputed') => {
-            const items: Mismatch[] = [];
-            const max = Math.min(count, 20);
-            for (let i = 0; i < max; i++) {
-              const expected = Math.floor(Math.random() * 8000) + 500;
-              const diff = -Math.floor(Math.random() * 200) - 5;
-              const received = Math.max(0, expected + diff);
-              const dateStr = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-              items.push({
-                id: `${status === 'disputed' ? 'DS' : 'MM'}-${String(i + 1).padStart(3, '0')}`,
-                concept: `${concepts[i % concepts.length]} #${i + 1}`,
-                expected,
-                received,
-                difference: received - expected,
-                provider: providers[i % providers.length],
-                store: stores[i % stores.length],
-                status,
-                date: dateStr,
-                notes: status === 'disputed' ? 'Dispute opened with provider' : '',
-                cardType: i % 2 === 0 ? 'Credit Card' : 'Debit Card',
-                firstReportedDate: dateStr,
-                timesReported: 1,
-              });
-            }
-            return items;
-          };
-
-          const items = [
-            ...generateItems(mismatchesCount, 'unresolved'),
-            ...generateItems(disputesCount, 'disputed'),
-          ];
-          setMismatches(items);
-          const date = sc.date || sc.createdAt || result.date || '';
-          if (date) {
-            setSmartCheckMessage(`Basado en tu último SmartCheck del ${new Date(date).toLocaleDateString('es-ES')}`);
-          } else {
-            setSmartCheckMessage('Basado en tu último SmartCheck');
-          }
-          return;
-        }
-      } catch {
-        // fall through to default demo data
-      }
+  const loadFromApi = async () => {
+    setLoadError(null);
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) {
+      setMismatches([]);
+      setSmartCheckMessage(null);
+      setLoadError('No hay cuenta configurada.');
+      return;
     }
-
-    setSmartCheckMessage(null);
-    setMismatches([
-      { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-07', notes: 'Fee discrepancy on international card', cardType: 'Credit Card', firstReportedDate: '2026-08-07', timesReported: 1 },
-      { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-06', notes: '', cardType: 'Debit Card', firstReportedDate: '2026-08-06', timesReported: 1 },
-      { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resolved', date: '2026-08-05', resolvedDate: '2026-08-08', notes: 'Provider confirmed rounding error, credited next batch', cardType: 'Credit Card', firstReportedDate: '2026-08-05', timesReported: 1 },
-      { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'disputed', date: '2026-08-04', notes: 'Ticket #ST-8842 opened with Stripe support', cardType: 'Credit Card', firstReportedDate: '2026-08-04', timesReported: 2 },
-      { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-03', notes: 'Full payout missing — escalated to account manager', cardType: 'Credit Card', firstReportedDate: '2026-08-03', timesReported: 2 },
-      { id: 'TX-006', concept: 'Stripe Payout #4815', expected: 12500, received: 12450, difference: -50, provider: 'Stripe', store: 'Pura Zona Norte', status: 'resolved', date: '2026-08-01', resolvedDate: '2026-08-05', notes: 'Chargeback fee — legitimate deduction', cardType: 'Debit Card', firstReportedDate: '2026-08-01', timesReported: 1 },
-      { id: 'TX-007', concept: 'TPV Settlement Jul 28', expected: 4500, received: 4485, difference: -15, provider: 'TPV / Redsys', store: 'Pura Online Shop', status: 'resolved', date: '2026-07-28', resolvedDate: '2026-08-02', notes: 'Interchange fee adjustment', cardType: 'Credit Card', firstReportedDate: '2026-07-28', timesReported: 1 },
-      { id: 'TX-008', concept: 'Mercado Pago Payout', expected: 3800, received: 3792, difference: -8, provider: 'Mercado Pago', store: 'Pura Zona Norte', status: 'disputed', date: '2026-07-25', notes: 'Waiting for fee breakdown documentation', cardType: 'Debit Card', firstReportedDate: '2026-07-25', timesReported: 3 },
-    ]);
+    try {
+      const res = await fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenant.id}`, { headers: getAuth() });
+      if (!res.ok) throw new Error('No se pudieron cargar las discrepancias');
+      const data = await res.json();
+      const bank = data.discrepancies?.unmatched_bank || [];
+      const prov = data.discrepancies?.unmatched_provider || [];
+      setMismatches([
+        ...bank.map((row: any) => toMismatch(row, 'bank')),
+        ...prov.map((row: any) => toMismatch(row, 'provider')),
+      ]);
+      setSmartCheckMessage('Movimientos sin conciliar de tu cuenta');
+    } catch (err: any) {
+      setMismatches([]);
+      setSmartCheckMessage(null);
+      setLoadError(err.message || 'Error de conexión');
+    }
   };
 
   const updateStatus = (id: string, newStatus: Mismatch['status']) => {
@@ -178,21 +156,9 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
     }
   };
 
-  const autoCheckResolutions = () => {
-    const newlyResolved: string[] = [];
-    setMismatches(prev => prev.map(m => {
-      if (m.status === 'resolved') return m;
-      if (m.id === 'TX-001' || m.id === 'TX-002') {
-        newlyResolved.push(m.id);
-        return { ...m, status: 'resolved', resolvedDate: new Date().toISOString().split('T')[0], notes: m.notes + ' [Auto-resolved by system after new bank upload]' };
-      }
-      return m;
-    }));
-    if (newlyResolved.length > 0) {
-      setAutoCheckMessage(`✅ Auto-resolved ${newlyResolved.length} mismatches based on latest bank upload: ${newlyResolved.join(', ')}`);
-    } else {
-      setAutoCheckMessage('ℹ️ No new resolutions detected in the latest bank upload.');
-    }
+  const autoCheckResolutions = async () => {
+    await loadFromApi();
+    setAutoCheckMessage('Estado actualizado desde los movimientos de tu cuenta.');
     setTimeout(() => setAutoCheckMessage(null), 6000);
   };
 
@@ -217,7 +183,8 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
 
   const unresolved = mismatches.filter(m => m.status === 'unresolved');
   const disputed = mismatches.filter(m => m.status === 'disputed');
-  const resolvedThisMonth = mismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate.startsWith('2026-08'));
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const resolvedThisMonth = mismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate.startsWith(currentMonth));
   const totalAtRisk = unresolved.reduce((s, m) => s + Math.abs(m.difference), 0) + disputed.reduce((s, m) => s + Math.abs(m.difference), 0);
 
   const statusColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -231,7 +198,8 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
     const providerMismatches = mismatches.filter(m => m.provider === provider);
     const newOnes = providerMismatches.filter(m => m.status === 'unresolved');
     const stillOpen = providerMismatches.filter(m => m.status === 'disputed');
-    const recentlyResolved = providerMismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate >= '2026-08-01');
+    const monthStart = `${currentMonth}-01`;
+    const recentlyResolved = providerMismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate >= monthStart);
 
     const newTotal = newOnes.reduce((s, m) => s + Math.abs(m.difference), 0);
     const openTotal = stillOpen.reduce((s, m) => s + Math.abs(m.difference), 0);
@@ -355,6 +323,12 @@ ClearFlow Reconciliation System
       {smartCheckMessage && (
         <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', fontWeight: 600, fontSize: 14 }}>
           {smartCheckMessage}
+        </div>
+      )}
+
+      {loadError && (
+        <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontWeight: 600, fontSize: 14 }}>
+          {loadError}
         </div>
       )}
 
@@ -521,14 +495,15 @@ ClearFlow Reconciliation System
         </select>
         <select value={filterProvider} onChange={(e) => setFilterProvider(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
           <option value="all">{t('common.all')} {t('common.provider')}</option>
-          <option value="Stripe">Stripe</option>
-          <option value="TPV / Redsys">TPV / Redsys</option>
-          <option value="Mercado Pago">Mercado Pago</option>
+          {Array.from(new Set(mismatches.map(m => m.provider).filter(Boolean))).map(provider => (
+            <option key={provider} value={provider}>{provider}</option>
+          ))}
         </select>
         <select value={filterStore} onChange={(e) => setFilterStore(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
           <option value="all">{t('common.all')} {t('common.store')}</option>
-          <option value="Pura Zona Norte">Pura Zona Norte</option>
-          <option value="Pura Online Shop">Pura Online Shop</option>
+          {Array.from(new Set(mismatches.map(m => m.store).filter(Boolean))).map(store => (
+            <option key={store} value={store}>{store}</option>
+          ))}
         </select>
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{filtered.length} of {mismatches.length} records</span>

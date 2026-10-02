@@ -71,38 +71,37 @@ export default function SmartCheckWizard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('onboardingProgress');
     const docs: RequiredDoc[] = [];
+    let bankFromSetup = 'Bancario';
+    const providers: { id: string; name: string }[] = [];
 
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
+    const setupRaw = localStorage.getItem('clearflowSetup');
+    const progressRaw = localStorage.getItem('onboardingProgress');
+    try {
+      if (setupRaw) {
+        const setup = JSON.parse(setupRaw);
+        bankFromSetup = setup.bankAccounts?.[0]?.bank_name || setup.stores?.[0]?.name || bankFromSetup;
+        (setup.selectedProviders || []).forEach((id: string) => {
+          providers.push({ id, name: setup.providerConfigs?.[id]?.name || id });
+        });
+      } else if (progressRaw) {
+        const parsed = JSON.parse(progressRaw);
         const state = parsed.state || {};
         const stores = state.stores || [];
-        const bankFromSetup = state.bankName || (stores[0]?.bankName) || 'Bancario';
-        setBankName(bankFromSetup);
-        docs.push({ id: 'bank', name: `Extracto Bancario (${bankFromSetup})`, icon: '🏦', uploaded: false });
-
-        const providers = (state.providers || []).filter((p: any) => p.selected);
-        providers.forEach((p: any) => {
-          docs.push({ id: p.id, name: p.name, icon: ICONS[p.id] || '📄', uploaded: false });
-          if (p.id === 'redsys' || p.id === 'tpv') {
-            docs.push({ id: 'z_report', name: 'Informe Z (Datafono)', icon: '🧾', uploaded: false });
-          }
-          if (p.id === 'stripe') {
-            docs.push({ id: 'virtual_account', name: 'Estado Cuenta Virtual (Stripe)', icon: '💼', uploaded: false });
-          }
+        bankFromSetup = state.bankName || stores[0]?.bankName || bankFromSetup;
+        (state.providers || []).filter((p: any) => p.selected).forEach((p: any) => {
+          providers.push({ id: p.id, name: p.name });
         });
-      } catch {
-        docs.push({ id: 'bank', name: 'Extracto Bancario', icon: '🏦', uploaded: false });
-        docs.push({ id: 'stripe', name: 'Stripe', icon: '💳', uploaded: false });
-        docs.push({ id: 'redsys', name: 'Redsys', icon: '🏧', uploaded: false });
       }
-    } else {
-      docs.push({ id: 'bank', name: 'Extracto Bancario', icon: '🏦', uploaded: false });
-      docs.push({ id: 'stripe', name: 'Stripe', icon: '💳', uploaded: false });
-      docs.push({ id: 'redsys', name: 'Redsys', icon: '🏧', uploaded: false });
+    } catch {
+      // A broken saved setup still allows a bank statement upload.
     }
+
+    setBankName(bankFromSetup);
+    docs.push({ id: 'bank', name: `Extracto Bancario (${bankFromSetup})`, icon: '🏦', uploaded: false });
+    providers.forEach((p) => {
+      docs.push({ id: p.id, name: p.name, icon: ICONS[p.id] || '📄', uploaded: false });
+    });
 
     setRequiredDocs(docs);
     setIsLoading(false);
@@ -199,12 +198,11 @@ export default function SmartCheckWizard() {
     if (backendResult.success) {
       setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'done', progress: 100, message: `✅ ${backendResult.message}` } : u));
     } else {
-      // Backend failed — fall back to demo mode (mark as done for UI continuity)
-      setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'done', progress: 100, message: `✅ OK (modo demo)` } : u));
-      console.warn('Backend upload failed:', backendResult.message);
+      setUploads(prev => prev.map(u => u.file === file ? { ...u, status: 'error', progress: 100, message: backendResult.message } : u));
+      setError(backendResult.message);
+      return;
     }
 
-    // Mark required doc as uploaded regardless (so user can continue)
     setRequiredDocs(prev => prev.map(d => {
       if (d.id === detected.type) return { ...d, uploaded: true };
       if (d.id === 'redsys' && detected.type === 'tpv') return { ...d, uploaded: true };
@@ -228,44 +226,41 @@ export default function SmartCheckWizard() {
     await new Promise(r => setTimeout(r, 1200));
     setPhase('matching');
 
-    // Phase 2: matching — try real reconciliation
-    let result: ProcessingResult;
-
-    if (tenantId) {
-      try {
-        const res = await fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenantId}`, {
-          method: 'POST',
-          headers: { ...getAuth(), 'Content-Type': 'application/json' },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const summary = data.summary || {};
-          result = {
-            bankTransactions: summary.total_bank || 0,
-            providerTransactions: summary.total_provider || 0,
-            matched: summary.matched_count || 0,
-            mismatches: summary.unmatched_bank_count || 0,
-            disputes: summary.unmatched_provider_count || 0,
-            totalAmount: data.matched?.reduce((acc: number, m: any) => acc + (m.bank?.amount || 0), 0) || 0,
-          };
-        } else {
-          throw new Error('reconciliation failed');
-        }
-      } catch (err) {
-        // Fallback to mock data if backend is unavailable
-        console.warn('Reconciliation backend failed, using fallback:', err);
-        result = { bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 };
-      }
-    } else {
-      // No tenant — demo fallback
-      result = { bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 };
+    if (!tenantId) {
+      setError('No hay cuenta configurada. Vuelve a iniciar sesión.');
+      setPhase('error');
+      setStep(2);
+      return;
     }
 
-    setResult(result);
-    localStorage.setItem('lastSmartCheck', JSON.stringify({ date: new Date().toISOString(), result }));
-    setPhase('complete');
-    setStep(4);
+    try {
+      const res = await fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenantId}`, {
+        method: 'POST',
+        headers: { ...getAuth(), 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data.detail === 'string' ? data.detail : 'No se pudo conciliar';
+        throw new Error(detail);
+      }
+      const summary = data.summary || data;
+      const result: ProcessingResult = {
+        bankTransactions: summary.total_bank || 0,
+        providerTransactions: summary.total_provider || 0,
+        matched: summary.matched_count || 0,
+        mismatches: summary.unmatched_bank_count || 0,
+        disputes: summary.unmatched_provider_count || 0,
+        totalAmount: typeof data.matched_amount === 'number' ? data.matched_amount : (summary.matched_amount || 0),
+      };
+      setResult(result);
+      localStorage.setItem('lastSmartCheck', JSON.stringify({ date: new Date().toISOString(), source: 'api', result }));
+      setPhase('complete');
+      setStep(4);
+    } catch (err: any) {
+      setError(err.message || 'No se pudo conciliar. Revisa los archivos e inténtalo de nuevo.');
+      setPhase('error');
+      setStep(2);
+    }
   };
 
   if (isLoading) {
@@ -369,6 +364,7 @@ export default function SmartCheckWizard() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{u.file.name}</div>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>{u.detectedName}</div>
+                  {u.message && <div style={{ fontSize: 12, marginTop: 4, color: u.status === 'error' ? '#991b1b' : '#166534' }}>{u.message}</div>}
                 </div>
                 <div style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: u.status === 'done' ? '#dcfce7' : u.status === 'error' ? '#fee2e2' : '#fef9c3', color: u.status === 'done' ? '#166534' : u.status === 'error' ? '#991b1b' : '#854d0e' }}>{u.status === 'done' ? '✅ Listo' : u.status === 'error' ? '❌ Error' : '⏳ Procesando...'}</div>
               </div>
