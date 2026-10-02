@@ -105,10 +105,10 @@ export default function Dashboard() {
   }
 
   const s = summary;
-  const totalTx = (s.bank_transactions || 0) + (s.provider_transactions || 0);
-  const matchedTx = (s.matched_bank || 0) + (s.matched_provider || 0);
+  const bankCount = s.bank_transactions || 0;
+  const matchedTx = s.matched_count || 0;
   const pendingTx = (s.pending_bank || 0) + (s.pending_provider || 0);
-  const collectionRate = s.collection_rate || (totalTx ? (matchedTx / totalTx * 100) : 0);
+  const collectionRate = bankCount ? (matchedTx / bankCount * 100) : 0;
 
   const tierColors: Record<string, { bg: string; color: string }> = {
     starter: { bg: '#f1f5f9', color: '#64748b' },
