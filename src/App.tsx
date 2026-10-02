@@ -23,6 +23,7 @@ import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
+import Privacy from './pages/Privacy';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -111,6 +112,7 @@ function AppContent() {
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/hub" element={<PostLoginHub />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />

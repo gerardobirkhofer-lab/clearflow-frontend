@@ -114,13 +114,27 @@ export default function Pricing() {
                   ...tier.ctaStyle,
                 }}
                 disabled={isCurrent}
-                onClick={() => {
-                  if (tier.key === 'starter') return;
-                  if (tier.key === 'pro') {
-                    alert(t('pricing.upgradeAlert') || 'Upgrade to Pro: In a real flow this would redirect to Stripe Checkout or ask for your dedicated DB URL.');
-                  } else {
-                    alert(t('pricing.enterpriseAlert') || 'Enterprise: Contact sales@clearflow.io for a custom quote and BYOC setup.');
+                onClick={async () => {
+                  if (tier.key === 'starter' || isCurrent) return;
+                  const token = localStorage.getItem('token');
+                  if (!token) {
+                    window.location.href = '/login';
+                    return;
                   }
+                  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/stripe/checkout-sessions`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ plan: tier.key }),
+                  });
+                  const data = await res.json();
+                  if (data.url) {
+                    window.location.href = data.url;
+                    return;
+                  }
+                  alert(data.detail || 'Billing is not configured yet.');
                 }}
               >
                 {isCurrent ? '✓ ' + t('pricing.currentPlan') : tier.cta}

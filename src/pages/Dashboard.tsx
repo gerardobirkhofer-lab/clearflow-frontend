@@ -6,9 +6,7 @@ import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
 // Force Railway API in production — Vercel env var may be stale
-const API = (import.meta.env.VITE_API_URL || '').includes('railway')
-  ? import.meta.env.VITE_API_URL
-  : 'https://clearflow-api-production.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://clearflow-api-production.up.railway.app';
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 interface Tx {

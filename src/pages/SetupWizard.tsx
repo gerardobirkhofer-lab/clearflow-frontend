@@ -108,19 +108,35 @@ export default function SetupWizard() {
     const saved = localStorage.getItem('clearflowSetup');
     if (saved) {
       try {
-        const s = JSON.parse(saved);
-        if (s.societies) setSocieties(s.societies);
-        if (s.societyCount) setSocietyCount(s.societyCount);
-        if (s.stores) setStores(s.stores);
-        if (s.storeCount) setStoreCount(s.storeCount);
-        if (s.selectedProviders) setSelectedProviders(s.selectedProviders);
-        if (s.providerConfigs) setProviderConfigs(s.providerConfigs);
-        if (s.bankMode) setBankMode(s.bankMode);
-        if (s.bankAccounts) setBankAccounts(s.bankAccounts);
-        if (s.cloudChoice) setCloudChoice(s.cloudChoice);
+        applySetup(JSON.parse(saved));
       } catch {}
     }
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/account/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.payload) return;
+        applySetup(data.payload);
+        localStorage.setItem('clearflowSetup', JSON.stringify(data.payload));
+        if (data.onboarding_complete) localStorage.setItem('onboardingComplete', 'true');
+      })
+      .catch(() => {});
   }, []);
+
+  const applySetup = (s: any) => {
+    if (s.societies) setSocieties(s.societies);
+    if (s.societyCount) setSocietyCount(s.societyCount);
+    if (s.stores) setStores(s.stores);
+    if (s.storeCount) setStoreCount(s.storeCount);
+    if (s.selectedProviders) setSelectedProviders(s.selectedProviders);
+    if (s.providerConfigs) setProviderConfigs(s.providerConfigs);
+    if (s.bankMode) setBankMode(s.bankMode);
+    if (s.bankAccounts) setBankAccounts(s.bankAccounts);
+    if (s.cloudChoice) setCloudChoice(s.cloudChoice);
+  };
 
   const saveSetup = (partial: any = {}) => {
     const existing = JSON.parse(localStorage.getItem('clearflowSetup') || '{}');
@@ -138,6 +154,17 @@ export default function SetupWizard() {
       ...partial,
     };
     localStorage.setItem('clearflowSetup', JSON.stringify(updated));
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const complete = !!updated.completedAt;
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/account/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ payload: updated, onboarding_complete: complete }),
+    }).catch(() => {});
   };
 
   const updateSociety = (index: number, field: keyof Society, value: string) => {
