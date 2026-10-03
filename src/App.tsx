@@ -62,18 +62,20 @@ function AppContent() {
   return (
     <>
       {isLoggedIn && !hideNav && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}
-          onMouseLeave={() => setMenuVisible(false)}
-        >
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, pointerEvents: 'none' }}>
           {!menuVisible && (
             <div
-              style={{ height: 10, width: '100%', cursor: 'default' }}
+              style={{ height: 10, width: '100%', cursor: 'default', pointerEvents: 'auto' }}
               onMouseEnter={() => setMenuVisible(true)}
             />
           )}
           <nav
+            onMouseLeave={() => setMenuVisible(false)}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
               padding: '12px 24px',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
@@ -81,8 +83,9 @@ function AppContent() {
               background: '#fff',
               alignItems: 'center',
               flexWrap: 'wrap',
-              transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
+              transform: menuVisible ? 'translateY(0)' : 'translateY(-110%)',
               transition: 'transform 0.3s ease',
+              pointerEvents: menuVisible ? 'auto' : 'none',
             }}
           >
             <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
