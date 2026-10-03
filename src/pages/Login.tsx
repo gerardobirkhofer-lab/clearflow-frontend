@@ -78,9 +78,15 @@ export default function Login({ onLogin }: LoginProps) {
           headers: { Authorization: `Bearer ${data.token}` }
         });
         const tenantData = await tenantRes.json();
-        const tenantCount = (tenantData.items || tenantData.tenants || []).length;
-        if (data.user.role === 'accountant' || tenantCount === 0) {
+        const items = tenantData.items || tenantData.tenants || [];
+        const current = items.find((item: { id: string }) => item.id === data.user.tenant_id) || items[0];
+        if (current) {
+          localStorage.setItem('tenant', JSON.stringify({ id: current.id, name: current.name, role: current.role }));
+        }
+        if (data.user.role === 'accountant' || items.length === 0) {
           navigate('/tenants');
+        } else if (items.length > 1) {
+          navigate('/tenant-selector');
         } else {
           navigate('/hub');
         }
