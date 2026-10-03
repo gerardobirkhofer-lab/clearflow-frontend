@@ -124,6 +124,16 @@ export default function PostLoginHub() {
     },
     // === CONFIGURACIÓN ===
     {
+      id: 'guided-setup',
+      icon: '✨',
+      title: 'Configura tu grupo',
+      desc: 'Locales, empresas y cuentas en unos minutos',
+      path: '/guided-setup',
+      color: '#635bff',
+      bg: '#eef2ff',
+      category: 'config',
+    },
+    {
       id: 'setup',
       icon: '⚙️',
       title: 'Configuración',
