@@ -159,6 +159,7 @@
     "iban": "IBAN / Cuenta",
     "noBankAccounts": "No hay cuentas bancarias configuradas",
     "addAccount": "Agregar Cuenta",
+    "addAccountHint": "Agrega una cuenta para empezar a subir extractos.",
     "dataResidency": "Residencia de Datos UE",
     "dataResidencyDesc": "Todos los datos almacenados exclusivamente en centros de datos europeos (Fráncfort / París)",
     "encryption": "Encriptación AES-256",

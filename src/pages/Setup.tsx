@@ -23,6 +23,23 @@ interface BankAccount {
   currency: string;
 }
 
+const accountFieldStyle = {
+  display: 'block' as const,
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box' as const,
+  height: 42,
+  margin: 0,
+  padding: '0 12px',
+  borderRadius: 6,
+  border: '1px solid #cbd5e1',
+  background: '#fff',
+  color: '#0f172a',
+  fontSize: 14,
+  fontFamily: 'inherit',
+  lineHeight: '20px',
+};
+
 interface CloudConfig {
   host: string;
   port: string;
@@ -598,26 +615,26 @@ export default function Setup() {
                 const fd = new FormData(e.currentTarget);
                 addBankAccount(fd.get('bank_name') as string, fd.get('account_number') as string, fd.get('currency') as string);
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto', gap: 12, alignItems: 'end' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.bankName')}</label>
-                    <input name="bank_name" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Santander, BBVA..." />
+                    <input name="bank_name" required style={accountFieldStyle} placeholder="Santander, BBVA..." />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.iban')}</label>
-                    <input name="account_number" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="ES91 0000 0000..." />
+                    <input name="account_number" required style={accountFieldStyle} placeholder="ES91 0000 0000..." />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.currency')}</label>
-                    <select name="currency" style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}>
+                    <select name="currency" style={accountFieldStyle}>
                       <option value="EUR">EUR (€)</option>
                       <option value="USD">USD ($)</option>
                       <option value="GBP">GBP (£)</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="submit" style={{ padding: '10px 16px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{t('common.save')}</button>
-                    <button type="button" onClick={() => setShowAddBank(false)} style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer' }}>{t('common.cancel')}</button>
+                    <button type="submit" style={{ height: 42, padding: '0 16px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{t('common.save')}</button>
+                    <button type="button" onClick={() => setShowAddBank(false)} style={{ height: 42, padding: '0 16px', borderRadius: 6, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer' }}>{t('common.cancel')}</button>
                   </div>
                 </div>
               </form>
@@ -628,7 +645,7 @@ export default function Setup() {
             <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: 12 }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🏦</div>
               <div style={{ fontWeight: 600, color: '#0f172a' }}>{t('setup.noBankAccounts')}</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>{t('setup.addAccount')} {t('setup.toStart') || 'to start uploading statements.'}</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>{t('setup.addAccountHint')}</div>
             </div>
           ) : (
             <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>

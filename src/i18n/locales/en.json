@@ -159,6 +159,7 @@
     "iban": "IBAN / Account",
     "noBankAccounts": "No bank accounts configured",
     "addAccount": "Add Account",
+    "addAccountHint": "Add an account to start uploading statements.",
     "dataResidency": "EU Data Residency",
     "dataResidencyDesc": "All data stored exclusively in European data centres (Frankfurt / Paris)",
     "encryption": "AES-256 Encryption",
