@@ -78,7 +78,7 @@ export default function Login({ onLogin }: LoginProps) {
           headers: { Authorization: `Bearer ${data.token}` }
         });
         const tenantData = await tenantRes.json();
-        const tenantCount = tenantData.tenants?.length || 0;
+        const tenantCount = (tenantData.items || tenantData.tenants || []).length;
         if (data.user.role === 'accountant' || tenantCount === 0) {
           navigate('/tenants');
         } else {
