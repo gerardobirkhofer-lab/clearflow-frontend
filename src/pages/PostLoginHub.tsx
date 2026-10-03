@@ -124,6 +124,16 @@ export default function PostLoginHub() {
     },
     // === CONFIGURACIÓN ===
     {
+      id: 'guided-setup',
+      icon: '✨',
+      title: 'Configura tu grupo',
+      desc: 'Locales, empresas y cuentas en unos minutos',
+      path: '/guided-setup',
+      color: '#635bff',
+      bg: '#eef2ff',
+      category: 'config',
+    },
+    {
       id: 'setup',
       icon: '⚙️',
       title: 'Configuración',
@@ -202,8 +212,14 @@ export default function PostLoginHub() {
           Buen día. Espero que te encuentres muy bien hoy.
         </p>
         <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 8 }}>
-          ¿Qué querés hacer?
+          {tenant?.name ? `Estás en ${tenant.name}.` : '¿Qué querés hacer?'}
         </p>
+        <button
+          onClick={() => navigate('/tenant-selector')}
+          style={{ marginTop: 12, padding: '8px 14px', borderRadius: 8, border: '1px solid #c7d2fe', background: 'white', color: '#4338ca', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Cambiar empresa
+        </button>
       </div>
 
       {/* CATEGORÍAS */}

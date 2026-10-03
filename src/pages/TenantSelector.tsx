@@ -1,284 +1,242 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface Tenant {
+interface Site {
   id: string;
   name: string;
-  type: string;
+  kind: string;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  role?: string;
+  sites?: Site[];
+}
+
+const KINDS = [
+  { value: 'restaurant', label: 'Restaurante' },
+  { value: 'bar', label: 'Bar' },
+  { value: 'chiringuito', label: 'Chiringuito' },
+  { value: 'apartments', label: 'Apartamentos' },
+];
+
+const kindLabel = (kind: string) => KINDS.find((item) => item.value === kind)?.label || kind;
+
+const api = import.meta.env.VITE_API_URL;
+const authHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+  'Content-Type': 'application/json',
+});
+
 export default function TenantSelector() {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [newTenantName, setNewTenantName] = useState('');
-  const [newTenantType, setNewTenantType] = useState('store');
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editType, setEditType] = useState('store');
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const savedTenant = JSON.parse(localStorage.getItem('tenant') || 'null');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState('');
+  const [siteDrafts, setSiteDrafts] = useState<Record<string, { name: string; kind: string }>>({});
+  const [managerDrafts, setManagerDrafts] = useState<Record<string, { name: string; email: string; password: string }>>({});
+  const [message, setMessage] = useState('');
+
+  const load = () => {
+    fetch(`${api}/api/v1/companies`, { headers: authHeaders() })
+      .then((response) => response.json())
+      .then((data) => {
+        setCompanies(data.items || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
 
   useEffect(() => {
     if (!user.id) {
       navigate('/login');
       return;
     }
-    fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-      .then(r => r.json())
-      .then(data => {
-        setTenants(data.items || []);
-        setLoading(false);
-      });
+    load();
   }, []);
 
-  const createTenant = async () => {
-    if (!newTenantName) return;
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ name: newTenantName, type: newTenantType }),
-    });
-    const data = await res.json();
-    setTenants(prev => [...prev, data]);
-    setNewTenantName('');
-  };
-
-  const selectTenant = (tenant: Tenant) => {
-    localStorage.setItem('tenant', JSON.stringify(tenant));
+  const openCompany = (company: Company) => {
+    localStorage.setItem('tenant', JSON.stringify({ id: company.id, name: company.name, role: company.role }));
     navigate('/hub');
   };
 
-  const goToDashboard = () => {
-    if (tenants.length > 0) {
-      // Si no hay tenant guardado, guarda el primero
-      if (!savedTenant) {
-        localStorage.setItem('tenant', JSON.stringify(tenants[0]));
-      }
-      navigate('/hub');
-    }
-  };
-
-  const startEdit = (tenant: Tenant) => {
-    setEditingId(tenant.id);
-    setEditName(tenant.name);
-    setEditType(tenant.type);
-  };
-
-  const saveEdit = async (tenantId: string) => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ name: editName, type: editType }),
+  const createCompany = async () => {
+    if (!companyName.trim()) return;
+    const response = await fetch(`${api}/api/v1/companies`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name: companyName.trim() }),
     });
-    if (res.ok) {
-      const updated = await res.json();
-      setTenants(prev => prev.map(t => t.id === tenantId ? updated : t));
-      setEditingId(null);
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.detail || 'No se pudo crear la empresa');
+      return;
     }
+    setCompanyName('');
+    setMessage('');
+    load();
   };
 
-  const deleteTenant = async (tenantId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta tienda/cliente?')) return;
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/${tenantId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  const addSite = async (companyId: string) => {
+    const draft = siteDrafts[companyId] || { name: '', kind: 'restaurant' };
+    if (!draft.name.trim()) return;
+    const response = await fetch(`${api}/api/v1/companies/${companyId}/sites`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name: draft.name.trim(), kind: draft.kind }),
     });
-    if (res.ok) {
-      setTenants(prev => prev.filter(t => t.id !== tenantId));
-      // Si borró el tenant guardado, limpiarlo
-      if (savedTenant && savedTenant.id === tenantId) {
-        localStorage.removeItem('tenant');
-      }
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.detail || 'No se pudo añadir el local');
+      return;
     }
+    setSiteDrafts((current) => ({ ...current, [companyId]: { name: '', kind: draft.kind } }));
+    setMessage('');
+    load();
   };
+
+  const addManager = async (companyId: string) => {
+    const draft = managerDrafts[companyId] || { name: '', email: '', password: '' };
+    const response = await fetch(`${api}/api/v1/companies/${companyId}/members`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(draft),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(typeof data.detail === 'string' ? data.detail : 'No se pudo crear el encargado');
+      return;
+    }
+    setManagerDrafts((current) => ({ ...current, [companyId]: { name: '', email: '', password: '' } }));
+    setMessage(`Encargado ${data.name} puede entrar solo en esta empresa.`);
+  };
+
+  const canCreate = companies.some((company) => company.role !== 'manager');
 
   if (loading) return <div style={{ textAlign: 'center', padding: 60 }}>Cargando...</div>;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: 28 }}>Bienvenido de nuevo, {user.name || 'Usuario'}</h1>
-          <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
-            {tenants.length === 0 
-              ? "Configura tu primera tienda para comenzar." 
-              : "Selecciona una tienda para entrar a tu panel."}
+          <h1 style={{ margin: '0 0 8px', fontSize: 28 }}>Empresas de {user.name || 'tu cuenta'}</h1>
+          <p style={{ margin: 0, color: '#64748b' }}>
+            Cada empresa tiene sus propios locales y sus propios cobros. Un encargado solo abre la empresa que le des.
           </p>
         </div>
-        
-        {/* BOTONES DE ACCIÓN */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {savedTenant && (
-            <button
-              onClick={goToDashboard}
-              style={{
-                padding: '10px 20px',
-                background: 'white',
-                color: '#635bff',
-                border: '1px solid #635bff',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              ↩ Volver a {savedTenant.name}
-            </button>
-          )}
-          {tenants.length > 0 && (
-            <button
-              onClick={goToDashboard}
-              style={{
-                padding: '10px 24px',
-                background: '#635bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(99,91,255,0.3)',
-              }}
-            >
-                            Ir al Panel →
-            </button>
-          )}
-        </div>
+        {savedTenant && (
+          <button onClick={() => openCompany(savedTenant)} style={secondaryButton}>↩ Volver a {savedTenant.name}</button>
+        )}
       </div>
 
-      {/* GRID DE TIENDAS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20, marginBottom: 40 }}>
-        {tenants.map(t => (
-          <div
-            key={t.id}
-            onClick={() => editingId !== t.id && selectTenant(t)}
-            style={{
-              padding: 24,
-              borderRadius: 12,
-              border: '2px solid #e2e8f0',
-              background: 'white',
-              cursor: editingId === t.id ? 'default' : 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => { if (editingId !== t.id) e.currentTarget.style.borderColor = '#635bff'; }}
-            onMouseLeave={e => { if (editingId !== t.id) e.currentTarget.style.borderColor = '#e2e8f0'; }}
-          >
-            {editingId === t.id ? (
-              <div onClick={e => e.stopPropagation()}>
-                <input
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
-                />
-                <select
-                  value={editType}
-                  onChange={e => setEditType(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
-                >
-                  <option value="store">Tienda Física</option>
-                  <option value="online">Tienda Online</option>
-                  <option value="client">Cliente (Contador)</option>
-                </select>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => saveEdit(t.id)}
-                    style={{ flex: 1, padding: '8px', background: '#635bff', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => setEditingId(null)}
-                    style={{ flex: 1, padding: '8px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Cancelar
-                  </button>
+      {message && (
+        <div style={{ marginBottom: 16, padding: 12, borderRadius: 8, background: '#eef2ff', color: '#3730a3' }}>{message}</div>
+      )}
+
+      <div style={{ display: 'grid', gap: 16 }}>
+        {companies.map((company) => {
+          const siteDraft = siteDrafts[company.id] || { name: '', kind: 'restaurant' };
+          const managerDraft = managerDrafts[company.id] || { name: '', email: '', password: '' };
+          const isOwner = company.role !== 'manager';
+          return (
+            <div key={company.id} style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800 }}>{company.name}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{isOwner ? 'Propietario' : 'Encargado'}</div>
                 </div>
+                <button onClick={() => openCompany(company)} style={primaryButton}>Entrar</button>
               </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div style={{ fontSize: 36 }}>{t.type === 'online' ? '🌐' : t.type === 'client' ? '🏢' : '🏪'}</div>
-                  <span style={{ fontSize: 12, color: '#635bff', fontWeight: 600 }}>Clic para entrar →</span>
+
+              <div style={{ marginTop: 16 }}>
+                {(company.sites || []).length === 0 ? (
+                  <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay locales.</div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {(company.sites || []).map((site) => (
+                      <span key={site.id} style={{ padding: '6px 10px', borderRadius: 999, background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: 13 }}>
+                        {site.name} · {kindLabel(site.kind)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {isOwner && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginTop: 18 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Añadir local</div>
+                    <input
+                      value={siteDraft.name}
+                      onChange={(event) => setSiteDrafts((current) => ({ ...current, [company.id]: { ...siteDraft, name: event.target.value } }))}
+                      placeholder="Nombre del local"
+                      style={fieldStyle}
+                    />
+                    <select
+                      value={siteDraft.kind}
+                      onChange={(event) => setSiteDrafts((current) => ({ ...current, [company.id]: { ...siteDraft, kind: event.target.value } }))}
+                      style={{ ...fieldStyle, marginTop: 8 }}
+                    >
+                      {KINDS.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
+                    </select>
+                    <button onClick={() => addSite(company.id)} style={{ ...secondaryButton, marginTop: 8 }}>Añadir local</button>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Añadir encargado</div>
+                    <input value={managerDraft.name} onChange={(event) => setManagerDrafts((current) => ({ ...current, [company.id]: { ...managerDraft, name: event.target.value } }))} placeholder="Nombre" style={fieldStyle} />
+                    <input value={managerDraft.email} onChange={(event) => setManagerDrafts((current) => ({ ...current, [company.id]: { ...managerDraft, email: event.target.value } }))} placeholder="Correo" style={{ ...fieldStyle, marginTop: 8 }} />
+                    <input type="password" value={managerDraft.password} onChange={(event) => setManagerDrafts((current) => ({ ...current, [company.id]: { ...managerDraft, password: event.target.value } }))} placeholder="Contraseña (mín. 10)" style={{ ...fieldStyle, marginTop: 8 }} />
+                    <button onClick={() => addManager(company.id)} style={{ ...secondaryButton, marginTop: 8 }}>Crear encargado</button>
+                  </div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 17, color: '#0f172a', marginBottom: 4 }}>{t.name}</div>
-                <div style={{ fontSize: 13, color: '#64748b', textTransform: 'capitalize', marginBottom: 16 }}>{t.type}</div>
-                
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); startEdit(t); }}
-                    style={{ flex: 1, padding: '6px 12px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); deleteTenant(t.id); }}
-                    style={{ flex: 1, padding: '6px 12px', background: '#fef2f2', color: '#991b1b', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    🗑️ Eliminar
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-        
-        {/* CARD PARA CREAR NUEVA TIENDA */}
-        <div style={{
-          padding: 24,
-          borderRadius: 12,
-          border: '2px dashed #cbd5e1',
-          background: '#f8fafc',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>➕</div>
-          <div style={{ fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Agregar Nueva Tienda/Cliente</div>
-          <input
-            value={newTenantName}
-            onChange={e => setNewTenantName(e.target.value)}
-            placeholder="Nombre (ej. Tienda Norte)"
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
-          />
-          <select
-            value={newTenantType}
-            onChange={e => setNewTenantType(e.target.value)}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 14 }}
-          >
-            <option value="store">Tienda Física</option>
-            <option value="online">Tienda Online</option>
-            <option value="client">Cliente (Contador)</option>
-          </select>
-          <button
-            onClick={createTenant}
-            disabled={!newTenantName}
-            style={{
-              width: '100%',
-              padding: '8px 16px',
-              background: newTenantName ? '#635bff' : '#cbd5e1',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: newTenantName ? 'pointer' : 'not-allowed',
-            }}
-          >
-            Crear
-          </button>
-        </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* MENSAJE SI NO HAY TIENDAS */}
-      {tenants.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🏪</div>
-          <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a', marginBottom: 8 }}>Aún no hay tiendas</div>
-          <div style={{ color: '#64748b', fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
-            Creá tu primera tienda o cliente arriba para empezar a rastrear pagos, conciliar transacciones y monitorear tu flujo de caja.
+      {canCreate && (
+        <div style={{ marginTop: 20, padding: 20, borderRadius: 12, border: '1px dashed #cbd5e1', background: '#f8fafc' }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Nueva empresa</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="Ej. Chiringuitos Sur" style={{ ...fieldStyle, flex: 1, minWidth: 220 }} />
+            <button onClick={createCompany} style={primaryButton}>Crear empresa</button>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+const fieldStyle = {
+  width: '100%',
+  boxSizing: 'border-box' as const,
+  height: 40,
+  padding: '0 12px',
+  borderRadius: 8,
+  border: '1px solid #cbd5e1',
+  fontSize: 14,
+};
+
+const primaryButton = {
+  padding: '10px 16px',
+  borderRadius: 8,
+  border: 'none',
+  background: '#635bff',
+  color: 'white',
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const secondaryButton = {
+  padding: '10px 16px',
+  borderRadius: 8,
+  border: '1px solid #c7d2fe',
+  background: 'white',
+  color: '#4338ca',
+  fontWeight: 700,
+  cursor: 'pointer',
+};

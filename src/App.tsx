@@ -12,6 +12,7 @@ import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
 import Setup from './pages/Setup';
 import SetupWizard from './pages/SetupWizard';
+import GuidedSetup from './pages/GuidedSetup';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
@@ -23,6 +24,7 @@ import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
+import Privacy from './pages/Privacy';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -46,7 +48,7 @@ function AppContent() {
   };
 
   // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
-  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard'].includes(location.pathname);
+  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard', '/guided-setup'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -61,18 +63,20 @@ function AppContent() {
   return (
     <>
       {isLoggedIn && !hideNav && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}
-          onMouseLeave={() => setMenuVisible(false)}
-        >
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, pointerEvents: 'none' }}>
           {!menuVisible && (
             <div
-              style={{ height: 10, width: '100%', cursor: 'default' }}
+              style={{ height: 10, width: '100%', cursor: 'default', pointerEvents: 'auto' }}
               onMouseEnter={() => setMenuVisible(true)}
             />
           )}
           <nav
+            onMouseLeave={() => setMenuVisible(false)}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
               padding: '12px 24px',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
@@ -80,8 +84,9 @@ function AppContent() {
               background: '#fff',
               alignItems: 'center',
               flexWrap: 'wrap',
-              transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
+              transform: menuVisible ? 'translateY(0)' : 'translateY(-110%)',
               transition: 'transform 0.3s ease',
+              pointerEvents: menuVisible ? 'auto' : 'none',
             }}
           >
             <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
@@ -110,7 +115,9 @@ function AppContent() {
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
+          <Route path="/guided-setup" element={isLoggedIn ? <GuidedSetup /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/hub" element={<PostLoginHub />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />

@@ -6,9 +6,7 @@ import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
 // Force Railway API in production — Vercel env var may be stale
-const API = (import.meta.env.VITE_API_URL || '').includes('railway')
-  ? import.meta.env.VITE_API_URL
-  : 'https://clearflow-api-production.up.railway.app';
+const API = import.meta.env.VITE_API_URL || 'https://clearflow-api-production.up.railway.app';
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 interface Tx {
@@ -43,33 +41,6 @@ export default function Dashboard() {
     fetchData(tenantData.id);
   }, []);
 
-  const loadFromLocalStorage = () => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (!raw) return false;
-    try {
-      const sc = JSON.parse(raw);
-      const result = sc.result || sc;
-      const date = sc.date || sc.createdAt || result.date || '';
-      setSmartCheckDate(date || null);
-      const totalItems = (result.matched || 0) + (result.mismatches || 0) + (result.disputes || 0);
-      setSummary({
-        total_collected: result.totalAmount || result.total_collected || 0,
-        total_sales: result.totalAmount || result.total_sales || 0,
-        matched_bank: result.matched || 0,
-        matched_provider: 0,
-        pending_bank: result.mismatches || 0,
-        pending_provider: result.disputes || 0,
-        bank_transactions: (result.matched || 0) + (result.mismatches || 0),
-        provider_transactions: (result.matched || 0) + (result.disputes || 0),
-        collection_rate: totalItems > 0 ? ((result.matched || 0) / totalItems * 100) : 0,
-      });
-      setRecent([]);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const fetchData = async (tenantId: string) => {
     setLoading(true);
     setError(null);
@@ -84,14 +55,6 @@ export default function Dashboard() {
 
       const dashData = await dashRes.json();
       const recData = await recRes.json();
-
-      const hasData = dashData.summary && (
-        (dashData.summary.bank_transactions || 0) > 0 ||
-        (dashData.summary.provider_transactions || 0) > 0 ||
-        (dashData.recent_activity || []).length > 0
-      );
-
-      if (!hasData) throw new Error('No dashboard data');
 
       setSummary({ ...dashData.summary, ...recData });
       setSmartCheckDate(null);
@@ -110,10 +73,7 @@ export default function Dashboard() {
         }));
       setRecent(activity);
     } catch (err: any) {
-      const loaded = loadFromLocalStorage();
-      if (!loaded) {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -145,10 +105,10 @@ export default function Dashboard() {
   }
 
   const s = summary;
-  const totalTx = (s.bank_transactions || 0) + (s.provider_transactions || 0);
-  const matchedTx = (s.matched_bank || 0) + (s.matched_provider || 0);
+  const bankCount = s.bank_transactions || 0;
+  const matchedTx = s.matched_count || 0;
   const pendingTx = (s.pending_bank || 0) + (s.pending_provider || 0);
-  const collectionRate = s.collection_rate || (totalTx ? (matchedTx / totalTx * 100) : 0);
+  const collectionRate = bankCount ? (matchedTx / bankCount * 100) : 0;
 
   const tierColors: Record<string, { bg: string; color: string }> = {
     starter: { bg: '#f1f5f9', color: '#64748b' },

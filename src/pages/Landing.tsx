@@ -30,6 +30,8 @@ export default function Landing() {
 
       <footer style={{ padding: '40px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
         {t('landing.footer')}
+        {' · '}
+        <Link to="/privacy" style={{ color: '#635bff', textDecoration: 'none' }}>Privacidad</Link>
       </footer>
     </div>
   );

@@ -18,9 +18,14 @@ export default function BackButton({
   const handleBack = () => {
     if (to) {
       navigate(to);
-    } else {
-      navigate(-1);
+      return;
     }
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof historyIndex === 'number' && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate(fallbackTo);
   };
 
   const handleHome = () => {

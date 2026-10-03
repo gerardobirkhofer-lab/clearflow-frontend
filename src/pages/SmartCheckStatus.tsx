@@ -50,59 +50,6 @@ export default function SmartCheckStatus() {
     loadData();
   }, []);
 
-  const buildFromLocalStorage = (): DisputeItem[] | null => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (!raw) return null;
-    try {
-      const sc = JSON.parse(raw);
-      const result = sc.result || sc;
-      setLastCheckDate(sc.date || null);
-
-      const demoItems: DisputeItem[] = [];
-      // Build some demo items from the stored result for display
-      const matchedCount = result.matched || 0;
-      const mismatchCount = result.mismatches || 0;
-      const disputeCount = result.disputes || 0;
-
-      for (let i = 0; i < matchedCount; i++) {
-        demoItems.push({
-          id: `R${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys', 'TPV'][i % 3],
-          amount: 500 + Math.random() * 2000,
-          status: 'resolved',
-          daysOpen: 0,
-          description: 'Transacción conciliada automáticamente',
-        });
-      }
-      for (let i = 0; i < mismatchCount; i++) {
-        demoItems.push({
-          id: `P${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - (i + 3) * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys'][i % 2],
-          amount: 200 + Math.random() * 1000,
-          status: 'pending',
-          daysOpen: i + 3,
-          description: 'Discrepancia detectada — revisar',
-        });
-      }
-      for (let i = 0; i < disputeCount; i++) {
-        demoItems.push({
-          id: `N${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys'][i % 2],
-          amount: 300 + Math.random() * 800,
-          status: 'new',
-          daysOpen: i + 1,
-          description: 'Nueva discrepancia detectada',
-        });
-      }
-      return demoItems;
-    } catch {
-      return null;
-    }
-  };
-
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -111,86 +58,57 @@ export default function SmartCheckStatus() {
     const tenantId = tenantData.id;
 
     if (!tenantId) {
-      // No tenant — try localStorage fallback
-      const localItems = buildFromLocalStorage();
-      if (localItems) {
-        setItems(localItems);
-        updateSummary(localItems);
-      } else {
-        setError('No hay datos de SmartCheck. Ejecutá un SmartCheck primero.');
-      }
+      setError('No hay cuenta configurada. Inicia sesión y ejecuta un SmartCheck.');
+      setItems([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Fetch reconciliation results and transaction lists in parallel
-      const [recRes, bankRes, provRes] = await Promise.all([
-        fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenantId}`, {
-          method: 'POST',
-          headers: { ...getAuth(), 'Content-Type': 'application/json' },
-        }).catch(() => null),
-        fetch(`${API}/api/v1/bank-statements/?tenant_id=${tenantId}`, { headers: getAuth() }).catch(() => null),
-        fetch(`${API}/api/v1/providers/?tenant_id=${tenantId}`, { headers: getAuth() }).catch(() => null),
-      ]);
-
-      let allItems: DisputeItem[] = [];
-
-      if (recRes && recRes.ok) {
-        const recData: ReconciliationData = await recRes.json();
-        setLastCheckDate(new Date().toISOString());
-
-        // Build items from real data
-        allItems = [
-          ...recData.matched.map((m: any, i: number) => ({
-            id: `M${String(i + 1).padStart(3, '0')}`,
-            date: m.bank?.date || m.provider?.date || new Date().toISOString().split('T')[0],
-            provider: m.provider?.provider_name || 'Provider',
-            amount: m.bank?.amount || 0,
-            status: 'resolved' as const,
-            daysOpen: 0,
-            description: `${m.bank?.concept || 'Transacción'} — conciliado (score: ${m.score})`,
-          })),
-          ...recData.unmatched_bank.map((b: any, i: number) => ({
-            id: `UB${String(i + 1).padStart(3, '0')}`,
-            date: b.date || new Date().toISOString().split('T')[0],
-            provider: 'Banco',
-            amount: b.amount || 0,
-            status: 'pending' as const,
-            daysOpen: 0,
-            description: `${b.concept || 'Movimiento bancario'} — sin contrapartida en providers`,
-          })),
-          ...recData.unmatched_provider.map((p: any, i: number) => ({
-            id: `UP${String(i + 1).padStart(3, '0')}`,
-            date: p.date || new Date().toISOString().split('T')[0],
-            provider: p.provider_name || 'Provider',
-            amount: p.amount || 0,
-            status: 'new' as const,
-            daysOpen: 0,
-            description: `${p.concept || 'Pago de provider'} — sin coincidencia en banco`,
-          })),
-        ];
+      const recRes = await fetch(`${API}/api/v1/reconciliation/status?tenant_id=${tenantId}`, {
+        headers: getAuth(),
+      });
+      if (!recRes.ok) {
+        throw new Error('No se pudo leer la conciliación');
       }
+      const recData: ReconciliationData = await recRes.json();
+      setLastCheckDate(new Date().toISOString());
 
-      if (allItems.length === 0) {
-        // Backend returned empty — try localStorage fallback
-        const localItems = buildFromLocalStorage();
-        if (localItems) {
-          allItems = localItems;
-        }
-      }
+      const allItems: DisputeItem[] = [
+        ...(recData.matched || []).map((m: any) => ({
+          id: `M${m.bank?.id || m.provider?.id}`,
+          date: (m.bank?.date || m.provider?.date || '').split('T')[0],
+          provider: m.provider?.provider_name || 'Proveedor',
+          amount: m.bank?.amount || 0,
+          status: 'resolved' as const,
+          daysOpen: 0,
+          description: `${m.bank?.concept || 'Transacción'} — conciliado con ${m.provider?.provider_name || 'proveedor'}`,
+        })),
+        ...(recData.unmatched_bank || []).map((b: any) => ({
+          id: `UB${b.id}`,
+          date: (b.date || '').split('T')[0],
+          provider: 'Banco',
+          amount: b.amount || 0,
+          status: 'pending' as const,
+          daysOpen: 0,
+          description: `${b.concept || 'Movimiento bancario'} — sin contrapartida en proveedores`,
+        })),
+        ...(recData.unmatched_provider || []).map((p: any) => ({
+          id: `UP${p.id}`,
+          date: (p.date || '').split('T')[0],
+          provider: p.provider_name || 'Proveedor',
+          amount: p.amount || 0,
+          status: 'new' as const,
+          daysOpen: 0,
+          description: `${p.concept || 'Pago de proveedor'} — sin coincidencia en el banco`,
+        })),
+      ];
 
       setItems(allItems);
       updateSummary(allItems);
     } catch (err: any) {
-      // Network or other error — try localStorage
-      const localItems = buildFromLocalStorage();
-      if (localItems) {
-        setItems(localItems);
-        updateSummary(localItems);
-      } else {
-        setError(err.message || 'Error cargando datos');
-      }
+      setItems([]);
+      setError(err.message || 'Error cargando datos');
     } finally {
       setLoading(false);
     }

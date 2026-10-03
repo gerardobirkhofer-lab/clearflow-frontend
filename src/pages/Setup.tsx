@@ -17,11 +17,30 @@ interface Store {
 }
 
 interface BankAccount {
-  id: string;
+  id: number;
   bank_name: string;
-  account_number: string;
+  iban: string;
   currency: string;
+  pending?: boolean;
+  place_names?: string[];
 }
+
+const accountFieldStyle = {
+  display: 'block' as const,
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box' as const,
+  height: 42,
+  margin: 0,
+  padding: '0 12px',
+  borderRadius: 6,
+  border: '1px solid #cbd5e1',
+  background: '#fff',
+  color: '#0f172a',
+  fontSize: 14,
+  fontFamily: 'inherit',
+  lineHeight: '20px',
+};
 
 interface CloudConfig {
   host: string;
@@ -48,6 +67,8 @@ export default function Setup() {
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddStore, setShowAddStore] = useState<string | null>(null);
   const [showAddBank, setShowAddBank] = useState(false);
+  const [bankError, setBankError] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [autoPurge, setAutoPurge] = useState(false);
   const [purgeDays, setPurgeDays] = useState(90);
@@ -73,7 +94,10 @@ export default function Setup() {
 
   useEffect(() => {
     const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
-    if (tenant.id) setTenantId(tenant.id);
+    if (tenant.id) {
+      setTenantId(tenant.id);
+      loadBankAccounts(tenant.id);
+    }
     const savedPurge = localStorage.getItem('clearflow_auto_purge');
     const savedDays = localStorage.getItem('clearflow_purge_days');
     if (savedPurge) setAutoPurge(savedPurge === 'true');
@@ -110,9 +134,67 @@ export default function Setup() {
     setShowAddStore(null);
   };
 
-  const addBankAccount = (bank_name: string, account_number: string, currency: string) => {
-    setBankAccounts([...bankAccounts, { id: crypto.randomUUID(), bank_name, account_number, currency }]);
-    setShowAddBank(false);
+  const apiHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+    'Content-Type': 'application/json',
+  });
+
+  const loadBankAccounts = async (companyId: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/companies/${companyId}/bank-accounts`, {
+        headers: apiHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBankError(typeof data.detail === 'string' ? data.detail : 'No se pudieron cargar las cuentas');
+        return;
+      }
+      setBankAccounts(data.items || []);
+      setBankError('');
+    } catch {
+      setBankError('No se pudo contactar el servidor.');
+    }
+  };
+
+  const addBankAccount = async (bank_name: string, account_number: string, currency: string) => {
+    if (!tenantId) return;
+    setBankError('');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/companies/${tenantId}/bank-accounts`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({ bank_name, iban: account_number, currency }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBankError(typeof data.detail === 'string' ? data.detail : 'No se pudo guardar la cuenta');
+        return;
+      }
+      setShowAddBank(false);
+      await loadBankAccounts(tenantId);
+    } catch {
+      setBankError('No se pudo contactar el servidor.');
+    }
+  };
+
+  const removeBankAccount = async (accountId: number) => {
+    if (!tenantId) return;
+    setBankError('');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/companies/${tenantId}/bank-accounts/${accountId}`, {
+        method: 'DELETE',
+        headers: apiHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBankError(typeof data.detail === 'string' ? data.detail : 'No se pudo quitar la cuenta');
+        return;
+      }
+      setPendingDeleteId(null);
+      await loadBankAccounts(tenantId);
+    } catch {
+      setBankError('No se pudo contactar el servidor.');
+    }
   };
 
   const saveProviderEmail = (provider: string, email: string) => {
@@ -154,12 +236,28 @@ export default function Setup() {
     alert(t('setup.cloudTestMsg') || 'Connection test: This would test your database connection in a real deployment.');
   };
 
-  const deleteAllData = () => {
-    localStorage.removeItem('tenant');
-    localStorage.removeItem('clearflow_auto_purge');
-    localStorage.removeItem('clearflow_purge_days');
-    alert('All local data cleared. Refreshing...');
-    window.location.href = '/login';
+  const deleteAllData = async () => {
+    if (tenantId) {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/companies/${tenantId}/bank-data`, {
+          method: 'DELETE',
+          headers: apiHeaders(),
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          setBankError(typeof data.detail === 'string' ? data.detail : 'No se pudieron borrar los datos bancarios');
+          setShowDeleteConfirm(false);
+          return;
+        }
+      } catch {
+        setBankError('No se pudo contactar el servidor.');
+        setShowDeleteConfirm(false);
+        return;
+      }
+    }
+    setBankAccounts([]);
+    setShowDeleteConfirm(false);
+    setActiveSection('bank_accounts');
   };
 
   const totalStores = clients.reduce((sum, c) => sum + c.stores.length, 0);
@@ -598,42 +696,45 @@ export default function Setup() {
                 const fd = new FormData(e.currentTarget);
                 addBankAccount(fd.get('bank_name') as string, fd.get('account_number') as string, fd.get('currency') as string);
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto', gap: 12, alignItems: 'end' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.bankName')}</label>
-                    <input name="bank_name" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Santander, BBVA..." />
+                    <input name="bank_name" required style={accountFieldStyle} placeholder="Santander, BBVA..." />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.iban')}</label>
-                    <input name="account_number" required style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="ES91 0000 0000..." />
+                    <input name="account_number" required style={accountFieldStyle} placeholder="ES91 0000 0000..." />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.currency')}</label>
-                    <select name="currency" style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}>
+                    <select name="currency" style={accountFieldStyle}>
                       <option value="EUR">EUR (€)</option>
                       <option value="USD">USD ($)</option>
                       <option value="GBP">GBP (£)</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="submit" style={{ padding: '10px 16px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{t('common.save')}</button>
-                    <button type="button" onClick={() => setShowAddBank(false)} style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer' }}>{t('common.cancel')}</button>
+                    <button type="submit" style={{ height: 42, padding: '0 16px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{t('common.save')}</button>
+                    <button type="button" onClick={() => setShowAddBank(false)} style={{ height: 42, padding: '0 16px', borderRadius: 6, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer' }}>{t('common.cancel')}</button>
                   </div>
                 </div>
               </form>
             </div>
           )}
 
+          {bankError && <div style={{ marginBottom: 12, padding: 12, borderRadius: 8, background: '#fef2f2', color: '#991b1b' }}>{bankError}</div>}
+          {pendingDeleteId !== null && <div style={{ marginBottom: 12, padding: 12, borderRadius: 8, background: '#fff7ed', color: '#9a3412' }}>{t('setup.confirmRemoveAccount')}</div>}
+
           {bankAccounts.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: 12 }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🏦</div>
               <div style={{ fontWeight: 600, color: '#0f172a' }}>{t('setup.noBankAccounts')}</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>{t('setup.addAccount')} {t('setup.toStart') || 'to start uploading statements.'}</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>{t('setup.addAccountHint')}</div>
             </div>
           ) : (
             <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{
-                display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 80px',
+                display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 120px',
                 padding: '14px 20px', background: '#f8fafc', fontSize: 11, fontWeight: 700,
                 color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0'
               }}>
@@ -641,13 +742,29 @@ export default function Setup() {
               </div>
               {bankAccounts.map(acc => (
                 <div key={acc.id} style={{
-                  display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 80px',
+                  display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 120px',
                   padding: '16px 20px', alignItems: 'center', borderBottom: '1px solid #f1f5f9',
                 }}>
-                  <div style={{ fontWeight: 600 }}>{acc.bank_name}</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 13 }}>{acc.account_number}</div>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{acc.bank_name}</div>
+                    {acc.place_names && acc.place_names.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{acc.place_names.join(', ')}</div>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13 }}>{acc.pending ? 'Pendiente' : acc.iban}</div>
                   <div style={{ fontWeight: 600 }}>{acc.currency}</div>
-                  <div style={{ textAlign: 'right' }}><span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>{t('common.active')}</span></div>
+                  <div style={{ textAlign: 'right' }}>
+                    {pendingDeleteId === acc.id ? (
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button type="button" aria-label={`Confirmar quitar ${acc.bank_name}`} onClick={() => removeBankAccount(acc.id)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: '#dc2626', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Sí</button>
+                        <button type="button" onClick={() => setPendingDeleteId(null)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', fontSize: 12, cursor: 'pointer' }}>No</button>
+                      </div>
+                    ) : (
+                      <button type="button" aria-label={`Quitar ${acc.bank_name}`} onClick={() => setPendingDeleteId(acc.id)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #fecaca', background: 'white', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                        {t('setup.removeAccount')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
