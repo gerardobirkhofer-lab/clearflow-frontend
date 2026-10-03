@@ -36,11 +36,10 @@ export default function Statistics() {
   const openItems = (summary?.pending_count || 0);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-        
-        {/* HEADER */}
+
+      {/* HEADER */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
             📊 {t('statistics.intelligence')}
@@ -86,8 +85,6 @@ export default function Statistics() {
             </div>
           </>
         )}
-
-      </div>
     </div>
   );
 }
