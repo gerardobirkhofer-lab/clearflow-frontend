@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { compactIban, ibanProblem } from '../iban';
 
 type Kind = 'public' | 'online' | 'lodging';
 type AccountMode = 'own' | 'shared';
@@ -119,6 +120,7 @@ export default function GuidedSetup() {
   const [accountMode, setAccountMode] = useState<AccountMode>(draft?.accountMode ?? 'own');
   const [accounts, setAccounts] = useState<AccountDraft[]>(draft?.accounts ?? []);
   const [error, setError] = useState('');
+  const [showAccountErrors, setShowAccountErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -306,6 +308,22 @@ export default function GuidedSetup() {
         return;
       }
     }
+    if (step === 4) {
+      setShowAccountErrors(true);
+      for (let index = 0; index < accounts.length; index += 1) {
+        const account = accounts[index];
+        if (account.pending) continue;
+        if (!account.bankName.trim() || !account.iban.trim() || account.sources.length === 0) {
+          setError('Completa el banco, el IBAN y el tipo de dinero, o marca la cuenta como pendiente.');
+          return;
+        }
+        const problem = ibanProblem(account.iban);
+        if (problem) {
+          setError(`Cuenta ${index + 1}: ${problem}`);
+          return;
+        }
+      }
+    }
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   };
 
@@ -321,7 +339,14 @@ export default function GuidedSetup() {
 
   const save = async () => {
     if (missingDetails > 0) {
+      setShowAccountErrors(true);
       setError('Completa el banco, el IBAN y el tipo de dinero, o marca la cuenta como pendiente.');
+      return;
+    }
+    const invalidIban = accounts.findIndex((account) => !account.pending && ibanProblem(account.iban));
+    if (invalidIban >= 0) {
+      setShowAccountErrors(true);
+      setError(`Cuenta ${invalidIban + 1}: ${ibanProblem(accounts[invalidIban].iban)}`);
       return;
     }
     setSaving(true);
@@ -338,7 +363,7 @@ export default function GuidedSetup() {
           .filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id))
           .map((account) => ({
             bank_name: account.bankName.trim(),
-            iban: account.iban.trim(),
+            iban: compactIban(account.iban),
             currency: account.currency,
             sources: account.sources,
             pending: account.pending,
@@ -580,7 +605,10 @@ export default function GuidedSetup() {
                       <div style={{ fontWeight: 800 }}>Cuenta {index + 1}</div>
                       <div style={{ fontSize: 13, color: '#64748b', margin: '4px 0 10px' }}>{covered.map((place) => place.name).join(', ')}</div>
                       <input aria-label={`Banco de la cuenta ${index + 1}`} value={account.bankName} placeholder="Banco, por ejemplo Santander" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, bankName: event.target.value } : item))} style={fieldStyle} />
-                      <input aria-label={`IBAN de la cuenta ${index + 1}`} value={account.iban} placeholder="IBAN" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8 }} />
+                      <input aria-label={`IBAN de la cuenta ${index + 1}`} value={account.iban} placeholder="ES00 0000 0000 0000 0000 0000" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8, borderColor: showAccountErrors && !account.pending && ibanProblem(account.iban) ? '#b91c1c' : '#cbd5e1' }} />
+                      {showAccountErrors && !account.pending && ibanProblem(account.iban) && (
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#991b1b' }}>{ibanProblem(account.iban)}</div>
+                      )}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                         {SOURCES.map((source) => {
                           const selected = account.sources.includes(source.value);
