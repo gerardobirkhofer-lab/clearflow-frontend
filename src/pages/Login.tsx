@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 interface LoginProps {
@@ -13,10 +13,17 @@ export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>('login');
   const [name, setName] = useState('');
   const [role, setRole] = useState('self_owner');
+  const [notice, setNotice] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const resetToken = searchParams.get('reset') || '';
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (resetToken) setMode('reset');
+  }, [resetToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +105,34 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+    if (password.length < 10) {
+      setError(t('login.passwordTooShort'));
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/api/v1/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || t('login.resetInvalid'));
+        return;
+      }
+      setPassword('');
+      setNotice(t('login.passwordUpdated'));
+      setSearchParams({});
+      setMode('login');
+    } catch {
+      setError('No se pudo contactar el servidor. Intenta de nuevo.');
+    }
+  };
+
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -125,10 +160,10 @@ export default function Login({ onLogin }: LoginProps) {
     <div style={{ maxWidth: 400, margin: '80px auto', padding: 40, border: '1px solid #e2e8f0', borderRadius: 16, background: 'white', fontFamily: 'sans-serif' }}>
       <h1 style={{ textAlign: 'center', marginBottom: 8 }}>ClearFlow</h1>
       <p style={{ textAlign: 'center', color: '#64748b', marginBottom: 32 }}>
-        {mode === 'forgot' ? 'Recupera tu contraseña' : mode === 'login' ? t('login.subtitle') : t('login.createAccount')}
+        {mode === 'reset' ? t('login.resetTitle') : mode === 'forgot' ? 'Recupera tu contraseña' : mode === 'login' ? t('login.subtitle') : t('login.createAccount')}
       </p>
       
-      <form onSubmit={mode === 'forgot' ? handleForgot : handleSubmit}>
+      <form onSubmit={mode === 'reset' ? handleReset : mode === 'forgot' ? handleForgot : handleSubmit}>
         {mode === 'register' && (
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
@@ -138,19 +173,21 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         )}
         
+        {mode !== 'reset' && (
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
             {t('login.email')}
           </label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
         </div>
+        )}
         
         {mode !== 'forgot' && (
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
-              {t('login.password')}
+              {mode === 'reset' ? t('login.newPassword') : t('login.password')}
             </label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={mode === 'register' ? 10 : undefined} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={mode === 'register' || mode === 'reset' ? 10 : undefined} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
           </div>
         )}
 
@@ -166,19 +203,22 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         )}
         
+        {notice && <div style={{ padding: 12, background: '#f0fdf4', color: '#166534', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{notice}</div>}
         {error && error !== 'backend-error' && <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>❌ {error}</div>}
         
         <button type="submit" style={{ width: '100%', padding: '12px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-          {mode === 'forgot' ? 'Enviar enlace' : mode === 'login' ? t('login.signIn') : t('login.createAccountBtn')}
+          {mode === 'reset' ? t('login.savePassword') : mode === 'forgot' ? 'Enviar enlace' : mode === 'login' ? t('login.signIn') : t('login.createAccountBtn')}
         </button>
       </form>
       
+      {mode !== 'reset' && (
       <p style={{ textAlign: 'center', marginTop: 24, color: '#64748b', fontSize: 14 }}>
         {mode === 'login' ? t('login.noAccount') : t('login.hasAccount')}
         <span onClick={() => setMode(mode === 'login' ? 'register' : 'login')} style={{ color: '#635bff', fontWeight: 600, cursor: 'pointer' }}>
           {mode === 'login' ? t('login.register') : t('login.signIn')}
         </span>
       </p>
+      )}
       {mode === 'login' && (
         <p style={{ textAlign: 'center', marginTop: 12 }}>
           <span onClick={() => { setMode('forgot'); setError(''); }} style={{ color: '#635bff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
