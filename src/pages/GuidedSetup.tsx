@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 type Kind = 'public' | 'online' | 'lodging';
-type Structure = 'one' | 'several' | 'holding';
 type AccountMode = 'own' | 'shared';
 type Source = 'cards' | 'cash' | 'booking' | 'stripe';
 
@@ -10,7 +9,12 @@ interface Place {
   id: string;
   name: string;
   kind: Kind;
-  companyIndex: number;
+  companyId: string;
+}
+
+interface CompanyDraft {
+  id: string;
+  name: string;
 }
 
 interface AccountDraft {
@@ -38,42 +42,153 @@ const SOURCES: { value: Source; label: string }[] = [
 
 const STEPS = ['Negocios / Locales', 'Nombres', 'Empresas', 'Cuentas', 'Datos', 'Listo'];
 
+const MAX_COMPANIES = 8;
+const OWN_COMPANY = '__own__';
+
 const newId = () => Math.random().toString(36).slice(2, 10);
+
+const joinNames = (names: string[]) => {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} y ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+};
+
+const organizationSentence = (places: Place[], companies: CompanyDraft[]) => {
+  const groups = companies
+    .map((company) => places.filter((place) => place.companyId === company.id).map((place) => place.name.trim() || 'Negocio'))
+    .filter((members) => members.length > 0);
+  const placeCount = places.length;
+  const companyCount = groups.length;
+  if (placeCount <= 1) return 'Este negocio queda en su empresa.';
+  if (companyCount <= 1) return `Los ${placeCount} negocios están en la misma empresa.`;
+  if (companyCount === placeCount) return `Cada negocio es una empresa distinta. Son ${placeCount} empresas.`;
+  const shared = groups.filter((members) => members.length > 1).map((members, index) => (
+    index === 0 ? `${joinNames(members)} comparten empresa` : `${joinNames(members)} comparten otra`
+  ));
+  const alone = groups.filter((members) => members.length === 1).map((members) => members[0]);
+  const tail = alone.length === 1
+    ? `${alone[0]} va en la suya.`
+    : alone.length > 1
+      ? `${joinNames(alone)} van cada uno en la suya.`
+      : '';
+  return [`${placeCount} negocios en ${companyCount} empresas.`, ...shared.map((line) => `${line}.`), tail].filter(Boolean).join(' ');
+};
 
 export default function GuidedSetup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [placeCount, setPlaceCount] = useState(1);
-  const [places, setPlaces] = useState<Place[]>([{ id: newId(), name: '', kind: 'public', companyIndex: 0 }]);
-  const [structure, setStructure] = useState<Structure>('one');
-  const [holdingName, setHoldingName] = useState('');
-  const [companyNames, setCompanyNames] = useState<string[]>(['']);
+  const [seed] = useState(() => {
+    const companyId = newId();
+    return {
+      place: { id: newId(), name: '', kind: 'public' as Kind, companyId },
+      company: { id: companyId, name: '' },
+    };
+  });
+  const [places, setPlaces] = useState<Place[]>([seed.place]);
+  const [companies, setCompanies] = useState<CompanyDraft[]>([seed.company]);
+  const [companyMode, setCompanyMode] = useState<'separate' | 'mixed' | 'together'>('separate');
   const [accountMode, setAccountMode] = useState<AccountMode>('own');
   const [accounts, setAccounts] = useState<AccountDraft[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const companyCount = structure === 'one' ? 1 : Math.max(companyNames.length, 1);
+  const activeCompanies = companies.filter((company) => places.some((place) => place.companyId === company.id));
 
   const setCount = (count: number) => {
     const next = Math.min(12, Math.max(1, count));
+    const copy = places.slice(0, next);
+    const added: CompanyDraft[] = [];
+    while (copy.length < next) {
+      const companyId = newId();
+      copy.push({ id: newId(), name: '', kind: 'public', companyId });
+      added.push({ id: companyId, name: '' });
+    }
+    const kept = new Set(copy.map((place) => place.companyId));
     setPlaceCount(next);
-    setPlaces((current) => {
-      const copy = current.slice(0, next);
-      while (copy.length < next) copy.push({ id: newId(), name: '', kind: 'public', companyIndex: 0 });
-      return copy;
-    });
+    setPlaces(copy);
+    setCompanies([...companies.filter((company) => kept.has(company.id)), ...added]);
   };
 
-  const setCompanyCount = (count: number) => {
-    const next = Math.min(8, Math.max(2, count));
-    setCompanyNames((current) => {
-      const copy = current.slice(0, next);
-      while (copy.length < next) copy.push('');
-      return copy;
+  const companyNameFor = (companyId: string, fallback: string) => {
+    const current = companies.find((company) => company.id === companyId)?.name.trim();
+    return current || fallback.trim();
+  };
+
+  const splitAll = () => {
+    if (places.length > MAX_COMPANIES) {
+      setError('Por ahora puedes tener hasta 8 empresas. Junta algunos negocios en la misma empresa.');
+      return false;
+    }
+    setError('');
+    const nextCompanies: CompanyDraft[] = [];
+    const nextPlaces = places.map((place) => {
+      const mates = places.filter((item) => item.companyId === place.companyId);
+      if (mates.length === 1) {
+        nextCompanies.push({ id: place.companyId, name: companyNameFor(place.companyId, place.name) });
+        return place;
+      }
+      const id = newId();
+      nextCompanies.push({ id, name: place.name.trim() });
+      return { ...place, companyId: id };
     });
-    setPlaces((current) => current.map((place) => ({ ...place, companyIndex: Math.min(place.companyIndex, next - 1) })));
+    setCompanies(nextCompanies);
+    setPlaces(nextPlaces);
+    return true;
+  };
+
+  const chooseSeparate = () => {
+    if (splitAll() !== false) setCompanyMode('separate');
+  };
+
+  const chooseMixed = () => {
+    if (activeCompanies.length <= 1 && splitAll() === false) return;
+    setError('');
+    setCompanyMode('mixed');
+  };
+
+  const joinAll = () => {
+    if (places.length === 0) return;
+    setError('');
+    const anchorId = places[0].companyId;
+    setCompanies([{ id: anchorId, name: companyNameFor(anchorId, places[0].name) }]);
+    setPlaces(places.map((place) => ({ ...place, companyId: anchorId })));
+    setCompanyMode('together');
+  };
+
+  const modeAfterMove = (nextPlaces: Place[], nextCompanies: CompanyDraft[]) => {
+    const count = nextCompanies.filter((company) => nextPlaces.some((place) => place.companyId === company.id)).length;
+    if (nextPlaces.length <= 1 || count <= 1) return 'together' as const;
+    if (count === nextPlaces.length) return 'separate' as const;
+    return 'mixed' as const;
+  };
+
+  const movePlace = (placeId: string, targetCompanyId: string) => {
+    const place = places.find((item) => item.id === placeId);
+    if (!place || place.companyId === targetCompanyId) return;
+    setError('');
+    if (targetCompanyId === OWN_COMPANY) {
+      if (activeCompanies.length >= MAX_COMPANIES) {
+        setError('Por ahora puedes tener hasta 8 empresas. Junta algunos negocios en la misma empresa.');
+        return;
+      }
+      const id = newId();
+      const nextPlaces = places.map((item) => item.id === placeId ? { ...item, companyId: id } : item);
+      const nextCompanies = [
+        ...companies.filter((company) => nextPlaces.some((item) => item.companyId === company.id)),
+        { id, name: place.name.trim() },
+      ];
+      setPlaces(nextPlaces);
+      setCompanies(nextCompanies);
+      setCompanyMode(modeAfterMove(nextPlaces, nextCompanies));
+      return;
+    }
+    const nextPlaces = places.map((item) => item.id === placeId ? { ...item, companyId: targetCompanyId } : item);
+    const nextCompanies = companies.filter((company) => nextPlaces.some((item) => item.companyId === company.id));
+    setPlaces(nextPlaces);
+    setCompanies(nextCompanies);
+    setCompanyMode(modeAfterMove(nextPlaces, nextCompanies));
   };
 
   const emptyAccount = (): AccountDraft => ({
@@ -113,18 +228,25 @@ export default function GuidedSetup() {
         return;
       }
     }
+    if (step === 1) {
+      setCompanies((current) => current.map((company) => {
+        if (company.name.trim()) return company;
+        const member = places.find((place) => place.companyId === company.id);
+        return { ...company, name: member?.name.trim() || '' };
+      }));
+    }
     if (step === 2) {
-      const names = structure === 'one' ? companyNames.slice(0, 1) : companyNames;
-      if (names.some((name) => !name.trim())) {
+      if (activeCompanies.length > MAX_COMPANIES) {
+        setError('Por ahora puedes tener hasta 8 empresas. Junta algunos negocios en la misma empresa.');
+        return;
+      }
+      if (activeCompanies.some((company) => !company.name.trim())) {
         setError('Ponle un nombre a cada empresa.');
         return;
       }
-      if (structure === 'holding' && !holdingName.trim()) {
-        setError('Ponle un nombre al grupo.');
-        return;
-      }
-      if (structure !== 'one' && names.some((_, index) => !places.some((place) => place.companyIndex === index))) {
-        setError('Cada empresa necesita al menos un negocio.');
+      const names = activeCompanies.map((company) => company.name.trim().toLowerCase());
+      if (new Set(names).size !== names.length) {
+        setError('Cada empresa necesita un nombre distinto.');
         return;
       }
     }
@@ -153,8 +275,8 @@ export default function GuidedSetup() {
   };
 
   const mixedCompanies = (draft: AccountDraft[]) => draft.some((account) => {
-    const indexes = new Set(account.placeIds.map((id) => places.find((place) => place.id === id)?.companyIndex));
-    return indexes.size > 1;
+    const ids = new Set(account.placeIds.map((id) => places.find((place) => place.id === id)?.companyId));
+    return ids.size > 1;
   });
 
   const missingDetails = useMemo(() => accounts.filter((account) => {
@@ -169,17 +291,16 @@ export default function GuidedSetup() {
     }
     setSaving(true);
     setError('');
-    const names = structure === 'one' ? [companyNames[0] || 'Mi empresa'] : companyNames;
     const payload = {
-      holding_name: structure === 'holding' ? holdingName.trim() : '',
-      companies: names.map((name, index) => ({
-        name: name.trim(),
-        places: places.filter((place) => place.companyIndex === index).map((place) => ({
+      holding_name: '',
+      companies: activeCompanies.map((company) => ({
+        name: company.name.trim(),
+        places: places.filter((place) => place.companyId === company.id).map((place) => ({
           name: place.name.trim(),
           kind: place.kind,
         })),
         accounts: accounts
-          .filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyIndex === index))
+          .filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id))
           .map((account) => ({
             bank_name: account.bankName.trim(),
             iban: account.iban.trim(),
@@ -290,52 +411,58 @@ export default function GuidedSetup() {
 
           {step === 2 && (
             <>
-              <h1 style={titleStyle}>¿Cómo están organizados?</h1>
-              <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-                <Choice title="Una sola empresa" body="Todos los negocios están en la misma empresa." selected={structure === 'one'} onClick={() => { setStructure('one'); setCompanyNames((current) => [current[0] || '']); }} />
-                <Choice title="Varias empresas" body="Cada negocio pertenece a una empresa." selected={structure === 'several'} onClick={() => { setStructure('several'); setCompanyCount(Math.max(companyNames.length, 2)); }} />
-                <Choice title="Un grupo con empresas" body="Hay un nombre de grupo, y empresas debajo." selected={structure === 'holding'} onClick={() => { setStructure('holding'); setCompanyCount(Math.max(companyNames.length, 2)); }} />
-              </div>
-              {structure === 'holding' && (
-                <input aria-label="Nombre del grupo" value={holdingName} placeholder="Nombre del grupo" onChange={(event) => setHoldingName(event.target.value)} style={{ ...fieldStyle, marginTop: 16 }} />
-              )}
-              {structure !== 'one' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
-                  <span style={{ fontSize: 14, color: '#475569' }}>Empresas</span>
-                  <button aria-label="Menos empresas" onClick={() => setCompanyCount(companyNames.length - 1)} style={smallRound}>−</button>
-                  <strong>{companyNames.length}</strong>
-                  <button aria-label="Más empresas" onClick={() => setCompanyCount(companyNames.length + 1)} style={smallRound}>+</button>
+              <h1 style={titleStyle}>¿De qué empresa es cada negocio?</h1>
+              <p style={helpStyle}>Junta solo los que compartan empresa. El resto se queda cada uno en la suya.</p>
+              {places.length > 1 && (
+                <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
+                  <Choice title="Cada negocio es una empresa distinta" body="Ninguno comparte empresa con otro." selected={companyMode === 'separate'} onClick={chooseSeparate} />
+                  <Choice title="Algunos comparten empresa y otros no" body="Por ejemplo, dos negocios en una empresa y los otros cada uno en la suya." selected={companyMode === 'mixed'} onClick={chooseMixed} />
+                  <Choice title="Todos en la misma empresa" body="Un solo nombre de empresa para todos los negocios." selected={companyMode === 'together'} onClick={joinAll} />
                 </div>
               )}
-              <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-                {(structure === 'one' ? companyNames.slice(0, 1) : companyNames).map((name, index) => (
-                  <input
-                    key={index}
-                    aria-label={`Empresa ${index + 1}`}
-                    value={name}
-                    placeholder={structure === 'one' ? 'Nombre de la empresa' : `Empresa ${index + 1}`}
-                    onChange={(event) => setCompanyNames((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))}
-                    style={fieldStyle}
-                  />
-                ))}
-              </div>
-              {structure !== 'one' && (
-                <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
-                  {places.map((place) => (
-                    <label key={place.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'center', fontSize: 14 }}>
-                      <span>{place.name || 'Negocio'}</span>
-                      <select
-                        aria-label={`Empresa de ${place.name || 'negocio'}`}
-                        value={place.companyIndex}
-                        onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, companyIndex: Number(event.target.value) } : item))}
+              <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+                {activeCompanies.map((company) => {
+                  const members = places.filter((place) => place.companyId === company.id);
+                  return (
+                    <div key={company.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Nombre de la empresa</label>
+                      <input
+                        aria-label={`Nombre de la empresa de ${members.map((place) => place.name).join(', ')}`}
+                        value={company.name}
+                        placeholder="Nombre legal de la empresa"
+                        onChange={(event) => setCompanies((current) => current.map((item) => item.id === company.id ? { ...item, name: event.target.value } : item))}
                         style={fieldStyle}
-                      >
-                        {companyNames.map((name, index) => <option key={index} value={index}>{name || `Empresa ${index + 1}`}</option>)}
-                      </select>
-                    </label>
-                  ))}
-                </div>
-              )}
+                      />
+                      <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                        {members.map((place) => (
+                          <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, alignItems: 'center' }}>
+                            <span style={{ fontSize: 14, fontWeight: 700 }}>{place.name}</span>
+                            {places.length > 1 && (
+                              <select
+                                aria-label={`Dónde queda ${place.name}`}
+                                value={company.id}
+                                onChange={(event) => movePlace(place.id, event.target.value)}
+                                style={fieldStyle}
+                              >
+                                <option value={company.id}>Se queda en esta empresa</option>
+                                {activeCompanies.filter((other) => other.id !== company.id).map((other) => (
+                                  <option key={other.id} value={other.id}>Juntar con {other.name || 'otra empresa'}</option>
+                                ))}
+                                {members.length > 1 && <option value={OWN_COMPANY}>Separar en su propia empresa</option>}
+                              </select>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div aria-live="polite" style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#f8fafc', color: '#0f172a', fontWeight: 700 }}>
+                {companyMode === 'mixed' && activeCompanies.length === places.length
+                  ? 'Junta los que compartan empresa. Los demás se quedan cada uno en la suya.'
+                  : organizationSentence(places, activeCompanies)}
+              </div>
             </>
           )}
 
@@ -373,7 +500,7 @@ export default function GuidedSetup() {
                                 cursor: 'pointer',
                               }}
                             >
-                              {place.name || 'Local'}
+                              {place.name || 'Negocio'}
                             </button>
                           );
                         })}
@@ -422,14 +549,14 @@ export default function GuidedSetup() {
           {step === 5 && (
             <>
               <h1 style={titleStyle}>{saved ? 'Listo' : 'Así queda tu grupo'}</h1>
-              {structure === 'holding' && holdingName && <div style={{ color: '#635bff', fontWeight: 800, marginBottom: 8 }}>{holdingName}</div>}
-              {(structure === 'one' ? companyNames.slice(0, 1) : companyNames).map((name, index) => (
-                <div key={index} style={{ padding: 12, border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 10 }}>
-                  <div style={{ fontWeight: 800 }}>{name}</div>
+              <p style={helpStyle}>{organizationSentence(places, activeCompanies)}</p>
+              {activeCompanies.map((company) => (
+                <div key={company.id} style={{ padding: 12, border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 10 }}>
+                  <div style={{ fontWeight: 800 }}>{company.name}</div>
                   <div style={{ fontSize: 14, color: '#475569', marginTop: 6 }}>
-                    {places.filter((place) => place.companyIndex === index).map((place) => place.name).join(' · ')}
+                    {places.filter((place) => place.companyId === company.id).map((place) => place.name).join(' · ')}
                   </div>
-                  {accounts.filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyIndex === index)).map((account) => (
+                  {accounts.filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id)).map((account) => (
                     <div key={account.id} style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
                       {account.pending ? 'Cuenta pendiente' : `${account.bankName} · ${account.iban}`} — {account.placeIds.map((id) => places.find((place) => place.id === id)?.name).join(', ')}
                     </div>
