@@ -15,13 +15,22 @@ interface Company {
 }
 
 const KINDS = [
-  { value: 'restaurant', label: 'Restaurante' },
-  { value: 'bar', label: 'Bar' },
-  { value: 'chiringuito', label: 'Chiringuito' },
-  { value: 'apartments', label: 'Apartamentos' },
+  { value: 'public', label: 'Negocio físico al público' },
+  { value: 'online', label: 'Negocio online' },
+  { value: 'lodging', label: 'Alojamiento' },
 ];
 
-const kindLabel = (kind: string) => KINDS.find((item) => item.value === kind)?.label || kind;
+const KIND_LABELS: Record<string, string> = {
+  public: 'Negocio físico al público',
+  online: 'Negocio online',
+  lodging: 'Alojamiento',
+  restaurant: 'Negocio físico al público',
+  bar: 'Negocio físico al público',
+  chiringuito: 'Negocio físico al público',
+  apartments: 'Alojamiento',
+};
+
+const kindLabel = (kind: string) => KIND_LABELS[kind] || kind;
 
 const api = import.meta.env.VITE_API_URL;
 const authHeaders = () => ({
@@ -81,7 +90,7 @@ export default function TenantSelector() {
   };
 
   const addSite = async (companyId: string) => {
-    const draft = siteDrafts[companyId] || { name: '', kind: 'restaurant' };
+    const draft = siteDrafts[companyId] || { name: '', kind: 'public' };
     if (!draft.name.trim()) return;
     const response = await fetch(`${api}/api/v1/companies/${companyId}/sites`, {
       method: 'POST',
@@ -90,7 +99,7 @@ export default function TenantSelector() {
     });
     const data = await response.json();
     if (!response.ok) {
-      setMessage(data.detail || 'No se pudo añadir el local');
+      setMessage(data.detail || 'No se pudo añadir el negocio');
       return;
     }
     setSiteDrafts((current) => ({ ...current, [companyId]: { name: '', kind: draft.kind } }));
@@ -124,7 +133,7 @@ export default function TenantSelector() {
         <div>
           <h1 style={{ margin: '0 0 8px', fontSize: 28 }}>Empresas de {user.name || 'tu cuenta'}</h1>
           <p style={{ margin: 0, color: '#64748b' }}>
-            Cada empresa tiene sus propios locales y sus propios cobros. Un encargado solo abre la empresa que le des.
+            Cada empresa tiene sus propios negocios y sus propios cobros. Un encargado solo abre la empresa que le des.
           </p>
         </div>
         {savedTenant && (
@@ -138,7 +147,7 @@ export default function TenantSelector() {
 
       <div style={{ display: 'grid', gap: 16 }}>
         {companies.map((company) => {
-          const siteDraft = siteDrafts[company.id] || { name: '', kind: 'restaurant' };
+          const siteDraft = siteDrafts[company.id] || { name: '', kind: 'public' };
           const managerDraft = managerDrafts[company.id] || { name: '', email: '', password: '' };
           const isOwner = company.role !== 'manager';
           return (
@@ -153,7 +162,7 @@ export default function TenantSelector() {
 
               <div style={{ marginTop: 16 }}>
                 {(company.sites || []).length === 0 ? (
-                  <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay locales.</div>
+                  <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay negocios.</div>
                 ) : (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {(company.sites || []).map((site) => (
@@ -168,11 +177,11 @@ export default function TenantSelector() {
               {isOwner && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginTop: 18 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Añadir local</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Añadir negocio</div>
                     <input
                       value={siteDraft.name}
                       onChange={(event) => setSiteDrafts((current) => ({ ...current, [company.id]: { ...siteDraft, name: event.target.value } }))}
-                      placeholder="Nombre del local"
+                      placeholder="Nombre del negocio"
                       style={fieldStyle}
                     />
                     <select
@@ -182,7 +191,7 @@ export default function TenantSelector() {
                     >
                       {KINDS.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
                     </select>
-                    <button onClick={() => addSite(company.id)} style={{ ...secondaryButton, marginTop: 8 }}>Añadir local</button>
+                    <button onClick={() => addSite(company.id)} style={{ ...secondaryButton, marginTop: 8 }}>Añadir negocio</button>
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Añadir encargado</div>

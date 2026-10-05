@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-type Kind = 'restaurant' | 'bar' | 'chiringuito' | 'apartments';
+type Kind = 'public' | 'online' | 'lodging';
 type Structure = 'one' | 'several' | 'holding';
 type AccountMode = 'own' | 'shared';
 type Source = 'cards' | 'cash' | 'booking' | 'stripe';
@@ -24,10 +24,9 @@ interface AccountDraft {
 }
 
 const KINDS: { value: Kind; label: string }[] = [
-  { value: 'restaurant', label: 'Restaurante' },
-  { value: 'bar', label: 'Bar' },
-  { value: 'chiringuito', label: 'Chiringuito' },
-  { value: 'apartments', label: 'Apartamentos' },
+  { value: 'public', label: 'Negocio físico al público' },
+  { value: 'online', label: 'Negocio online' },
+  { value: 'lodging', label: 'Alojamiento' },
 ];
 
 const SOURCES: { value: Source; label: string }[] = [
@@ -45,7 +44,7 @@ export default function GuidedSetup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [placeCount, setPlaceCount] = useState(1);
-  const [places, setPlaces] = useState<Place[]>([{ id: newId(), name: '', kind: 'restaurant', companyIndex: 0 }]);
+  const [places, setPlaces] = useState<Place[]>([{ id: newId(), name: '', kind: 'public', companyIndex: 0 }]);
   const [structure, setStructure] = useState<Structure>('one');
   const [holdingName, setHoldingName] = useState('');
   const [companyNames, setCompanyNames] = useState<string[]>(['']);
@@ -62,7 +61,7 @@ export default function GuidedSetup() {
     setPlaceCount(next);
     setPlaces((current) => {
       const copy = current.slice(0, next);
-      while (copy.length < next) copy.push({ id: newId(), name: '', kind: 'restaurant', companyIndex: 0 });
+      while (copy.length < next) copy.push({ id: newId(), name: '', kind: 'public', companyIndex: 0 });
       return copy;
     });
   };
@@ -105,12 +104,12 @@ export default function GuidedSetup() {
     setError('');
     if (step === 1) {
       if (places.some((place) => !place.name.trim())) {
-        setError('Ponle un nombre a cada local.');
+        setError('Ponle un nombre a cada negocio.');
         return;
       }
       const names = places.map((place) => place.name.trim().toLowerCase());
       if (new Set(names).size !== names.length) {
-        setError('Cada local necesita un nombre distinto.');
+        setError('Cada negocio necesita un nombre distinto.');
         return;
       }
     }
@@ -125,7 +124,7 @@ export default function GuidedSetup() {
         return;
       }
       if (structure !== 'one' && names.some((_, index) => !places.some((place) => place.companyIndex === index))) {
-        setError('Cada empresa necesita al menos un local.');
+        setError('Cada empresa necesita al menos un negocio.');
         return;
       }
     }
@@ -138,15 +137,15 @@ export default function GuidedSetup() {
       const draft = accountMode === 'own' ? buildOwnAccounts() : accounts;
       const covered = new Set(draft.flatMap((account) => account.placeIds));
       if (accountMode === 'shared' && places.some((place) => !covered.has(place.id))) {
-        setError('Cada local tiene que estar en una cuenta.');
+        setError('Cada negocio tiene que estar en una cuenta.');
         return;
       }
       if (accountMode === 'shared' && draft.some((account) => account.placeIds.length === 0)) {
-        setError('Cada cuenta tiene que cubrir al menos un local.');
+        setError('Cada cuenta tiene que cubrir al menos un negocio.');
         return;
       }
       if (accountMode === 'shared' && mixedCompanies(draft)) {
-        setError('Una cuenta solo puede agrupar locales de la misma empresa.');
+        setError('Una cuenta solo puede agrupar negocios de la misma empresa.');
         return;
       }
     }
@@ -264,19 +263,19 @@ export default function GuidedSetup() {
 
           {step === 1 && (
             <>
-              <h1 style={titleStyle}>¿Cómo se llama cada local?</h1>
+              <h1 style={titleStyle}>¿Cómo se llama cada negocio?</h1>
               <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
                 {places.map((place, index) => (
-                  <div key={place.id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8 }}>
+                  <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
                     <input
-                      aria-label={`Nombre del local ${index + 1}`}
+                      aria-label={`Nombre del negocio ${index + 1}`}
                       value={place.name}
-                      placeholder={`Local ${index + 1}`}
+                      placeholder={`Negocio ${index + 1}`}
                       onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, name: event.target.value } : item))}
                       style={fieldStyle}
                     />
                     <select
-                      aria-label={`Tipo del local ${index + 1}`}
+                      aria-label={`Tipo del negocio ${index + 1}`}
                       value={place.kind}
                       onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, kind: event.target.value as Kind } : item))}
                       style={fieldStyle}
@@ -293,8 +292,8 @@ export default function GuidedSetup() {
             <>
               <h1 style={titleStyle}>¿Cómo están organizados?</h1>
               <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-                <Choice title="Una sola empresa" body="Todos los locales están en la misma empresa." selected={structure === 'one'} onClick={() => { setStructure('one'); setCompanyNames((current) => [current[0] || '']); }} />
-                <Choice title="Varias empresas" body="Cada local pertenece a una empresa." selected={structure === 'several'} onClick={() => { setStructure('several'); setCompanyCount(Math.max(companyNames.length, 2)); }} />
+                <Choice title="Una sola empresa" body="Todos los negocios están en la misma empresa." selected={structure === 'one'} onClick={() => { setStructure('one'); setCompanyNames((current) => [current[0] || '']); }} />
+                <Choice title="Varias empresas" body="Cada negocio pertenece a una empresa." selected={structure === 'several'} onClick={() => { setStructure('several'); setCompanyCount(Math.max(companyNames.length, 2)); }} />
                 <Choice title="Un grupo con empresas" body="Hay un nombre de grupo, y empresas debajo." selected={structure === 'holding'} onClick={() => { setStructure('holding'); setCompanyCount(Math.max(companyNames.length, 2)); }} />
               </div>
               {structure === 'holding' && (
@@ -324,9 +323,9 @@ export default function GuidedSetup() {
                 <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
                   {places.map((place) => (
                     <label key={place.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'center', fontSize: 14 }}>
-                      <span>{place.name || 'Local'}</span>
+                      <span>{place.name || 'Negocio'}</span>
                       <select
-                        aria-label={`Empresa de ${place.name || 'local'}`}
+                        aria-label={`Empresa de ${place.name || 'negocio'}`}
                         value={place.companyIndex}
                         onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, companyIndex: Number(event.target.value) } : item))}
                         style={fieldStyle}
@@ -344,8 +343,8 @@ export default function GuidedSetup() {
             <>
               <h1 style={titleStyle}>¿Cómo son las cuentas?</h1>
               <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-                <Choice title="Cada local tiene su cuenta" body="Un banco para cada local." selected={accountMode === 'own'} onClick={() => setAccountMode('own')} />
-                <Choice title="Algunos locales comparten cuenta" body="Varios locales de la misma empresa usan la misma cuenta." selected={accountMode === 'shared'} onClick={() => { setAccountMode('shared'); setAccounts((current) => (current.length ? current : [emptyAccount()])); }} />
+                <Choice title="Cada negocio tiene su cuenta" body="Un banco para cada negocio." selected={accountMode === 'own'} onClick={() => setAccountMode('own')} />
+                <Choice title="Algunos negocios comparten cuenta" body="Varios negocios de la misma empresa usan la misma cuenta." selected={accountMode === 'shared'} onClick={() => { setAccountMode('shared'); setAccounts((current) => (current.length ? current : [emptyAccount()])); }} />
               </div>
               {accountMode === 'shared' && (
                 <div style={{ marginTop: 18 }}>
