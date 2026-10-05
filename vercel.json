@@ -16,6 +16,7 @@
     { "source": "/reconciliation", "destination": "/index.html" },
     { "source": "/smartcheck-wizard", "destination": "/index.html" },
     { "source": "/setup", "destination": "/index.html" },
+    { "source": "/contrato", "destination": "/index.html" },
     { "source": "/setup-wizard", "destination": "/index.html" },
     { "source": "/guided-setup", "destination": "/index.html" },
     { "source": "/tenant-selector", "destination": "/index.html" },

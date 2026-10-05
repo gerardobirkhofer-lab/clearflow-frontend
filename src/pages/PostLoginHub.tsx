@@ -134,6 +134,16 @@ export default function PostLoginHub() {
       category: 'config',
     },
     {
+      id: 'contrato',
+      icon: '📄',
+      title: 'Contrato',
+      desc: 'La comisión y el día en que el dinero debe llegar',
+      path: '/contrato',
+      color: '#635bff',
+      bg: '#eef2ff',
+      category: 'config',
+    },
+    {
       id: 'setup',
       icon: '⚙️',
       title: 'Configuración',

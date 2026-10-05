@@ -6,6 +6,26 @@ import BackButton from '../components/BackButton';
 const API = import.meta.env.VITE_API_URL;
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
+function settlementLine(match: any) {
+  const base = `${match.bank?.concept || 'Transacción'} — conciliado con ${match.provider?.provider_name || 'proveedor'}`;
+  const settlement = match.settlement;
+  if (!settlement) return base;
+  if (settlement.fee_difference > 0.01) {
+    return `${base}. Llegó ${settlement.fee_difference.toFixed(2)} € por debajo del contrato`;
+  }
+  if (settlement.days_late > 0) {
+    return `${base}. Llegó ${settlement.days_late} días más tarde de lo pactado`;
+  }
+  return `${base}. La comisión y el plazo coinciden con el contrato`;
+}
+
+function openLine(row: any) {
+  const base = `${row.concept || 'Pago de proveedor'} — sin coincidencia en el banco`;
+  if (row.expected_net == null) return base;
+  const when = row.expected_date ? ` el ${row.expected_date}` : '';
+  return `${base}. Según el contrato deberían llegar ${Number(row.expected_net).toFixed(2)} €${when}`;
+}
+
 interface DisputeItem {
   id: string;
   date: string;
@@ -88,7 +108,7 @@ export default function SmartCheckStatus() {
           amount: m.bank?.amount || 0,
           status: 'resolved' as const,
           daysOpen: 0,
-          description: `${m.bank?.concept || 'Transacción'} — conciliado con ${m.provider?.provider_name || 'proveedor'}`,
+          description: settlementLine(m),
         })),
         ...(recData.unmatched_bank || []).map((b: any) => ({
           id: `UB${b.id}`,
@@ -106,7 +126,7 @@ export default function SmartCheckStatus() {
           amount: p.amount || 0,
           status: 'new' as const,
           daysOpen: 0,
-          description: `${p.concept || 'Pago de proveedor'} — sin coincidencia en el banco`,
+          description: openLine(p),
         })),
       ];
 

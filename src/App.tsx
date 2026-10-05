@@ -13,6 +13,7 @@ import PaymentCheck from './pages/PaymentCheck';
 import Setup from './pages/Setup';
 import SetupWizard from './pages/SetupWizard';
 import GuidedSetup from './pages/GuidedSetup';
+import Contract from './pages/Contract';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
@@ -102,6 +103,7 @@ function AppContent() {
             <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
             <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
             <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
+            <Link to="/contrato" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Contrato</Link>
             <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
             <div style={{ flex: 1 }}></div>
             <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
@@ -133,6 +135,7 @@ function AppContent() {
           <Route path="/upload-center" element={<Navigate to="/smartcheck-wizard" />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/contrato" element={isLoggedIn ? <Contract /> : <Navigate to="/login" />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
