@@ -26,6 +26,7 @@ export default function Reconciliation() {
   const [providerName, setProviderName] = useState('stripe');
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<string | null>(null);
+  const [days, setDays] = useState<Array<{ day: string; matched_count: number; matched_amount: number; open_bank_count: number; open_provider_count: number }>>([]);
 
   useEffect(() => {
     const t = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -35,6 +36,7 @@ export default function Reconciliation() {
     }
     setTenant(t);
     fetchStatus(t.id);
+    fetchDays(t.id);
   }, []);
 
   const fetchStatus = async (tenantId: string) => {
@@ -48,6 +50,19 @@ export default function Reconciliation() {
       }
       const data = await res.json();
       setStatus(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchDays = async (tenantId: string) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/days?tenant_id=${tenantId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDays(data.items || []);
     } catch (err) {
       console.error(err);
     }
@@ -74,6 +89,7 @@ export default function Reconciliation() {
       setUploadResult(`✅ ${data.message}`);
       setProviderFile(null);
       fetchStatus(tenant.id);
+      fetchDays(tenant.id);
     } catch (err: any) {
       setUploadResult(`❌ ${err.message}`);
     } finally {
@@ -95,6 +111,7 @@ export default function Reconciliation() {
       if (!res.ok) throw new Error(data.detail || 'SmartCheck falló');
       setResult(data);
       fetchStatus(tenant.id);
+      fetchDays(tenant.id);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -139,6 +156,19 @@ export default function Reconciliation() {
           <div style={{ fontSize: 28, fontWeight: 700, color: '#f59e0b' }}>{pendingCount}</div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Pendientes</div>
         </div>
+      </div>
+
+      <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 24 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Comprobación continua</div>
+        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>Cada día queda guardado. Lo ya conciliado no se vuelve a abrir. Lo que sigue abierto se mira otra vez.</div>
+        {days.length === 0 ? (
+          <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay un día guardado.</div>
+        ) : days.map((day) => (
+          <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
+            <span>{day.day}</span>
+            <span>{day.matched_count} conciliadas · {day.open_bank_count + day.open_provider_count} abiertas</span>
+          </div>
+        ))}
       </div>
 
       {/* Upload Provider Report */}

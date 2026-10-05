@@ -45,6 +45,7 @@ export default function SmartCheckStatus() {
     newCount: 0,
   });
   const [lastCheckDate, setLastCheckDate] = useState<string | null>(null);
+  const [days, setDays] = useState<Array<{ day: string; matched_count: number; open_bank_count: number; open_provider_count: number }>>([]);
 
   useEffect(() => {
     loadData();
@@ -73,6 +74,11 @@ export default function SmartCheckStatus() {
       }
       const recData: ReconciliationData = await recRes.json();
       setLastCheckDate(new Date().toISOString());
+      const daysRes = await fetch(`${API}/api/v1/reconciliation/days?tenant_id=${tenantId}`, { headers: getAuth() });
+      if (daysRes.ok) {
+        const daysData = await daysRes.json();
+        setDays(daysData.items || []);
+      }
 
       const allItems: DisputeItem[] = [
         ...(recData.matched || []).map((m: any) => ({
@@ -178,6 +184,18 @@ export default function SmartCheckStatus() {
             Última actualización: {new Date(lastCheckDate).toLocaleString('es-ES')}
           </p>
         )}
+        <div style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Comprobación continua</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Cada día queda guardado. Lo ya conciliado no se vuelve a abrir. Lo que sigue abierto se mira otra vez.</div>
+          {days.length === 0 ? (
+            <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay un día guardado.</div>
+          ) : days.map((day) => (
+            <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
+              <span>{day.day}</span>
+              <span>{day.matched_count} conciliadas · {day.open_bank_count + day.open_provider_count} abiertas</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* RESUMEN CARDS */}
