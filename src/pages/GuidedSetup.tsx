@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 type Kind = 'public' | 'online' | 'lodging';
@@ -47,6 +47,33 @@ const OWN_COMPANY = '__own__';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+const draftKey = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}') as { id?: string };
+    return `clearflow-setup-${user.id || 'local'}`;
+  } catch {
+    return 'clearflow-setup-local';
+  }
+};
+
+const loadDraft = () => {
+  try {
+    const data = JSON.parse(sessionStorage.getItem(draftKey()) || 'null');
+    const step = Number(data?.step);
+    if (!data || !Number.isInteger(step) || step < 0 || step > 5) return null;
+    if (!Array.isArray(data.places) || data.places.length === 0) return null;
+    if (!Array.isArray(data.companies) || data.companies.length === 0) return null;
+    const kinds = new Set(['public', 'online', 'lodging']);
+    if (!data.places.every((place: Place) => place && place.id && place.companyId && kinds.has(place.kind))) return null;
+    data.step = step;
+    if (!['separate', 'mixed', 'together'].includes(data.companyMode)) data.companyMode = 'separate';
+    if (!['own', 'shared'].includes(data.accountMode)) data.accountMode = 'own';
+    return data;
+  } catch {
+    return null;
+  }
+};
+
 const joinNames = (names: string[]) => {
   if (names.length <= 1) return names[0] || '';
   if (names.length === 2) return `${names[0]} y ${names[1]}`;
@@ -76,8 +103,9 @@ const organizationSentence = (places: Place[], companies: CompanyDraft[]) => {
 
 export default function GuidedSetup() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [placeCount, setPlaceCount] = useState(1);
+  const [draft] = useState(loadDraft);
+  const [step, setStep] = useState(draft?.step ?? 0);
+  const [placeCount, setPlaceCount] = useState(draft?.placeCount ?? 1);
   const [seed] = useState(() => {
     const companyId = newId();
     return {
@@ -85,14 +113,21 @@ export default function GuidedSetup() {
       company: { id: companyId, name: '' },
     };
   });
-  const [places, setPlaces] = useState<Place[]>([seed.place]);
-  const [companies, setCompanies] = useState<CompanyDraft[]>([seed.company]);
-  const [companyMode, setCompanyMode] = useState<'separate' | 'mixed' | 'together'>('separate');
-  const [accountMode, setAccountMode] = useState<AccountMode>('own');
-  const [accounts, setAccounts] = useState<AccountDraft[]>([]);
+  const [places, setPlaces] = useState<Place[]>(draft?.places ?? [seed.place]);
+  const [companies, setCompanies] = useState<CompanyDraft[]>(draft?.companies ?? [seed.company]);
+  const [companyMode, setCompanyMode] = useState<'separate' | 'mixed' | 'together'>(draft?.companyMode ?? 'separate');
+  const [accountMode, setAccountMode] = useState<AccountMode>(draft?.accountMode ?? 'own');
+  const [accounts, setAccounts] = useState<AccountDraft[]>(draft?.accounts ?? []);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (saved) return;
+    sessionStorage.setItem(draftKey(), JSON.stringify({
+      step, placeCount, places, companies, companyMode, accountMode, accounts,
+    }));
+  }, [step, placeCount, places, companies, companyMode, accountMode, accounts, saved]);
 
   const activeCompanies = companies.filter((company) => places.some((place) => place.companyId === company.id));
 
@@ -333,6 +368,7 @@ export default function GuidedSetup() {
         localStorage.setItem('tenant', JSON.stringify({ id: first.id, name: first.name, role: 'owner' }));
       }
       localStorage.setItem('onboardingComplete', 'true');
+      sessionStorage.removeItem(draftKey());
       setSaved(true);
       setSaving(false);
     } catch {
@@ -370,14 +406,33 @@ export default function GuidedSetup() {
           ))}
         </div>
 
-        <div style={{ background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (saved) return;
+            if (step < 5) goNext();
+            else save();
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return;
+            const target = event.target as HTMLElement;
+            if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
+            if ((target as HTMLInputElement).type === 'checkbox') return;
+            const fields = [...event.currentTarget.querySelectorAll<HTMLElement>('input:not([type="checkbox"]):not([disabled]), select:not([disabled])')];
+            const next = fields[fields.indexOf(target) + 1];
+            if (!next) return;
+            event.preventDefault();
+            next.focus();
+          }}
+          style={{ background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}
+        >
           {step === 0 && (
             <>
               <h1 style={titleStyle}>¿Cuántos negocios cobran?</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 24 }}>
-                <button aria-label="Menos negocios" onClick={() => setCount(placeCount - 1)} style={roundButton}>−</button>
+                <button type="button" aria-label="Menos negocios" onClick={() => setCount(placeCount - 1)} style={roundButton}>−</button>
                 <div style={{ fontSize: 48, fontWeight: 800, minWidth: 72, textAlign: 'center' }}>{placeCount}</div>
-                <button aria-label="Más negocios" onClick={() => setCount(placeCount + 1)} style={roundButton}>+</button>
+                <button type="button" aria-label="Más negocios" onClick={() => setCount(placeCount + 1)} style={roundButton}>+</button>
               </div>
             </>
           )}
@@ -413,7 +468,7 @@ export default function GuidedSetup() {
             <>
               <h1 style={titleStyle}>¿De qué empresa es cada negocio?</h1>
               <p style={helpStyle}>Junta solo los que compartan empresa. El resto se queda cada uno en la suya.</p>
-              <div aria-live="polite" style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#eef2ff', color: '#312e81', fontWeight: 700, position: 'sticky', top: 12, zIndex: 2 }}>
+              <div aria-live="polite" style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#eef2ff', color: '#312e81', fontWeight: 700 }}>
                 {companyMode === 'mixed' && activeCompanies.length === places.length
                   ? 'Junta los que compartan empresa. Los demás se quedan cada uno en la suya.'
                   : organizationSentence(places, activeCompanies)}
@@ -477,9 +532,9 @@ export default function GuidedSetup() {
                 <div style={{ marginTop: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                     <span>Cuentas</span>
-                    <button aria-label="Menos cuentas" onClick={() => setAccounts((current) => current.slice(0, Math.max(1, current.length - 1)))} style={smallRound}>−</button>
+                    <button type="button" aria-label="Menos cuentas" onClick={() => setAccounts((current) => current.slice(0, Math.max(1, current.length - 1)))} style={smallRound}>−</button>
                     <strong>{Math.max(accounts.length, 1)}</strong>
-                    <button aria-label="Más cuentas" onClick={() => setAccounts((current) => [...current, emptyAccount()])} style={smallRound}>+</button>
+                    <button type="button" aria-label="Más cuentas" onClick={() => setAccounts((current) => [...current, emptyAccount()])} style={smallRound}>+</button>
                   </div>
                   {accounts.map((account, index) => (
                     <div key={account.id} style={{ padding: 12, border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 10 }}>
@@ -489,6 +544,7 @@ export default function GuidedSetup() {
                           const selected = account.placeIds.includes(place.id);
                           return (
                             <button
+                              type="button"
                               key={place.id}
                               onClick={() => togglePlace(account.id, place.id)}
                               style={{
@@ -529,7 +585,7 @@ export default function GuidedSetup() {
                         {SOURCES.map((source) => {
                           const selected = account.sources.includes(source.value);
                           return (
-                            <button key={source.value} disabled={account.pending} onClick={() => toggleSource(account.id, source.value)} style={{ padding: '8px 12px', borderRadius: 999, border: selected ? '1px solid #635bff' : '1px solid #e2e8f0', background: selected ? '#eef2ff' : 'white', cursor: 'pointer' }}>
+                            <button type="button" key={source.value} disabled={account.pending} onClick={() => toggleSource(account.id, source.value)} style={{ padding: '8px 12px', borderRadius: 999, border: selected ? '1px solid #635bff' : '1px solid #e2e8f0', background: selected ? '#eef2ff' : 'white', cursor: 'pointer' }}>
                               {source.label}
                             </button>
                           );
@@ -569,13 +625,13 @@ export default function GuidedSetup() {
           {error && <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: '#fef2f2', color: '#991b1b' }}>{error}</div>}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-            <button onClick={() => { setError(''); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saved} style={secondaryButton}>Atrás</button>
-            {step < 4 && <button onClick={goNext} style={primaryButton}>Continuar</button>}
-            {step === 4 && <button onClick={goNext} style={primaryButton}>Ver el resumen</button>}
-            {step === 5 && !saved && <button onClick={save} disabled={saving} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y entrar'}</button>}
-            {step === 5 && saved && <button onClick={() => navigate('/hub')} style={primaryButton}>Ir al inicio</button>}
+            <button type="button" onClick={() => { setError(''); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saved} style={secondaryButton}>Atrás</button>
+            {step < 4 && <button type="submit" style={primaryButton}>Continuar</button>}
+            {step === 4 && <button type="submit" style={primaryButton}>Ver el resumen</button>}
+            {step === 5 && !saved && <button type="submit" disabled={saving} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y entrar'}</button>}
+            {step === 5 && saved && <button type="button" onClick={() => navigate('/hub')} style={primaryButton}>Ir al inicio</button>}
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -583,7 +639,7 @@ export default function GuidedSetup() {
 
 function Choice({ title, body, selected, onClick }: { title: string; body: string; selected: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ textAlign: 'left', padding: 14, borderRadius: 12, border: selected ? '2px solid #635bff' : '1px solid #e2e8f0', background: selected ? '#f5f3ff' : 'white', cursor: 'pointer' }}>
+    <button type="button" onClick={onClick} style={{ textAlign: 'left', padding: 14, borderRadius: 12, border: selected ? '2px solid #635bff' : '1px solid #e2e8f0', background: selected ? '#f5f3ff' : 'white', cursor: 'pointer' }}>
       <div style={{ fontWeight: 800 }}>{title}</div>
       <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{body}</div>
     </button>
