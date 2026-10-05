@@ -413,6 +413,11 @@ export default function GuidedSetup() {
             <>
               <h1 style={titleStyle}>¿De qué empresa es cada negocio?</h1>
               <p style={helpStyle}>Junta solo los que compartan empresa. El resto se queda cada uno en la suya.</p>
+              <div aria-live="polite" style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#eef2ff', color: '#312e81', fontWeight: 700, position: 'sticky', top: 12, zIndex: 2 }}>
+                {companyMode === 'mixed' && activeCompanies.length === places.length
+                  ? 'Junta los que compartan empresa. Los demás se quedan cada uno en la suya.'
+                  : organizationSentence(places, activeCompanies)}
+              </div>
               {places.length > 1 && (
                 <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
                   <Choice title="Cada negocio es una empresa distinta" body="Ninguno comparte empresa con otro." selected={companyMode === 'separate'} onClick={chooseSeparate} />
@@ -457,11 +462,6 @@ export default function GuidedSetup() {
                     </div>
                   );
                 })}
-              </div>
-              <div aria-live="polite" style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#f8fafc', color: '#0f172a', fontWeight: 700 }}>
-                {companyMode === 'mixed' && activeCompanies.length === places.length
-                  ? 'Junta los que compartan empresa. Los demás se quedan cada uno en la suya.'
-                  : organizationSentence(places, activeCompanies)}
               </div>
             </>
           )}
