@@ -127,7 +127,7 @@ export default function PostLoginHub() {
       id: 'guided-setup',
       icon: '✨',
       title: 'Configura tu grupo',
-      desc: 'Locales, empresas y cuentas en unos minutos',
+      desc: 'Negocios, empresas y cuentas en unos minutos',
       path: '/guided-setup',
       color: '#635bff',
       bg: '#eef2ff',

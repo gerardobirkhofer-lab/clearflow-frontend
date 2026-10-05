@@ -37,7 +37,7 @@ const SOURCES: { value: Source; label: string }[] = [
   { value: 'stripe', label: 'Stripe' },
 ];
 
-const STEPS = ['Locales', 'Nombres', 'Empresas', 'Cuentas', 'Datos', 'Listo'];
+const STEPS = ['Negocios / Locales', 'Nombres', 'Empresas', 'Cuentas', 'Datos', 'Listo'];
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -253,12 +253,11 @@ export default function GuidedSetup() {
         <div style={{ background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}>
           {step === 0 && (
             <>
-              <h1 style={titleStyle}>¿Cuántos locales cobran?</h1>
-              <p style={helpStyle}>Un local es un restaurante, un bar, un chiringuito o los apartamentos.</p>
+              <h1 style={titleStyle}>¿Cuántos negocios cobran?</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 24 }}>
-                <button aria-label="Menos locales" onClick={() => setCount(placeCount - 1)} style={roundButton}>−</button>
+                <button aria-label="Menos negocios" onClick={() => setCount(placeCount - 1)} style={roundButton}>−</button>
                 <div style={{ fontSize: 48, fontWeight: 800, minWidth: 72, textAlign: 'center' }}>{placeCount}</div>
-                <button aria-label="Más locales" onClick={() => setCount(placeCount + 1)} style={roundButton}>+</button>
+                <button aria-label="Más negocios" onClick={() => setCount(placeCount + 1)} style={roundButton}>+</button>
               </div>
             </>
           )}
