@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { compactIban, ibanProblem } from '../iban';
+import { accountProblem, reviewAccount, type AccountCountryChoice } from '../accountNumber';
 
 type Kind = 'public' | 'online' | 'lodging';
 type AccountMode = 'own' | 'shared';
@@ -22,6 +22,7 @@ interface AccountDraft {
   id: string;
   placeIds: string[];
   bankName: string;
+  country: AccountCountryChoice;
   iban: string;
   currency: string;
   sources: Source[];
@@ -32,6 +33,12 @@ const KINDS: { value: Kind; label: string }[] = [
   { value: 'public', label: 'Negocio físico al público' },
   { value: 'online', label: 'Negocio online' },
   { value: 'lodging', label: 'Alojamiento' },
+];
+
+const ACCOUNT_COUNTRIES: { value: AccountCountryChoice; label: string }[] = [
+  { value: 'ES', label: 'España' },
+  { value: 'AR', label: 'Argentina' },
+  { value: 'OTHER', label: 'Otro país' },
 ];
 
 const SOURCES: { value: Source; label: string }[] = [
@@ -69,6 +76,11 @@ const loadDraft = () => {
     data.step = step;
     if (!['separate', 'mixed', 'together'].includes(data.companyMode)) data.companyMode = 'separate';
     if (!['own', 'shared'].includes(data.accountMode)) data.accountMode = 'own';
+    if (Array.isArray(data.accounts)) {
+      data.accounts.forEach((account: AccountDraft) => {
+        if (account && !['ES', 'AR', 'OTHER'].includes(account.country)) account.country = 'ES';
+      });
+    }
     return data;
   } catch {
     return null;
@@ -232,6 +244,7 @@ export default function GuidedSetup() {
     id: newId(),
     placeIds: [],
     bankName: '',
+    country: 'ES',
     iban: '',
     currency: 'EUR',
     sources: [],
@@ -245,6 +258,7 @@ export default function GuidedSetup() {
       id: place.id,
       placeIds: [place.id],
       bankName: '',
+      country: 'ES',
       iban: '',
       currency: 'EUR',
       sources: [],
@@ -291,7 +305,7 @@ export default function GuidedSetup() {
       if (accountMode === 'own') {
         setAccounts(buildOwnAccounts());
       } else if (accounts.length === 0) {
-        setAccounts([{ id: newId(), placeIds: [], bankName: '', iban: '', currency: 'EUR', sources: [], pending: false }]);
+        setAccounts([{ id: newId(), placeIds: [], bankName: '', country: 'ES', iban: '', currency: 'EUR', sources: [], pending: false }]);
       }
       const draft = accountMode === 'own' ? buildOwnAccounts() : accounts;
       const covered = new Set(draft.flatMap((account) => account.placeIds));
@@ -314,10 +328,10 @@ export default function GuidedSetup() {
         const account = accounts[index];
         if (account.pending) continue;
         if (!account.bankName.trim() || !account.iban.trim() || account.sources.length === 0) {
-          setError('Completa el banco, el IBAN y el tipo de dinero, o marca la cuenta como pendiente.');
+          setError('Completa el banco, el número de cuenta y el tipo de dinero, o marca la cuenta como pendiente.');
           return;
         }
-        const problem = ibanProblem(account.iban);
+        const problem = accountProblem(account.country || 'ES', account.iban);
         if (problem) {
           setError(`Cuenta ${index + 1}: ${problem}`);
           return;
@@ -340,13 +354,13 @@ export default function GuidedSetup() {
   const save = async () => {
     if (missingDetails > 0) {
       setShowAccountErrors(true);
-      setError('Completa el banco, el IBAN y el tipo de dinero, o marca la cuenta como pendiente.');
+      setError('Completa el banco, el número de cuenta y el tipo de dinero, o marca la cuenta como pendiente.');
       return;
     }
-    const invalidIban = accounts.findIndex((account) => !account.pending && ibanProblem(account.iban));
-    if (invalidIban >= 0) {
+    const invalidAccount = accounts.findIndex((account) => !account.pending && accountProblem(account.country || 'ES', account.iban));
+    if (invalidAccount >= 0) {
       setShowAccountErrors(true);
-      setError(`Cuenta ${invalidIban + 1}: ${ibanProblem(accounts[invalidIban].iban)}`);
+      setError(`Cuenta ${invalidAccount + 1}: ${accountProblem(accounts[invalidAccount].country || 'ES', accounts[invalidAccount].iban)}`);
       return;
     }
     setSaving(true);
@@ -361,16 +375,20 @@ export default function GuidedSetup() {
         })),
         accounts: accounts
           .filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id))
-          .map((account) => ({
+          .map((account) => {
+            const review = reviewAccount(account.country || 'ES', account.iban, account.currency);
+            return {
             bank_name: account.bankName.trim(),
-            iban: compactIban(account.iban),
-            currency: account.currency,
+            country: account.country || 'ES',
+            iban: review.compact,
+            currency: review.currency,
             sources: account.sources,
             pending: account.pending,
             place_names: account.placeIds
               .map((id) => places.find((place) => place.id === id)?.name.trim() || '')
               .filter(Boolean),
-          })),
+            };
+          }),
       })),
     };
     try {
@@ -605,9 +623,22 @@ export default function GuidedSetup() {
                       <div style={{ fontWeight: 800 }}>Cuenta {index + 1}</div>
                       <div style={{ fontSize: 13, color: '#64748b', margin: '4px 0 10px' }}>{covered.map((place) => place.name).join(', ')}</div>
                       <input aria-label={`Banco de la cuenta ${index + 1}`} value={account.bankName} placeholder="Banco, por ejemplo Santander" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, bankName: event.target.value } : item))} style={fieldStyle} />
-                      <input aria-label={`IBAN de la cuenta ${index + 1}`} value={account.iban} placeholder="ES00 0000 0000 0000 0000 0000" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8, borderColor: showAccountErrors && !account.pending && ibanProblem(account.iban) ? '#b91c1c' : '#cbd5e1' }} />
-                      {showAccountErrors && !account.pending && ibanProblem(account.iban) && (
-                        <div style={{ marginTop: 6, fontSize: 13, color: '#991b1b' }}>{ibanProblem(account.iban)}</div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                        {ACCOUNT_COUNTRIES.map((country) => {
+                          const selected = (account.country || 'ES') === country.value;
+                          return (
+                            <button type="button" key={country.value} aria-label={`${country.label} de la cuenta ${index + 1}`} disabled={account.pending} onClick={() => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, country: country.value, currency: country.value === 'AR' ? 'ARS' : country.value === 'ES' ? 'EUR' : item.currency } : item))} style={{ padding: '8px 12px', borderRadius: 999, border: selected ? '1px solid #635bff' : '1px solid #e2e8f0', background: selected ? '#eef2ff' : 'white', cursor: 'pointer' }}>
+                              {country.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input aria-label={`${account.country === 'AR' ? 'CBU' : account.country === 'OTHER' ? 'Número' : 'IBAN'} de la cuenta ${index + 1}`} value={account.iban} placeholder={account.country === 'AR' ? '22 números del CBU o CVU' : account.country === 'OTHER' ? 'Número de cuenta' : 'ES00 0000 0000 0000 0000 0000'} disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8, borderColor: showAccountErrors && !account.pending && accountProblem(account.country || 'ES', account.iban) ? '#b91c1c' : '#cbd5e1' }} />
+                      {showAccountErrors && !account.pending && accountProblem(account.country || 'ES', account.iban) && (
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#991b1b' }}>{accountProblem(account.country || 'ES', account.iban)}</div>
+                      )}
+                      {!account.pending && account.iban.trim() && !accountProblem(account.country || 'ES', account.iban) && !reviewAccount(account.country || 'ES', account.iban).checked && (
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>Lo guardamos, pero no podemos comprobar el dígito de control.</div>
                       )}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                         {SOURCES.map((source) => {
@@ -642,7 +673,7 @@ export default function GuidedSetup() {
                   </div>
                   {accounts.filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id)).map((account) => (
                     <div key={account.id} style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
-                      {account.pending ? 'Cuenta pendiente' : `${account.bankName} · ${account.iban}`} — {account.placeIds.map((id) => places.find((place) => place.id === id)?.name).join(', ')}
+                      {account.pending ? 'Cuenta pendiente' : `${account.bankName} · ${account.iban}${account.iban.trim() && !reviewAccount(account.country || 'ES', account.iban).checked ? ' · sin comprobar' : ''}`} — {account.placeIds.map((id) => places.find((place) => place.id === id)?.name).join(', ')}
                     </div>
                   ))}
                 </div>

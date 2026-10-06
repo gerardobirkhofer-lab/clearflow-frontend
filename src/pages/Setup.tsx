@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import StripeConnect from '../components/StripeConnect';
+import { accountProblem, reviewAccount, type AccountCountryChoice } from '../accountNumber';
 
 interface Client {
   id: string;
@@ -21,6 +22,8 @@ interface BankAccount {
   bank_name: string;
   iban: string;
   currency: string;
+  country?: string;
+  checked?: boolean | null;
   pending?: boolean;
   place_names?: string[];
 }
@@ -67,6 +70,7 @@ export default function Setup() {
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddStore, setShowAddStore] = useState<string | null>(null);
   const [showAddBank, setShowAddBank] = useState(false);
+  const [accountCountry, setAccountCountry] = useState<AccountCountryChoice>('ES');
   const [bankError, setBankError] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
@@ -156,14 +160,20 @@ export default function Setup() {
     }
   };
 
-  const addBankAccount = async (bank_name: string, account_number: string, currency: string) => {
+  const addBankAccount = async (bank_name: string, account_number: string, currency: string, country: AccountCountryChoice) => {
     if (!tenantId) return;
+    const problem = accountProblem(country, account_number);
+    if (problem) {
+      setBankError(problem);
+      return;
+    }
+    const review = reviewAccount(country, account_number, currency);
     setBankError('');
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/companies/${tenantId}/bank-accounts`, {
         method: 'POST',
         headers: apiHeaders(),
-        body: JSON.stringify({ bank_name, iban: account_number, currency }),
+        body: JSON.stringify({ bank_name, iban: review.compact, currency: review.currency, country }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -694,21 +704,31 @@ export default function Setup() {
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                addBankAccount(fd.get('bank_name') as string, fd.get('account_number') as string, fd.get('currency') as string);
+                addBankAccount(fd.get('bank_name') as string, fd.get('account_number') as string, fd.get('currency') as string, accountCountry);
               }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                  {([
+                    ['ES', 'España'],
+                    ['AR', 'Argentina'],
+                    ['OTHER', 'Otro país'],
+                  ] as [AccountCountryChoice, string][]).map(([value, label]) => (
+                    <button type="button" key={value} onClick={() => setAccountCountry(value)} style={{ padding: '8px 12px', borderRadius: 999, border: accountCountry === value ? '1px solid #635bff' : '1px solid #e2e8f0', background: accountCountry === value ? '#eef2ff' : 'white', cursor: 'pointer' }}>{label}</button>
+                  ))}
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto', gap: 12, alignItems: 'end' }}>
                   <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.bankName')}</label>
                     <input name="bank_name" required style={accountFieldStyle} placeholder="Santander, BBVA..." />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.iban')}</label>
-                    <input name="account_number" required style={accountFieldStyle} placeholder="ES91 0000 0000..." />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{accountCountry === 'AR' ? 'CBU / CVU' : accountCountry === 'OTHER' ? t('setup.iban') : 'IBAN'}</label>
+                    <input name="account_number" required style={accountFieldStyle} placeholder={accountCountry === 'AR' ? '22 números del CBU o CVU' : accountCountry === 'OTHER' ? 'Número de cuenta' : 'ES91 0000 0000...'} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('setup.currency')}</label>
-                    <select name="currency" style={accountFieldStyle}>
+                    <select name="currency" key={accountCountry} defaultValue={accountCountry === 'AR' ? 'ARS' : 'EUR'} style={accountFieldStyle}>
                       <option value="EUR">EUR (€)</option>
+                      <option value="ARS">ARS ($)</option>
                       <option value="USD">USD ($)</option>
                       <option value="GBP">GBP (£)</option>
                     </select>
@@ -751,7 +771,7 @@ export default function Setup() {
                       <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{acc.place_names.join(', ')}</div>
                     )}
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 13 }}>{acc.pending ? 'Pendiente' : acc.iban}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13 }}>{acc.pending ? 'Pendiente' : `${acc.iban}${acc.checked === false ? ' · sin comprobar' : ''}`}</div>
                   <div style={{ fontWeight: 600 }}>{acc.currency}</div>
                   <div style={{ textAlign: 'right' }}>
                     {pendingDeleteId === acc.id ? (

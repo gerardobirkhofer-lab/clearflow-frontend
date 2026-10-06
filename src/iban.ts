@@ -16,7 +16,12 @@ const COUNTRY_NAMES: Record<string, string> = {
   GB: 'Reino Unido', NL: 'Países Bajos', BE: 'Bélgica', IE: 'Irlanda', AD: 'Andorra',
 };
 
-export const compactIban = (value: string) => value.replace(/\s+/g, '').toUpperCase();
+export const compactIban = (value: string) => value.replace(/[\s-]+/g, '').toUpperCase();
+
+export const knownIbanCountry = (value: string) => {
+  const compact = compactIban(value);
+  return compact.length >= 2 && Boolean(IBAN_LENGTHS[compact.slice(0, 2)]);
+};
 
 const checksumOk = (compact: string) => {
   const rearranged = compact.slice(4) + compact.slice(0, 4);
