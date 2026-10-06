@@ -26,6 +26,7 @@ import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
 import Privacy from './pages/Privacy';
+import CashFlow from './pages/CashFlow';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -136,6 +137,7 @@ function AppContent() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/contrato" element={isLoggedIn ? <Contract /> : <Navigate to="/login" />} />
+          <Route path="/flujo" element={isLoggedIn ? <CashFlow /> : <Navigate to="/login" />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
