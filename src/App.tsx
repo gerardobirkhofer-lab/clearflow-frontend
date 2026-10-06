@@ -57,7 +57,7 @@ function AppContent() {
   const getHomeRoute = () => {
     if (!isLoggedIn) return <Landing />;
     const onboardingComplete = localStorage.getItem('onboardingComplete');
-    if (!onboardingComplete) return <Navigate to="/welcome" />;
+    if (!onboardingComplete) return <Navigate to="/guided-setup" />;
     return <Navigate to="/hub" />;
   };
 

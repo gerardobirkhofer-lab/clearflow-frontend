@@ -15,7 +15,6 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>('login');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('self_owner');
   const [notice, setNotice] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const resetToken = searchParams.get('reset') || '';
@@ -31,7 +30,7 @@ export default function Login({ onLogin }: LoginProps) {
     const endpoint = mode === 'login' ? 'login' : 'register';
     const body = mode === 'login' 
       ? { email, password }
-      : { email, password, name, role };
+      : { email, password, name };
     
     try {
       const res = await fetch(`${API}/api/v1/auth/${endpoint}`, {
@@ -75,7 +74,7 @@ export default function Login({ onLogin }: LoginProps) {
       
       const onboardingComplete = localStorage.getItem('onboardingComplete');
       if (!onboardingComplete) {
-        navigate('/welcome');
+        navigate('/guided-setup');
         return;
       }
       
@@ -147,10 +146,9 @@ export default function Login({ onLogin }: LoginProps) {
         setError(data.detail || 'No se pudo enviar el enlace');
         return;
       }
-      setError('');
-      setMode('login');
       setPassword('');
-      alert(data.detail);
+      setNotice('Si ese correo está registrado, te enviamos un enlace para elegir una contraseña nueva.');
+      setMode('login');
     } catch {
       setError('No se pudo contactar el servidor. Intenta de nuevo.');
     }
@@ -191,18 +189,6 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         )}
 
-        {mode === 'register' && (
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
-              {t('login.iAmA')}
-            </label>
-            <select value={role} onChange={e => setRole(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}>
-              <option value="self_owner">{t('login.businessOwner')}</option>
-              <option value="accountant">{t('login.accountant')}</option>
-            </select>
-          </div>
-        )}
-        
         {notice && <div style={{ padding: 12, background: '#f0fdf4', color: '#166534', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{notice}</div>}
         {error && error !== 'backend-error' && <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>❌ {error}</div>}
         

@@ -9,6 +9,7 @@ type Source = 'cards' | 'cash' | 'booking' | 'stripe';
 interface Place {
   id: string;
   name: string;
+  location: string;
   kind: Kind;
   companyId: string;
 }
@@ -73,6 +74,9 @@ const loadDraft = () => {
     if (!Array.isArray(data.companies) || data.companies.length === 0) return null;
     const kinds = new Set(['public', 'online', 'lodging']);
     if (!data.places.every((place: Place) => place && place.id && place.companyId && kinds.has(place.kind))) return null;
+    data.places.forEach((place: Place) => {
+      if (typeof place.location !== 'string') place.location = '';
+    });
     data.step = step;
     if (!['separate', 'mixed', 'together'].includes(data.companyMode)) data.companyMode = 'separate';
     if (!['own', 'shared'].includes(data.accountMode)) data.accountMode = 'own';
@@ -87,6 +91,12 @@ const loadDraft = () => {
   }
 };
 
+const placeLabel = (place: { name: string; location?: string }) => {
+  const name = place.name.trim();
+  const location = (place.location || '').trim();
+  return location ? `${name} · ${location}` : name;
+};
+
 const joinNames = (names: string[]) => {
   if (names.length <= 1) return names[0] || '';
   if (names.length === 2) return `${names[0]} y ${names[1]}`;
@@ -95,7 +105,7 @@ const joinNames = (names: string[]) => {
 
 const organizationSentence = (places: Place[], companies: CompanyDraft[]) => {
   const groups = companies
-    .map((company) => places.filter((place) => place.companyId === company.id).map((place) => place.name.trim() || 'Negocio'))
+    .map((company) => places.filter((place) => place.companyId === company.id).map((place) => placeLabel(place) || 'Negocio'))
     .filter((members) => members.length > 0);
   const placeCount = places.length;
   const companyCount = groups.length;
@@ -122,7 +132,7 @@ export default function GuidedSetup() {
   const [seed] = useState(() => {
     const companyId = newId();
     return {
-      place: { id: newId(), name: '', kind: 'public' as Kind, companyId },
+      place: { id: newId(), name: '', location: '', kind: 'public' as Kind, companyId },
       company: { id: companyId, name: '' },
     };
   });
@@ -151,7 +161,7 @@ export default function GuidedSetup() {
     const added: CompanyDraft[] = [];
     while (copy.length < next) {
       const companyId = newId();
-      copy.push({ id: newId(), name: '', kind: 'public', companyId });
+      copy.push({ id: newId(), name: '', location: '', kind: 'public', companyId });
       added.push({ id: companyId, name: '' });
     }
     const kept = new Set(copy.map((place) => place.companyId));
@@ -175,11 +185,11 @@ export default function GuidedSetup() {
     const nextPlaces = places.map((place) => {
       const mates = places.filter((item) => item.companyId === place.companyId);
       if (mates.length === 1) {
-        nextCompanies.push({ id: place.companyId, name: companyNameFor(place.companyId, place.name) });
+        nextCompanies.push({ id: place.companyId, name: companyNameFor(place.companyId, placeLabel(place)) });
         return place;
       }
       const id = newId();
-      nextCompanies.push({ id, name: place.name.trim() });
+      nextCompanies.push({ id, name: placeLabel(place) });
       return { ...place, companyId: id };
     });
     setCompanies(nextCompanies);
@@ -201,7 +211,7 @@ export default function GuidedSetup() {
     if (places.length === 0) return;
     setError('');
     const anchorId = places[0].companyId;
-    setCompanies([{ id: anchorId, name: companyNameFor(anchorId, places[0].name) }]);
+    setCompanies([{ id: anchorId, name: companyNameFor(anchorId, placeLabel(places[0])) }]);
     setPlaces(places.map((place) => ({ ...place, companyId: anchorId })));
     setCompanyMode('together');
   };
@@ -226,7 +236,7 @@ export default function GuidedSetup() {
       const nextPlaces = places.map((item) => item.id === placeId ? { ...item, companyId: id } : item);
       const nextCompanies = [
         ...companies.filter((company) => nextPlaces.some((item) => item.companyId === company.id)),
-        { id, name: place.name.trim() },
+        { id, name: placeLabel(place) },
       ];
       setPlaces(nextPlaces);
       setCompanies(nextCompanies);
@@ -273,9 +283,9 @@ export default function GuidedSetup() {
         setError('Ponle un nombre a cada negocio.');
         return;
       }
-      const names = places.map((place) => place.name.trim().toLowerCase());
-      if (new Set(names).size !== names.length) {
-        setError('Cada negocio necesita un nombre distinto.');
+      const labels = places.map((place) => placeLabel(place).toLowerCase());
+      if (new Set(labels).size !== labels.length) {
+        setError('Dos negocios se llaman igual. Escribe el lugar de cada uno, por ejemplo Marbella centro.');
         return;
       }
     }
@@ -283,7 +293,7 @@ export default function GuidedSetup() {
       setCompanies((current) => current.map((company) => {
         if (company.name.trim()) return company;
         const member = places.find((place) => place.companyId === company.id);
-        return { ...company, name: member?.name.trim() || '' };
+        return { ...company, name: member ? placeLabel(member) : '' };
       }));
     }
     if (step === 2) {
@@ -371,6 +381,7 @@ export default function GuidedSetup() {
         name: company.name.trim(),
         places: places.filter((place) => place.companyId === company.id).map((place) => ({
           name: place.name.trim(),
+          location: place.location.trim(),
           kind: place.kind,
         })),
         accounts: accounts
@@ -385,7 +396,10 @@ export default function GuidedSetup() {
             sources: account.sources,
             pending: account.pending,
             place_names: account.placeIds
-              .map((id) => places.find((place) => place.id === id)?.name.trim() || '')
+              .map((id) => {
+                const place = places.find((item) => item.id === id);
+                return place ? placeLabel(place) : '';
+              })
               .filter(Boolean),
             };
           }),
@@ -483,14 +497,22 @@ export default function GuidedSetup() {
           {step === 1 && (
             <>
               <h1 style={titleStyle}>¿Cómo se llama cada negocio?</h1>
+              <p style={helpStyle}>Si hay varias sucursales con el mismo nombre, escribe el lugar de cada una.</p>
               <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
                 {places.map((place, index) => (
-                  <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+                  <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
                     <input
                       aria-label={`Nombre del negocio ${index + 1}`}
                       value={place.name}
                       placeholder={`Negocio ${index + 1}`}
                       onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, name: event.target.value } : item))}
+                      style={fieldStyle}
+                    />
+                    <input
+                      aria-label={`Lugar del negocio ${index + 1}`}
+                      value={place.location}
+                      placeholder="Lugar, por ejemplo Marbella centro"
+                      onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, location: event.target.value } : item))}
                       style={fieldStyle}
                     />
                     <select
@@ -530,7 +552,7 @@ export default function GuidedSetup() {
                     <div key={company.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12 }}>
                       <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Nombre de la empresa</label>
                       <input
-                        aria-label={`Nombre de la empresa de ${members.map((place) => place.name).join(', ')}`}
+                        aria-label={`Nombre de la empresa de ${members.map((place) => placeLabel(place)).join(', ')}`}
                         value={company.name}
                         placeholder="Nombre legal de la empresa"
                         onChange={(event) => setCompanies((current) => current.map((item) => item.id === company.id ? { ...item, name: event.target.value } : item))}
@@ -539,10 +561,10 @@ export default function GuidedSetup() {
                       <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                         {members.map((place) => (
                           <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, alignItems: 'center' }}>
-                            <span style={{ fontSize: 14, fontWeight: 700 }}>{place.name}</span>
+                            <span style={{ fontSize: 14, fontWeight: 700 }}>{placeLabel(place)}</span>
                             {places.length > 1 && (
                               <select
-                                aria-label={`Dónde queda ${place.name}`}
+                                aria-label={`Dónde queda ${placeLabel(place)}`}
                                 value={company.id}
                                 onChange={(event) => movePlace(place.id, event.target.value)}
                                 style={fieldStyle}
@@ -599,7 +621,7 @@ export default function GuidedSetup() {
                                 cursor: 'pointer',
                               }}
                             >
-                              {place.name || 'Negocio'}
+                              {placeLabel(place) || 'Negocio'}
                             </button>
                           );
                         })}
@@ -621,7 +643,7 @@ export default function GuidedSetup() {
                   return (
                     <div key={account.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12 }}>
                       <div style={{ fontWeight: 800 }}>Cuenta {index + 1}</div>
-                      <div style={{ fontSize: 13, color: '#64748b', margin: '4px 0 10px' }}>{covered.map((place) => place.name).join(', ')}</div>
+                      <div style={{ fontSize: 13, color: '#64748b', margin: '4px 0 10px' }}>{covered.map((place) => placeLabel(place)).join(', ')}</div>
                       <input aria-label={`Banco de la cuenta ${index + 1}`} value={account.bankName} placeholder="Banco, por ejemplo Santander" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, bankName: event.target.value } : item))} style={fieldStyle} />
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                         {ACCOUNT_COUNTRIES.map((country) => {
@@ -669,11 +691,14 @@ export default function GuidedSetup() {
                 <div key={company.id} style={{ padding: 12, border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 10 }}>
                   <div style={{ fontWeight: 800 }}>{company.name}</div>
                   <div style={{ fontSize: 14, color: '#475569', marginTop: 6 }}>
-                    {places.filter((place) => place.companyId === company.id).map((place) => place.name).join(' · ')}
+                    {places.filter((place) => place.companyId === company.id).map((place) => placeLabel(place)).join(' · ')}
                   </div>
                   {accounts.filter((account) => account.placeIds.some((id) => places.find((place) => place.id === id)?.companyId === company.id)).map((account) => (
                     <div key={account.id} style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
-                      {account.pending ? 'Cuenta pendiente' : `${account.bankName} · ${account.iban}${account.iban.trim() && !reviewAccount(account.country || 'ES', account.iban).checked ? ' · sin comprobar' : ''}`} — {account.placeIds.map((id) => places.find((place) => place.id === id)?.name).join(', ')}
+                      {account.pending ? 'Cuenta pendiente' : `${account.bankName} · ${account.iban}${account.iban.trim() && !reviewAccount(account.country || 'ES', account.iban).checked ? ' · sin comprobar' : ''}`} — {account.placeIds.map((id) => {
+                        const place = places.find((item) => item.id === id);
+                        return place ? placeLabel(place) : '';
+                      }).join(', ')}
                     </div>
                   ))}
                 </div>
