@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { accountProblem, reviewAccount, type AccountCountryChoice } from '../accountNumber';
+import { compactIban } from '../iban';
 
 type Kind = 'public' | 'online' | 'lodging';
 type AccountMode = 'own' | 'shared';
@@ -343,7 +344,10 @@ export default function GuidedSetup() {
         }
         const problem = accountProblem(account.country || 'ES', account.iban);
         if (problem) {
-          setError(`Cuenta ${index + 1}: ${problem}`);
+          const pendingHint = problem.startsWith('Los dos números de control')
+            ? ' Si aún no lo tienes, marca «Todavía no tengo esta cuenta».'
+            : '';
+          setError(`Cuenta ${index + 1}: ${problem}${pendingHint}`);
           return;
         }
       }
@@ -361,6 +365,20 @@ export default function GuidedSetup() {
     return !account.bankName.trim() || !account.iban.trim() || account.sources.length === 0;
   }).length, [accounts]);
 
+  const accountFieldProblem = (account: AccountDraft) => {
+    if (account.pending) return '';
+    const problem = accountProblem(account.country || 'ES', account.iban);
+    if (!problem) return '';
+    const compact = compactIban(account.iban);
+    const country = account.country || 'ES';
+    const ready = country === 'AR' ? compact.length >= 22 : country === 'OTHER' ? compact.length >= 8 : compact.length >= 24;
+    if (!showAccountErrors && !ready) return '';
+    if (problem.startsWith('Los dos números de control')) {
+      return `${problem} Si aún no lo tienes, marca «Todavía no tengo esta cuenta».`;
+    }
+    return problem;
+  };
+
   const save = async () => {
     if (missingDetails > 0) {
       setShowAccountErrors(true);
@@ -370,7 +388,11 @@ export default function GuidedSetup() {
     const invalidAccount = accounts.findIndex((account) => !account.pending && accountProblem(account.country || 'ES', account.iban));
     if (invalidAccount >= 0) {
       setShowAccountErrors(true);
-      setError(`Cuenta ${invalidAccount + 1}: ${accountProblem(accounts[invalidAccount].country || 'ES', accounts[invalidAccount].iban)}`);
+      const problem = accountProblem(accounts[invalidAccount].country || 'ES', accounts[invalidAccount].iban);
+      const pendingHint = problem.startsWith('Los dos números de control')
+        ? ' Si aún no lo tienes, marca «Todavía no tengo esta cuenta».'
+        : '';
+      setError(`Cuenta ${invalidAccount + 1}: ${problem}${pendingHint}`);
       return;
     }
     setSaving(true);
@@ -452,7 +474,8 @@ export default function GuidedSetup() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)', fontFamily: 'sans-serif', padding: '32px 16px 64px' }}>
+    <div style={{ minHeight: '100vh', background: '#eef2ff', fontFamily: 'sans-serif', padding: '32px 16px 64px' }}>
+      <style>{`form :focus-visible { outline: 2px solid #635bff; outline-offset: 2px; }`}</style>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           {STEPS.map((label, index) => (
@@ -464,22 +487,32 @@ export default function GuidedSetup() {
         </div>
 
         <form
+          autoComplete="off"
+          method="post"
+          action="#setup"
           onSubmit={(event) => {
             event.preventDefault();
-            if (saved) return;
-            if (step < 5) goNext();
-            else save();
           }}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter') return;
-            const target = event.target as HTMLElement;
-            if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
-            if ((target as HTMLInputElement).type === 'checkbox') return;
-            const fields = [...event.currentTarget.querySelectorAll<HTMLElement>('input:not([type="checkbox"]):not([disabled]), select:not([disabled])')];
-            const next = fields[fields.indexOf(target) + 1];
-            if (!next) return;
+            if (event.altKey || event.metaKey || event.ctrlKey) return;
+            const form = event.currentTarget;
+            if (event.key === 'Enter') {
+              const target = event.target as HTMLElement;
+              if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
+              if ((target as HTMLInputElement).type === 'checkbox') return;
+              event.preventDefault();
+              const fields = [...form.querySelectorAll<HTMLElement>('input:not([type="checkbox"]):not([disabled]), select:not([disabled])')];
+              const next = fields[fields.indexOf(target) + 1];
+              (next || form.querySelector<HTMLElement>('[data-setup-next]:not([disabled])'))?.focus();
+              return;
+            }
+            if (event.key !== 'Tab') return;
+            const fields = [...form.querySelectorAll<HTMLElement>('input:not([disabled]), select:not([disabled]), button:not([disabled])')];
+            const index = fields.indexOf(event.target as HTMLElement);
+            if (index < 0) return;
             event.preventDefault();
-            next.focus();
+            const nextIndex = event.shiftKey ? index - 1 : index + 1;
+            fields[(nextIndex + fields.length) % fields.length]?.focus();
           }}
           style={{ background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}
         >
@@ -503,6 +536,10 @@ export default function GuidedSetup() {
                   <div key={place.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
                     <input
                       aria-label={`Nombre del negocio ${index + 1}`}
+                      name={`negocio-${place.id}`}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={place.name}
                       placeholder={`Negocio ${index + 1}`}
                       onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, name: event.target.value } : item))}
@@ -510,6 +547,10 @@ export default function GuidedSetup() {
                     />
                     <input
                       aria-label={`Lugar del negocio ${index + 1}`}
+                      name={`lugar-${place.id}`}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       value={place.location}
                       placeholder="Lugar, por ejemplo Marbella centro"
                       onChange={(event) => setPlaces((current) => current.map((item) => item.id === place.id ? { ...item, location: event.target.value } : item))}
@@ -553,6 +594,10 @@ export default function GuidedSetup() {
                       <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Nombre de la empresa</label>
                       <input
                         aria-label={`Nombre de la empresa de ${members.map((place) => placeLabel(place)).join(', ')}`}
+                        name={`empresa-${company.id}`}
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                         value={company.name}
                         placeholder="Nombre legal de la empresa"
                         onChange={(event) => setCompanies((current) => current.map((item) => item.id === company.id ? { ...item, name: event.target.value } : item))}
@@ -644,7 +689,7 @@ export default function GuidedSetup() {
                     <div key={account.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12 }}>
                       <div style={{ fontWeight: 800 }}>Cuenta {index + 1}</div>
                       <div style={{ fontSize: 13, color: '#64748b', margin: '4px 0 10px' }}>{covered.map((place) => placeLabel(place)).join(', ')}</div>
-                      <input aria-label={`Banco de la cuenta ${index + 1}`} value={account.bankName} placeholder="Banco, por ejemplo Santander" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, bankName: event.target.value } : item))} style={fieldStyle} />
+                      <input aria-label={`Banco de la cuenta ${index + 1}`} name={`banco-${account.id}`} autoComplete="off" autoCapitalize="off" spellCheck={false} value={account.bankName} placeholder="Banco, por ejemplo Santander" disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, bankName: event.target.value } : item))} style={fieldStyle} />
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                         {ACCOUNT_COUNTRIES.map((country) => {
                           const selected = (account.country || 'ES') === country.value;
@@ -655,9 +700,12 @@ export default function GuidedSetup() {
                           );
                         })}
                       </div>
-                      <input aria-label={`${account.country === 'AR' ? 'CBU' : account.country === 'OTHER' ? 'Número' : 'IBAN'} de la cuenta ${index + 1}`} value={account.iban} placeholder={account.country === 'AR' ? '22 números del CBU o CVU' : account.country === 'OTHER' ? 'Número de cuenta' : 'ES00 0000 0000 0000 0000 0000'} disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8, borderColor: showAccountErrors && !account.pending && accountProblem(account.country || 'ES', account.iban) ? '#b91c1c' : '#cbd5e1' }} />
-                      {showAccountErrors && !account.pending && accountProblem(account.country || 'ES', account.iban) && (
-                        <div style={{ marginTop: 6, fontSize: 13, color: '#991b1b' }}>{accountProblem(account.country || 'ES', account.iban)}</div>
+                      <input aria-label={`${account.country === 'AR' ? 'CBU' : account.country === 'OTHER' ? 'Número' : 'IBAN'} de la cuenta ${index + 1}`} name={`cuenta-${account.id}`} autoComplete="off" autoCapitalize="off" spellCheck={false} inputMode={account.country === 'AR' ? 'numeric' : 'text'} value={account.iban} placeholder={account.country === 'AR' ? '22 números del CBU o CVU' : account.country === 'OTHER' ? 'Número de cuenta' : 'ES91 2100 0418 4502 0005 1332'} disabled={account.pending} onChange={(event) => setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, iban: event.target.value } : item))} style={{ ...fieldStyle, marginTop: 8, borderColor: accountFieldProblem(account) ? '#b91c1c' : '#cbd5e1' }} />
+                      {!account.pending && (account.country || 'ES') === 'ES' && !account.iban.trim() && (
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>Ejemplo válido. Los dos números después de ES los calcula el banco: si inventas el resto, no cuadra.</div>
+                      )}
+                      {accountFieldProblem(account) && (
+                        <div style={{ marginTop: 6, fontSize: 13, color: '#991b1b' }}>{accountFieldProblem(account)}</div>
                       )}
                       {!account.pending && account.iban.trim() && !accountProblem(account.country || 'ES', account.iban) && !reviewAccount(account.country || 'ES', account.iban).checked && (
                         <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>Lo guardamos, pero no podemos comprobar el dígito de control.</div>
@@ -710,9 +758,9 @@ export default function GuidedSetup() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
             <button type="button" onClick={() => { setError(''); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saved} style={secondaryButton}>Atrás</button>
-            {step < 4 && <button type="submit" style={primaryButton}>Continuar</button>}
-            {step === 4 && <button type="submit" style={primaryButton}>Ver el resumen</button>}
-            {step === 5 && !saved && <button type="submit" disabled={saving} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y entrar'}</button>}
+            {step < 4 && <button type="button" data-setup-next onClick={goNext} style={primaryButton}>Continuar</button>}
+            {step === 4 && <button type="button" data-setup-next onClick={goNext} style={primaryButton}>Ver el resumen</button>}
+            {step === 5 && !saved && <button type="button" data-setup-next disabled={saving} onClick={save} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y entrar'}</button>}
             {step === 5 && saved && <button type="button" onClick={() => navigate('/hub')} style={primaryButton}>Ir al inicio</button>}
           </div>
         </form>

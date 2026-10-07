@@ -46,6 +46,8 @@ export const ibanProblem = (value: string): string => {
     if (diff > 0) return `El IBAN de ${country} tiene ${expected} caracteres. Faltan ${diff}.`;
     return `El IBAN de ${country} tiene ${expected} caracteres. Sobran ${-diff}.`;
   }
-  if (!checksumOk(compact)) return 'El IBAN no cuadra. Revisa un número o una letra.';
+  if (!checksumOk(compact)) {
+    return 'Los dos números de control, justo después de las letras del país, no cuadran con el resto. Cópialo tal cual del banco.';
+  }
   return '';
 };
