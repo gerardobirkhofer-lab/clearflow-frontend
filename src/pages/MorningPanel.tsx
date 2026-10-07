@@ -199,8 +199,9 @@ const css = `
   .pill .lbl, .card .lbl, .soft .lbl { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
   .pill .n { font-size: 22px; font-weight: 800; margin-top: 4px; }
   .jumps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-  .jumps a { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; font-weight: 700; text-decoration: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
-  .calm a { color: #635bff; font-weight: 700; text-decoration: none; }
+  .jumps a { display: inline-flex; align-items: center; background: #e0e7ff; border: 1px solid #818cf8; color: #312e81; font-weight: 800; text-decoration: none; border-radius: 999px; padding: 10px 16px; font-size: 14px; }
+  .calm ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+  .calm a { display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; font-weight: 700; text-decoration: none; border-radius: 999px; padding: 8px 12px; font-size: 13px; }
   .place { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 18px; }
   .place h2 { margin: 0; font-size: 20px; }
   .meta { margin: 4px 0 16px; color: #94a3b8; font-size: 13px; }
@@ -232,7 +233,6 @@ const css = `
   .a6 { background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; }
   .a7 { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; }
   .calm h2 { font-size: 18px; margin: 0 0 10px; }
-  .calm ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 0; }
   .error { color: #991b1b; }
   @media (max-width: 800px) { .grid, .split, .actions { grid-template-columns: 1fr 1fr; } h1 { font-size: 26px; } }
 `;
