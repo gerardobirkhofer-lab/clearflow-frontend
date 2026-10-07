@@ -73,6 +73,11 @@ export default function MorningPanel() {
     fetch(`${API}/api/v1/panel`, { headers: { Authorization: `Bearer ${token}` } })
       .then(async (response) => {
         const data = await response.json();
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
         if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'No se pudo hacer el chequeo.');
         setPanel(data);
       })
