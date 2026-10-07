@@ -86,6 +86,7 @@ export default function MorningPanel() {
         <div className="jumps">
           <Link to="/caja">Salud de Caja</Link>
           <Link to="/horizonte">Horizonte</Link>
+          <Link to="/seteo">Seteo</Link>
           <Link to="/entidad">Chequeo según entidad legal</Link>
           <Link to="/ajustar">Cambiar/Ajustar setup</Link>
         </div>
@@ -134,6 +135,7 @@ export default function MorningPanel() {
           <ul>
             <li><Link to="/caja">Salud de Caja</Link></li>
             <li><Link to="/horizonte">Horizonte</Link></li>
+            <li><Link to="/seteo">Seteo</Link></li>
             <li><Link to="/entidad">Chequeo según entidad legal</Link></li>
             <li><Link to="/reports">Informes</Link></li>
             <li><Link to="/communications">Comunicaciones</Link></li>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 
 const API = import.meta.env.VITE_API_URL;
@@ -116,8 +117,8 @@ export default function CashFlow() {
         <p style={eyebrowStyle}>Flujo de caja</p>
         <h1 style={titleStyle}>Lo que entra y lo que sale</h1>
         <p style={leadStyle}>
-          Lo que todavía debe entrar sale de los cobros pendientes. Los gastos son importes aproximados al mes:
-          alquiler, sueldos, jornales y el resto.
+          Lo que todavía debe entrar sale de los cobros pendientes. El día, el local y las ventas pasadas
+          se cargan en <Link to="/seteo">Seteo</Link>.
         </p>
 
         <section style={answerStyle} aria-label="Resultado del mes">

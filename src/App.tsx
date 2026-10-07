@@ -33,6 +33,7 @@ import CashHealth from './pages/CashHealth';
 import Horizon from './pages/Horizon';
 import LegalEntity from './pages/LegalEntity';
 import AdjustSetup from './pages/AdjustSetup';
+import ForecastSetup from './pages/ForecastSetup';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -56,7 +57,7 @@ function AppContent() {
   };
 
   // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
-    const hideNav = ['/welcome', '/wizard', '/hub', '/panel', '/caja', '/horizonte', '/entidad', '/ajustar', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
+    const hideNav = ['/welcome', '/wizard', '/hub', '/panel', '/caja', '/horizonte', '/entidad', '/ajustar', '/seteo', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -134,6 +135,7 @@ function AppContent() {
           <Route path="/horizonte" element={isLoggedIn ? <Horizon /> : <Navigate to="/login" />} />
           <Route path="/entidad" element={isLoggedIn ? <LegalEntity /> : <Navigate to="/login" />} />
           <Route path="/ajustar" element={isLoggedIn ? <AdjustSetup /> : <Navigate to="/login" />} />
+          <Route path="/seteo" element={isLoggedIn ? <ForecastSetup /> : <Navigate to="/login" />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
           <Route path="/dashboard" element={<Dashboard />} />

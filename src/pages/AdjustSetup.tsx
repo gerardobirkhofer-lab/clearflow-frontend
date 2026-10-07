@@ -126,6 +126,7 @@ export default function AdjustSetup() {
         </section>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 18 }}>
           <Link to="/conexiones" style={{ color: '#635bff', fontWeight: 700 }}>Conexiones</Link>
+          <Link to="/seteo" style={{ color: '#635bff', fontWeight: 700 }}>Seteo</Link>
           <Link to="/flujo" style={{ color: '#635bff', fontWeight: 700 }}>Erogaciones</Link>
           <Link to="/contrato" style={{ color: '#635bff', fontWeight: 700 }}>Contratos</Link>
           <Link to="/horizonte" style={{ color: '#635bff', fontWeight: 700 }}>Horizonte</Link>
