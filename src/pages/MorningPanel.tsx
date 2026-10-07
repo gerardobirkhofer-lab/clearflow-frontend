@@ -20,6 +20,17 @@ type Place = {
   debt_rate: number | null;
   uncollected_amount: number;
   uncollected_count: number;
+  claims?: Claim[];
+};
+
+type Claim = {
+  kind: 'liquidador' | 'caja';
+  concept: string;
+  amount: number;
+  sold_on: string | null;
+  auth_code: string | null;
+  short: number;
+  detail: string;
 };
 
 type Panel = {
@@ -122,6 +133,18 @@ export default function MorningPanel() {
               />
               <Soft tone={place.uncollected_count > 0 ? 'vale' : 'quiet'} label="Ventas no cobradas" value={euros(place.uncollected_amount)} hint={`${place.uncollected_count} vales`} note="Ventas hechas y todavía no cobradas." />
             </div>
+            {(place.claims || []).length > 0 && (
+              <div className="claims">
+                <div className="split-title">Tickets de este chequeo</div>
+                {(place.claims || []).map((claim) => (
+                  <div key={`${claim.kind}-${claim.concept}-${claim.sold_on}`} className={claim.kind === 'liquidador' ? 'claim fee' : 'claim vale'}>
+                    <strong>{claim.concept}</strong>
+                    <span>{euros(claim.amount)} · {claim.detail}</span>
+                    {claim.kind === 'liquidador' && <span>Para el liquidador · autorización {claim.auth_code} · de más {euros(claim.short)}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="actions-title">Acciones rápidas · este local</div>
             <div className="actions">
               {actions.map((action) => (
@@ -213,6 +236,9 @@ const css = `
   .vale { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; }
   .quiet { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; }
   .soft .hint { color: inherit; opacity: .85; }
+  .claims { display: grid; gap: 8px; margin-top: 12px; }
+  .claim { border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+  .claim span { font-size: 13px; }
   .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .act { border-radius: 10px; padding: 14px 12px; font-size: 14px; font-weight: 600; text-decoration: none; }
   .a1 { background: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; }

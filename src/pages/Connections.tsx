@@ -189,7 +189,7 @@ export default function Connections() {
               Glovo y apps de pedidos
             </button>
           </div>
-          <p style={noteStyle}>Queda anotado. La conexión se abre cuando ese medio entrega sus pedidos y el cliente acepta el acceso.</p>
+          <p style={noteStyle}>Queda anotado. La caja del local empuja los tickets. El banco entra por el lector, cuando cada dueño lo acepta. Redsys no lleva un contrato nuestro: el cliente abre su portal Canales y esas operaciones nombran el ticket que hay que reclamar.</p>
         </section>
 
         <section style={{ marginTop: 28 }}>
