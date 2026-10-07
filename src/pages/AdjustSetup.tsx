@@ -117,11 +117,11 @@ export default function AdjustSetup() {
           </section>
         ))}
         <section style={{ background: 'white', borderRadius: 16, padding: 20, marginTop: 16 }}>
-          <h2 style={{ marginTop: 0 }}>Tipo para el coste de un retraso</h2>
-          <p style={{ color: '#64748b' }}>Un porcentaje anual. Se aplica solo a los euros que llegaron tarde.</p>
+          <h2 style={{ marginTop: 0 }}>Tasa Nominal Anual (TNA)</h2>
+          <p style={{ color: '#64748b' }}>La tasa de interés del seteo. Es una Tasa Nominal Anual (TNA). El coste de un retraso usa esa tasa y los días de cada importe.</p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input aria-label="Tipo anual" value={rate} onChange={(event) => setRate(event.target.value)} inputMode="decimal" placeholder="15" style={field} />
-            <button type="button" onClick={saveRate} style={primary}>Guardar tipo</button>
+            <input aria-label="Tasa Nominal Anual (TNA)" value={rate} onChange={(event) => setRate(event.target.value)} inputMode="decimal" placeholder="15" style={field} />
+            <button type="button" onClick={saveRate} style={primary}>Guardar TNA</button>
           </div>
         </section>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 18 }}>

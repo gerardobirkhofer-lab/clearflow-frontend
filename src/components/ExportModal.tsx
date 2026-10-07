@@ -118,17 +118,17 @@ export default function ExportModal({
         <div class="container">
           <div class="header">
             <h1>ClearFlow — ${title}</h1>
-            <p>Professional reconciliation report</p>
+            <p>Informe de conciliación</p>
           </div>
           <div class="meta">
-            Generated: ${new Date().toLocaleDateString('es-ES')} · ${filtered.length} records · Period: ${fromDate || 'Start'} → ${toDate || 'Today'}
+            Generado: ${new Date().toLocaleDateString('es-ES')} · ${filtered.length} registros · Periodo: ${fromDate || 'Inicio'} → ${toDate || 'Hoy'}
           </div>
           <table>
             <thead><tr>${header}</tr></thead>
             <tbody>${rows}</tbody>
           </table>
           <div class="footer">
-            ClearFlow S.L. · Confidential Report · For internal use only
+            ClearFlow S.L. · Informe confidencial · Solo para uso interno
           </div>
         </div>
       </body></html>
@@ -177,7 +177,7 @@ export default function ExportModal({
       return `<tr>${cells}</tr>`;
     }).join('');
 
-    const dateRange = fromDate || toDate ? `<p style="margin:0 0 16px 0;color:#64748b;font-size:13px"><strong>Period:</strong> ${fromDate || 'Start'} → ${toDate || 'Today'}</p>` : '';
+    const dateRange = fromDate || toDate ? `<p style="margin:0 0 16px 0;color:#64748b;font-size:13px"><strong>Periodo:</strong> ${fromDate || 'Inicio'} → ${toDate || 'Hoy'}</p>` : '';
 
     const html = `
       <!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
@@ -213,12 +213,12 @@ export default function ExportModal({
         <div class="header">
           <div class="brand"><div class="brand-logo">C</div><div class="brand-name">ClearFlow</div></div>
           <h1>${title}</h1>
-          <p class="subtitle">Professional reconciliation and financial intelligence report</p>
+          <p class="subtitle">Informe de conciliación</p>
           <div class="meta-badge">
             <span>📅 ${new Date().toLocaleDateString('es-ES')}</span>
             <span>·</span>
-            <span>${filtered.length} records</span>
-            ${fromDate || toDate ? `<span>·</span><span>Filtered period</span>` : ''}
+            <span>${filtered.length} registros</span>
+            ${fromDate || toDate ? `<span>·</span><span>Periodo filtrado</span>` : ''}
           </div>
           ${dateRange}
         </div>
@@ -229,7 +229,7 @@ export default function ExportModal({
           </table>
         </div>
         <div class="footer">
-          ClearFlow S.L. · Confidential Report · Generated for internal analysis and provider negotiation
+          ClearFlow S.L. · Informe confidencial · Generado para el análisis interno
         </div>
       </div>
       <script>window.onload=function(){setTimeout(function(){window.print()},400)}</script>
@@ -259,11 +259,11 @@ export default function ExportModal({
         background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 480,
         boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
       }}>
-        <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Export Report</h2>
+        <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>Exportar informe</h2>
         <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 24px 0' }}>{title}</p>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date Range</label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Rango de fechas</label>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, outline: 'none' }} />
             <span style={{ color: '#94a3b8', fontWeight: 600 }}>→</span>
@@ -272,7 +272,7 @@ export default function ExportModal({
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Format</label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Formato</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['pdf', 'excel', 'csv'] as const).map((f) => (
               <button key={f} onClick={() => setFormat(f)} style={{
@@ -290,9 +290,9 @@ export default function ExportModal({
         </div>
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>Cancelar</button>
           <button onClick={handleExport} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            Export {filtered.length} Records
+            Exportar {filtered.length} registros
           </button>
         </div>
       </div>

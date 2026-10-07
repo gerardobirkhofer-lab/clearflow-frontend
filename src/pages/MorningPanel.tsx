@@ -20,17 +20,6 @@ type Place = {
   debt_rate: number | null;
   uncollected_amount: number;
   uncollected_count: number;
-  claims?: Claim[];
-};
-
-type Claim = {
-  kind: 'liquidador' | 'caja';
-  concept: string;
-  amount: number;
-  sold_on: string | null;
-  auth_code: string | null;
-  short: number;
-  detail: string;
 };
 
 type Panel = {
@@ -133,23 +122,12 @@ export default function MorningPanel() {
                 tone={place.late_amount > 0 ? 'delay' : 'quiet'}
                 label="Días de retraso"
                 value={euros(place.late_amount)}
-                hint={place.late_days ? `${place.late_days} días${place.late_cost != null ? ` · tipo ${place.debt_rate}% · coste ${euros(place.late_cost)}` : ' · falta el tipo en setup'}` : 'al día'}
-                note="Euros que llegaron tarde. El coste usa el tipo que tú fijas, solo sobre lo que va tarde."
+                hint={place.late_amount > 0 ? `${place.late_days} días${place.late_cost != null ? ` · TNA ${place.debt_rate}% · coste ${euros(place.late_cost)}` : ' · falta la TNA en el seteo'}` : 'al día'}
+                note="El coste se calcula de acuerdo a la tasa de interés que indicaste en el seteo del sistema. Esa tasa es una Tasa Nominal Anual (TNA)."
+                action={place.site_id ? `/retrasos?site=${place.site_id}` : `/retrasos?lugar=${encodeURIComponent(place.name)}`}
               />
               <Soft tone={place.uncollected_count > 0 ? 'vale' : 'quiet'} label="Ventas no cobradas" value={euros(place.uncollected_amount)} hint={`${place.uncollected_count} vales`} note="Ventas hechas y todavía no cobradas." />
             </div>
-            {(place.claims || []).length > 0 && (
-              <div className="claims">
-                <div className="split-title">Tickets de este chequeo</div>
-                {(place.claims || []).map((claim) => (
-                  <div key={`${claim.kind}-${claim.concept}-${claim.sold_on}`} className={claim.kind === 'liquidador' ? 'claim fee' : 'claim vale'}>
-                    <strong>{claim.concept}</strong>
-                    <span>{euros(claim.amount)} · {claim.detail}</span>
-                    {claim.kind === 'liquidador' && <span>Para el liquidador · autorización {claim.auth_code} · de más {euros(claim.short)}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
             <div className="actions-title">Acciones rápidas · este local</div>
             <div className="actions">
               {actions.map((action) => (
@@ -194,7 +172,7 @@ function Card({ label, value, tone, hint, note }: { label: string; value: string
   );
 }
 
-function Soft({ tone, label, value, hint, note }: { tone: string; label: string; value: string; hint: string; note: string }) {
+function Soft({ tone, label, value, hint, note, action }: { tone: string; label: string; value: string; hint: string; note: string; action?: string }) {
   return (
     <div className={`soft ${tone}`}>
       <details>
@@ -204,6 +182,7 @@ function Soft({ tone, label, value, hint, note }: { tone: string; label: string;
       <div className="lbl">{label}</div>
       <div className="n">{value}</div>
       <div className="hint">{hint}</div>
+      {action && <Link to={action} className="mini">Ver por días</Link>}
     </div>
   );
 }
@@ -219,15 +198,16 @@ const css = `
   .pill { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; border-radius: 12px; padding: 10px 14px; min-width: 180px; }
   .pill .lbl, .card .lbl, .soft .lbl { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
   .pill .n { font-size: 22px; font-weight: 800; margin-top: 4px; }
-  .jumps { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-  .jumps a, .calm a { color: #635bff; font-weight: 700; text-decoration: none; }
+  .jumps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .jumps a { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; font-weight: 700; text-decoration: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+  .calm a { color: #635bff; font-weight: 700; text-decoration: none; }
   .place { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 18px; }
   .place h2 { margin: 0; font-size: 20px; }
   .meta { margin: 4px 0 16px; color: #94a3b8; font-size: 13px; }
   .grid, .split { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .card, .soft { position: relative; border-radius: 12px; padding: 16px; min-height: 96px; }
+  .card, .soft { position: relative; border-radius: 12px; padding: 10px 12px 12px; }
   .card { background: white; border: 1px solid #e2e8f0; }
-  .n { font-size: 26px; font-weight: 800; margin-top: 8px; }
+  .n { font-size: 20px; font-weight: 800; margin-top: 4px; }
   .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
   .green { color: #166534; } .red { color: #991b1b; } .ink { color: #0f172a; }
   details { position: absolute; top: 10px; right: 10px; }
@@ -241,9 +221,7 @@ const css = `
   .vale { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; }
   .quiet { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; }
   .soft .hint { color: inherit; opacity: .85; }
-  .claims { display: grid; gap: 8px; margin-top: 12px; }
-  .claim { border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
-  .claim span { font-size: 13px; }
+  .mini { display: inline-block; margin-top: 8px; background: white; border: 1px solid currentColor; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; text-decoration: none; color: inherit; }
   .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .act { border-radius: 10px; padding: 14px 12px; font-size: 14px; font-weight: 600; text-decoration: none; }
   .a1 { background: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; }

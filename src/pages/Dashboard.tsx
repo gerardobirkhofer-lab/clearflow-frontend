@@ -161,7 +161,7 @@ export default function Dashboard() {
         <ExportModal
           isOpen={showExport}
           onClose={() => setShowExport(false)}
-          title="Dashboard Transaction Report"
+          title="Informe de movimientos"
           filename="clearflow_dashboard"
           data={recent}
           columns={[

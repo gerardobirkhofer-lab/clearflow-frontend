@@ -24,10 +24,10 @@ export default function StripeCheckoutButton({ priceId, customerEmail }: Props) 
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Error: ' + (data.detail || 'Unknown error'));
+        alert('Error: ' + (data.detail || 'Error desconocido'));
       }
     } catch (err) {
-      alert('Network error');
+      alert('No se pudo contactar el servidor');
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export default function StripeCheckoutButton({ priceId, customerEmail }: Props) 
         opacity: loading ? 0.7 : 1
       }}
     >
-      {loading ? 'Loading...' : 'Buy Now — $39.00'}
+      {loading ? 'Cargando...' : 'Contratar — 39,00 $'}
     </button>
   );
 }

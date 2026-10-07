@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
+import StoreCheck from '../components/StoreCheck';
 
 const API = import.meta.env.VITE_API_URL;
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
@@ -133,7 +134,7 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
         tenant_id: tenant.id || '',
         provider_name: m.provider,
         amount: String(Math.abs(m.difference)),
-        description: m.notes || `Discrepancy: expected ${m.expected}, received ${m.received}`,
+        description: m.notes || `Diferencia: esperado ${m.expected}, recibido ${m.received}`,
         concept: m.concept,
         date: m.date,
         days_open: String(m.firstReportedDate ? Math.floor((Date.now() - new Date(m.firstReportedDate).getTime()) / 86400000) : 0),
@@ -207,48 +208,49 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
 
     const tableRow = (m: Mismatch) => `${m.id}\t${m.date}\t${m.concept}\t${m.store}\t${m.cardType}\t${formatMoney(m.expected)}\t${formatMoney(m.received)}\t${formatMoney(m.difference)}\t${m.timesReported}x`;
 
-    return `CLEARFLOW — RECONCILIATION DISCREPANCY REPORT
-Provider: ${provider}
-Report Date: ${new Date().toLocaleDateString('es-ES')}
-Frequency: ${reportFrequency === 'immediate' ? 'URGENT — Immediate Escalation' : reportFrequency === 'daily' ? 'Daily Report' : 'Weekly Batch Report'}
+    const urgency = reportFrequency === 'immediate' ? 'URGENTE — envío inmediato' : reportFrequency === 'daily' ? 'Informe diario' : 'Informe semanal';
+    return `CLEARFLOW — INFORME DE DISCREPANCIAS
+Proveedor: ${provider}
+Fecha del informe: ${new Date().toLocaleDateString('es-ES')}
+Frecuencia: ${urgency}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 1: NEW DISCREPANCIES (First Time Reported)
+SECCIÓN 1: DISCREPANCIAS NUEVAS (primera vez)
 ═══════════════════════════════════════════════════════════════
-${newOnes.length > 0 ? `Ref ID\tDate\tConcept\tStore\tCard\tExpected\tReceived\tDiff\tTimes Reported
+${newOnes.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tTarjeta\tEsperado\tRecibido\tDiferencia\tVeces
 ${newOnes.map(tableRow).join('\n')}
 
-Subtotal: ${formatMoney(newTotal)} — ${newOnes.length} ticket(s)` : 'No new discrepancies this period.'}
+Subtotal: ${formatMoney(newTotal)} — ${newOnes.length} ticket(s)` : 'No hay discrepancias nuevas en este periodo.'}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 2: PREVIOUSLY REPORTED — STILL UNRESOLVED
+SECCIÓN 2: YA INFORMADAS — SIGUEN ABIERTAS
 ═══════════════════════════════════════════════════════════════
-${stillOpen.length > 0 ? `Ref ID\tDate\tConcept\tStore\tCard\tExpected\tReceived\tDiff\tTimes Reported
+${stillOpen.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tTarjeta\tEsperado\tRecibido\tDiferencia\tVeces
 ${stillOpen.map(tableRow).join('\n')}
 
-Subtotal: ${formatMoney(openTotal)} — ${stillOpen.length} ticket(s) carried forward` : 'No carried-forward discrepancies.'}
+Subtotal: ${formatMoney(openTotal)} — ${stillOpen.length} ticket(s) que siguen abiertos` : 'No hay discrepancias arrastradas.'}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 3: RESOLVED SINCE LAST REPORT
+SECCIÓN 3: RESUELTAS DESDE EL INFORME ANTERIOR
 ═══════════════════════════════════════════════════════════════
-${recentlyResolved.length > 0 ? `Ref ID\tDate\tConcept\tStore\tResolved Date\tAmount
+${recentlyResolved.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tFecha de resolución\tImporte
 ${recentlyResolved.map(m => `${m.id}\t${m.date}\t${m.concept}\t${m.store}\t${m.resolvedDate}\t${formatMoney(Math.abs(m.difference))}`).join('\n')}
 
-Subtotal: ${formatMoney(resolvedTotal)} — ${recentlyResolved.length} ticket(s) closed` : 'No resolutions since last report.'}
+Subtotal: ${formatMoney(resolvedTotal)} — ${recentlyResolved.length} ticket(s) cerrados` : 'No hay resoluciones desde el informe anterior.'}
 
 ═══════════════════════════════════════════════════════════════
-SUMMARY
+RESUMEN
 ═══════════════════════════════════════════════════════════════
-New this period:      ${formatMoney(newTotal)} (${newOnes.length} tickets)
-Still unresolved:     ${formatMoney(openTotal)} (${stillOpen.length} tickets)
-Resolved:             ${formatMoney(resolvedTotal)} (${recentlyResolved.length} tickets)
-TOTAL OUTSTANDING:    ${formatMoney(newTotal + openTotal)} (${newOnes.length + stillOpen.length} tickets)
+Nuevas en este periodo:  ${formatMoney(newTotal)} (${newOnes.length} tickets)
+Siguen sin resolver:     ${formatMoney(openTotal)} (${stillOpen.length} tickets)
+Resueltas:               ${formatMoney(resolvedTotal)} (${recentlyResolved.length} tickets)
+TOTAL PENDIENTE:         ${formatMoney(newTotal + openTotal)} (${newOnes.length + stillOpen.length} tickets)
 
-We request that all outstanding amounts be reviewed and credited within the next settlement cycle. Please reference the Ref IDs above in your response.
+Pedimos que los importes pendientes se revisen y se abonen en la próxima liquidación. En la respuesta, cita las referencias de arriba.
 
-Best regards,
-ClearFlow Reconciliation System
-[Merchant Account]`;
+Un saludo,
+ClearFlow
+[Cuenta del comercio]`;
   };
 
   const exportData = filtered.map(m => ({
@@ -272,7 +274,8 @@ ClearFlow Reconciliation System
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-      <BackButton />
+      <BackButton fallbackTo="/panel" />
+      <StoreCheck />
       {/* HEADER */}
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
@@ -336,7 +339,7 @@ ClearFlow Reconciliation System
         <ExportModal
           isOpen={showExport}
           onClose={() => setShowExport(false)}
-          title="Mismatch & Dispute Tracker Report"
+          title="Informe de discrepancias y disputas"
           filename="clearflow_mismatch_tracker"
           data={exportData}
           columns={[
@@ -372,32 +375,32 @@ ClearFlow Reconciliation System
           }}>
             <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{t('mismatchTracker.batchComplaint')}</h2>
             <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 20px 0' }}>
-              {batchModal} — One consolidated complaint with all discrepancies
+              {batchModal} — Un reclamo junto, con todas las diferencias
             </p>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Report Frequency / Urgency</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Frecuencia del informe</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {(['weekly', 'daily', 'immediate'] as const).map(f => (
                   <button key={f} onClick={() => setReportFrequency(f)} style={{
                     flex: 1, padding: '10px 0', borderRadius: 8, border: '1px solid #e2e8f0',
                     background: reportFrequency === f ? '#635bff' : 'white',
                     color: reportFrequency === f ? 'white' : '#64748b',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
-                    {f === 'immediate' ? '⚡ Urgent' : f}
+                    {f === 'immediate' ? '⚡ Urgente' : f === 'daily' ? 'Diario' : 'Semanal'}
                   </button>
                 ))}
               </div>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
-                {reportFrequency === 'immediate' ? 'For large amounts or missing payouts — send now.' : 
-                 reportFrequency === 'daily' ? 'For high-volume merchants with daily reconciliation.' : 
-                 'Standard: one batch report per week per provider.'}
+                {reportFrequency === 'immediate' ? 'Para importes grandes o pagos que no llegaron: se envía ahora.' :
+                 reportFrequency === 'daily' ? 'Para quien concilia todos los días.' :
+                 'Lo habitual: un informe por semana y por proveedor.'}
               </p>
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Generated Report</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Informe generado</label>
               <textarea
                 readOnly
                 value={generateBatchReport(batchModal)}
@@ -412,10 +415,10 @@ ClearFlow Reconciliation System
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setBatchModal(null)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>{t('common.close')}</button>
               <button onClick={() => copyReport(generateBatchReport(batchModal))} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-                {copied ? '✅ ' + t('common.success') + '!' : '📋 Copy to Clipboard'}
+                {copied ? '✅ ' + t('common.success') + '!' : '📋 Copiar'}
               </button>
               <button onClick={() => sendBatchComplaint(batchModal)} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                Mark All as Disputed
+                Marcar todas en disputa
               </button>
             </div>
           </div>
@@ -427,27 +430,27 @@ ClearFlow Reconciliation System
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.unresolved')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{unresolved.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Needs immediate action</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Hay que mirarlo ya</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.disputed')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#92400e' }}>{disputed.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Complaint sent</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Reclamo enviado</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.resolved')} This Month</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.resolved')} este mes</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{resolvedThisMonth.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Closed successfully</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Cerradas</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.atRiskAmount')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{formatMoney(totalAtRisk)}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Unresolved + disputed</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Sin resolver y en disputa</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Providers with Issues</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Proveedores con diferencias</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#635bff' }}>{providersWithIssues.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Need batch reports</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Conviene un reclamo junto</div>
         </div>
       </div>
 
@@ -470,7 +473,7 @@ ClearFlow Reconciliation System
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{provider}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{count} tickets · {formatMoney(amount)} at risk</span>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>{count} tickets · {formatMoney(amount)} en riesgo</span>
                 </button>
               );
             })}
@@ -482,7 +485,7 @@ ClearFlow Reconciliation System
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           type="text"
-          placeholder="Search by ID or concept..."
+          placeholder="Buscar por referencia o concepto..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, minWidth: 260, outline: 'none' }}
@@ -506,7 +509,7 @@ ClearFlow Reconciliation System
           ))}
         </select>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{filtered.length} of {mismatches.length} records</span>
+        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{filtered.length} de {mismatches.length} registros</span>
       </div>
 
       {/* TABLE */}
@@ -557,7 +560,7 @@ ClearFlow Reconciliation System
                     display: 'block', width: '100%', marginBottom: 4,
                   }}
                 >
-                  {sendingEmailId === m.id ? '⏳ ' + t('common.loading') : '📧 Email'}
+                  {sendingEmailId === m.id ? '⏳ ' + t('common.loading') : '📧 Correo'}
                 </button>
               )}
               {(m.status === 'unresolved' || m.status === 'disputed') && (
@@ -599,7 +602,7 @@ ClearFlow Reconciliation System
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
             <div style={{ fontWeight: 600 }}>{t('common.noData')}</div>
-            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters to see results.</div>
+            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Prueba otro filtro para ver resultados.</div>
           </div>
         )}
       </div>
