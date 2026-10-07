@@ -13,6 +13,7 @@ import PaymentCheck from './pages/PaymentCheck';
 import Setup from './pages/Setup';
 import SetupWizard from './pages/SetupWizard';
 import GuidedSetup from './pages/GuidedSetup';
+import Connections from './pages/Connections';
 import Contract from './pages/Contract';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
@@ -50,7 +51,7 @@ function AppContent() {
   };
 
   // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
-  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard', '/guided-setup'].includes(location.pathname);
+  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -119,6 +120,7 @@ function AppContent() {
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
           <Route path="/guided-setup" element={isLoggedIn ? <GuidedSetup /> : <Navigate to="/login" />} />
+          <Route path="/conexiones" element={isLoggedIn ? <Connections /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/hub" element={<PostLoginHub />} />

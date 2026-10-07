@@ -450,6 +450,7 @@ export default function GuidedSetup() {
       sessionStorage.removeItem(draftKey());
       setSaved(true);
       setSaving(false);
+      navigate('/conexiones', { replace: true });
     } catch {
       setError('No se pudo contactar el servidor.');
       setSaving(false);
@@ -472,6 +473,21 @@ export default function GuidedSetup() {
       return { ...account, sources: has ? account.sources.filter((item) => item !== source) : [...account.sources, source] };
     }));
   };
+
+  if (!draft && localStorage.getItem('onboardingComplete')) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#eef2ff', fontFamily: 'sans-serif', padding: '32px 16px 64px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}>
+          <h1 style={titleStyle}>Tu grupo ya está guardado</h1>
+          <p style={helpStyle}>El siguiente paso es conectar la nube, Stripe, el banco y Mercado Pago.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+            <button type="button" onClick={() => navigate('/hub')} style={secondaryButton}>Ir al inicio</button>
+            <button type="button" onClick={() => navigate('/conexiones')} style={primaryButton}>Conectar los cobros</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#eef2ff', fontFamily: 'sans-serif', padding: '32px 16px 64px' }}>
@@ -760,8 +776,8 @@ export default function GuidedSetup() {
             <button type="button" onClick={() => { setError(''); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saved} style={secondaryButton}>Atrás</button>
             {step < 4 && <button type="button" data-setup-next onClick={goNext} style={primaryButton}>Continuar</button>}
             {step === 4 && <button type="button" data-setup-next onClick={goNext} style={primaryButton}>Ver el resumen</button>}
-            {step === 5 && !saved && <button type="button" data-setup-next disabled={saving} onClick={save} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y entrar'}</button>}
-            {step === 5 && saved && <button type="button" onClick={() => navigate('/hub')} style={primaryButton}>Ir al inicio</button>}
+            {step === 5 && !saved && <button type="button" data-setup-next disabled={saving} onClick={save} style={primaryButton}>{saving ? 'Guardando...' : 'Guardar y conectar'}</button>}
+            {step === 5 && saved && <button type="button" onClick={() => navigate('/conexiones')} style={primaryButton}>Conectar los cobros</button>}
           </div>
         </form>
       </div>

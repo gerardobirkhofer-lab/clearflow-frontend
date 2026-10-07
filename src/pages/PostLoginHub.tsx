@@ -51,6 +51,7 @@ const deeperTools = [
   { title: 'Control de ingresos', path: '/revenue-control' },
   { title: 'Contrato', path: '/contrato' },
   { title: 'Configura tu grupo', path: '/guided-setup' },
+  { title: 'Conexiones', path: '/conexiones' },
   { title: 'Configuración', path: '/setup' },
   { title: 'Cambiar tienda', path: '/tenant-selector' },
   { title: 'Planes y precios', path: '/pricing' },
