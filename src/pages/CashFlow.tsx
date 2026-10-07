@@ -18,6 +18,7 @@ type ExpenseItem = {
   kind_label: string;
   concept: string;
   amount: number;
+  due_day?: number | null;
 };
 
 type Outlook = {
@@ -45,6 +46,7 @@ export default function CashFlow() {
   const [kind, setKind] = useState('rent');
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState('');
+  const [dueDay, setDueDay] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -80,7 +82,7 @@ export default function CashFlow() {
     const response = await fetch(`${API}/api/v1/expenses?tenant_id=${tenant.id}`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ kind, concept, amount }),
+      body: JSON.stringify({ kind, concept, amount, due_day: dueDay || null }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -89,6 +91,7 @@ export default function CashFlow() {
     }
     setConcept('');
     setAmount('');
+    setDueDay('');
     await load();
   };
 
@@ -185,6 +188,14 @@ export default function CashFlow() {
                 onChange={(event) => setAmount(event.target.value)}
                 style={fieldStyle}
               />
+              <input
+                aria-label="Día de pago"
+                value={dueDay}
+                inputMode="numeric"
+                placeholder="Día del mes, por ejemplo 5"
+                onChange={(event) => setDueDay(event.target.value)}
+                style={fieldStyle}
+              />
             </div>
             <button type="submit" style={{ ...primaryButton, marginTop: 12 }}>Añadir gasto</button>
           </form>
@@ -194,7 +205,7 @@ export default function CashFlow() {
               <div key={item.id} style={expenseRow}>
                 <div>
                   <div style={{ fontWeight: 800 }}>{item.concept}</div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>{item.kind_label} · al mes</div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>{item.kind_label} · al mes{item.due_day ? ` · día ${item.due_day}` : ''}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <strong>{euros(item.amount)}</strong>

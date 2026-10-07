@@ -9,7 +9,10 @@ type ConnectionsState = {
   mercado_pago: boolean;
   tpv: boolean;
   booking: boolean;
+  glovo: boolean;
   bank_waiting: boolean;
+  claims_email: string;
+  accountant_email: string;
 };
 
 const EMPTY: ConnectionsState = {
@@ -17,7 +20,10 @@ const EMPTY: ConnectionsState = {
   mercado_pago: false,
   tpv: false,
   booking: false,
+  glovo: false,
   bank_waiting: false,
+  claims_email: '',
+  accountant_email: '',
 };
 
 const API = import.meta.env.VITE_API_URL;
@@ -54,7 +60,10 @@ export default function Connections() {
               mercado_pago: !!saved.mercado_pago,
               tpv: !!saved.tpv,
               booking: !!saved.booking,
+              glovo: !!saved.glovo,
               bank_waiting: !!saved.bank_waiting,
+              claims_email: typeof saved.claims_email === 'string' ? saved.claims_email : '',
+              accountant_email: typeof saved.accountant_email === 'string' ? saved.accountant_email : '',
             });
           }
         }
@@ -93,7 +102,7 @@ export default function Connections() {
       localStorage.setItem('onboardingComplete', 'true');
       setChoice(next);
       setSaving(false);
-      if (done) navigate('/hub');
+      if (done) navigate('/panel');
       else setNotice('Guardado.');
     } catch {
       setError('No se pudo contactar el servidor.');
@@ -176,6 +185,19 @@ export default function Connections() {
             <button type="button" disabled={saving} onClick={() => update({ booking: !choice.booking })} style={choice.booking ? selectedPill : pill}>
               Booking
             </button>
+            <button type="button" disabled={saving} onClick={() => update({ glovo: !choice.glovo })} style={choice.glovo ? selectedPill : pill}>
+              Glovo y apps de pedidos
+            </button>
+          </div>
+          <p style={noteStyle}>Queda anotado. La conexión se abre cuando ese medio entrega sus pedidos y el cliente acepta el acceso.</p>
+        </section>
+
+        <section style={{ marginTop: 28 }}>
+          <h2 style={sectionTitle}>Correos</h2>
+          <p style={helpStyle}>Uno para las reclamaciones y otro para el contable. Se usan cuando haya que escribir.</p>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <input aria-label="Correo de reclamaciones" value={choice.claims_email} placeholder="Correo de reclamaciones" onChange={(event) => setChoice({ ...choice, claims_email: event.target.value })} onBlur={() => save(choice, false)} style={emailField} />
+            <input aria-label="Correo del contable" value={choice.accountant_email} placeholder="Correo del contable" onChange={(event) => setChoice({ ...choice, accountant_email: event.target.value })} onBlur={() => save(choice, false)} style={emailField} />
           </div>
         </section>
 
@@ -207,3 +229,4 @@ const noteStyle = { marginTop: 12, padding: 12, borderRadius: 12, background: '#
 const pill = { padding: '8px 12px', borderRadius: 999, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 700 };
 const selectedPill = { ...pill, border: '1px solid #635bff', background: '#eef2ff', color: '#4338ca' };
 const primaryButton = { padding: '12px 18px', borderRadius: 10, border: 'none', background: '#635bff', color: 'white', fontWeight: 800, cursor: 'pointer' };
+const emailField = { padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 };

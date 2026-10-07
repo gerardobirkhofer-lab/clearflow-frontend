@@ -28,6 +28,11 @@ import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
 import Privacy from './pages/Privacy';
 import CashFlow from './pages/CashFlow';
+import MorningPanel from './pages/MorningPanel';
+import CashHealth from './pages/CashHealth';
+import Horizon from './pages/Horizon';
+import LegalEntity from './pages/LegalEntity';
+import AdjustSetup from './pages/AdjustSetup';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -51,7 +56,7 @@ function AppContent() {
   };
 
   // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
-  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
+    const hideNav = ['/welcome', '/wizard', '/hub', '/panel', '/caja', '/horizonte', '/entidad', '/ajustar', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -60,7 +65,7 @@ function AppContent() {
     if (!isLoggedIn) return <Landing />;
     const onboardingComplete = localStorage.getItem('onboardingComplete');
     if (!onboardingComplete) return <Navigate to="/guided-setup" />;
-    return <Navigate to="/hub" />;
+    return <Navigate to="/panel" />;
   };
 
   return (
@@ -92,7 +97,7 @@ function AppContent() {
               pointerEvents: menuVisible ? 'auto' : 'none',
             }}
           >
-            <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
+            <Link to="/panel" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
             <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
             <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
             <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
@@ -124,6 +129,11 @@ function AppContent() {
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/hub" element={<PostLoginHub />} />
+          <Route path="/panel" element={isLoggedIn ? <MorningPanel /> : <Navigate to="/login" />} />
+          <Route path="/caja" element={isLoggedIn ? <CashHealth /> : <Navigate to="/login" />} />
+          <Route path="/horizonte" element={isLoggedIn ? <Horizon /> : <Navigate to="/login" />} />
+          <Route path="/entidad" element={isLoggedIn ? <LegalEntity /> : <Navigate to="/login" />} />
+          <Route path="/ajustar" element={isLoggedIn ? <AdjustSetup /> : <Navigate to="/login" />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
           <Route path="/dashboard" element={<Dashboard />} />

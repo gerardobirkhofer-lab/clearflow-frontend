@@ -91,13 +91,11 @@ export default function Login({ onLogin }: LoginProps) {
         }
         if (data.user.role === 'accountant' || items.length === 0) {
           navigate('/tenants');
-        } else if (items.length > 1) {
-          navigate('/tenant-selector');
         } else {
-          navigate('/hub');
+          navigate('/panel');
         }
       } catch {
-        navigate('/hub');
+        navigate('/panel');
       }
     } catch {
       setError('No se pudo contactar el servidor. Intenta de nuevo.');

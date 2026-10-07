@@ -479,9 +479,10 @@ export default function GuidedSetup() {
       <div style={{ minHeight: '100vh', background: '#eef2ff', fontFamily: 'sans-serif', padding: '32px 16px 64px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}>
           <h1 style={titleStyle}>Tu grupo ya está guardado</h1>
-          <p style={helpStyle}>El siguiente paso es conectar la nube, Stripe, el banco y Mercado Pago.</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-            <button type="button" onClick={() => navigate('/hub')} style={secondaryButton}>Ir al inicio</button>
+          <p style={helpStyle}>El día a día abre en el chequeo. Desde ahí ajustas un local, conectas un cobro o das de baja un negocio que vendiste.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => navigate('/panel')} style={secondaryButton}>Ir al inicio</button>
+            <button type="button" onClick={() => navigate('/ajustar')} style={secondaryButton}>Cambiar/Ajustar setup</button>
             <button type="button" onClick={() => navigate('/conexiones')} style={primaryButton}>Conectar los cobros</button>
           </div>
         </div>
