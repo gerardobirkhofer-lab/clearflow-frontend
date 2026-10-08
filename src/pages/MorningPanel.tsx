@@ -38,15 +38,6 @@ function when(value: string) {
   return date.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
 }
 
-const actions = [
-  { label: 'Ver discrepancias', path: '/mismatch-tracker', className: 'a1' },
-  { label: 'Ver disputas abiertas', path: '/dispute-tracker', className: 'a2' },
-  { label: 'Ver comunicaciones', path: '/communications', className: 'a3' },
-  { label: 'Ver informes', path: '/reports', className: 'a4' },
-  { label: 'Control de ingresos', path: '/revenue-control', className: 'a5' },
-  { label: 'Estadísticas', path: '/statistics', className: 'a6' },
-  { label: 'Rentabilidad', path: '/profitability', className: 'a7' },
-];
 
 export default function MorningPanel() {
   const navigate = useNavigate();
@@ -121,26 +112,26 @@ export default function MorningPanel() {
               />
               <Soft tone={place.uncollected_count > 0 ? 'vale' : 'quiet'} label="Ventas no cobradas" value={euros(place.uncollected_amount)} hint={`${place.uncollected_count} vales`} note="Ventas hechas y todavía no cobradas." />
             </div>
-            <div className="actions-title">Acciones rápidas · este local</div>
+            <div className="actions-title">De este local</div>
             <div className="actions">
-              {actions.map((action) => (
-                <Link key={action.path} to={place.site_id ? `${action.path}?site=${place.site_id}` : action.path} className={`act ${action.className}`}>{action.label}</Link>
-              ))}
+              <Link to={place.site_id ? `/mismatch-tracker?site=${place.site_id}` : '/mismatch-tracker'} className="act a1">Ver discrepancias</Link>
             </div>
           </article>
         ))}
         <section className="calm">
           <div className="cols">
             <div>
-              <h2>Para mirar</h2>
+              <h2>De todo el grupo</h2>
               <Link to="/caja" className="menu c1">Salud de Caja</Link>
               <Link to="/horizonte" className="menu c2">Horizonte</Link>
               <Link to="/entidad" className="menu c3">Chequeo según entidad legal</Link>
+              <Link to="/flujo" className="menu c8">Flujo de caja</Link>
               <Link to="/reports" className="menu c4">Informes</Link>
               <Link to="/communications" className="menu c5">Comunicaciones</Link>
               <Link to="/profitability" className="menu c6">Rentabilidad</Link>
               <Link to="/revenue-control" className="menu c7">Control de ingresos</Link>
-              <Link to="/flujo" className="menu c8">Flujo de caja</Link>
+              <Link to="/statistics" className="menu c3">Estadísticas</Link>
+              <Link to="/dispute-tracker" className="menu c2">Disputas abiertas</Link>
             </div>
             <div>
               <h2>Setup</h2>
