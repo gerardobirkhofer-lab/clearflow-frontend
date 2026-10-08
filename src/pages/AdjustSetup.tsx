@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BackDashboard from '../components/BackDashboard';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -83,7 +84,7 @@ export default function AdjustSetup() {
   return (
     <main style={{ minHeight: '100vh', background: '#eef2ff', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 16px 72px' }}>
-        <Link to="/panel" style={{ color: '#635bff', fontWeight: 700, textDecoration: 'none' }}>Volver al chequeo</Link>
+        <BackDashboard />
         <h1 style={{ margin: '16px 0 8px', fontSize: 32 }}>Cambiar/Ajustar setup</h1>
         <p style={{ color: '#475569' }}>Alta de un local, cambio de nombre, o baja si lo vendes. El alta del grupo no se vuelve a recorrer.</p>
         {error && <p style={{ color: '#991b1b' }}>{error}</p>}

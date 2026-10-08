@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import BackDashboard from '../components/BackDashboard';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -106,7 +107,7 @@ export default function Delays() {
     <main style={page}>
       <style>{css}</style>
       <div style={wrap}>
-        <Link to="/panel" className="back">Volver al chequeo</Link>
+        <BackDashboard />
         <div className="kicker">Días de retraso</div>
         <h1>Retrasos en el cobro</h1>
         <p className="sub">Cada columna es un tramo de días. El total de cada tabla es el del casillero de ese local.</p>
@@ -192,7 +193,6 @@ const page = { minHeight: '100vh', background: '#f8fafc', color: '#0f172a', font
 const wrap = { maxWidth: 1100, margin: '0 auto', padding: '28px 20px 72px' };
 
 const css = `
-  .back { display: inline-block; background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; font-weight: 700; text-decoration: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
   .kicker { font-size: 13px; color: #635bff; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin: 18px 0 8px; }
   h1 { margin: 0; font-size: 32px; }
   .sub, .meta, .box p { color: #64748b; font-size: 14px; }

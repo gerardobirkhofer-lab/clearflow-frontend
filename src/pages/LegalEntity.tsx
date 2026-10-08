@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import BackDashboard from '../components/BackDashboard';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -34,7 +34,7 @@ export default function LegalEntity() {
   return (
     <main style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 72px' }}>
-        <Link to="/panel" style={{ color: '#635bff', fontWeight: 700, textDecoration: 'none' }}>Volver al chequeo</Link>
+        <BackDashboard />
         <div style={{ marginTop: 18, fontSize: 13, color: '#635bff', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Página aparte</div>
         <h1 style={{ margin: '8px 0' }}>Chequeo según entidad legal</h1>
         <p style={{ color: '#64748b' }}>Los locales de una sociedad, sumados. Para ver el sector y para el contable. El día de cada factura se mira en su local.</p>

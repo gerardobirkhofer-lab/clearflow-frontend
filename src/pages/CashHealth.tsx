@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BackDashboard from '../components/BackDashboard';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -69,10 +70,10 @@ export default function CashHealth() {
   return (
     <main style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 72px' }}>
-        <Link to="/panel" style={{ color: '#635bff', fontWeight: 700, textDecoration: 'none' }}>Volver al chequeo</Link>
+        <BackDashboard />
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 18 }}>El mes entero</div>
         <h1 style={{ margin: '8px 0 0', fontSize: 32 }}>Salud de Caja</h1>
-        <p style={{ color: '#64748b' }}>Cada día del mes: lo ya vendido llega el día del contrato, y sale lo que cargaste con fecha. Si gana dinero, eso está en Horizonte.</p>
+        <p style={{ color: '#64748b' }}>Cada día lleva su saldo de inicio, la cobranza estimada, el pago a realizar y el saldo final.</p>
         {error && <p style={{ color: '#991b1b' }}>{error}</p>}
         {places.map((place) => {
           const key = place.site_id || place.name;
@@ -94,83 +95,83 @@ export default function CashHealth() {
               {!place.opening_known && place.upcoming.length > 0 && (
                 <p style={warn}>Hay facturas con fecha. Falta el saldo del banco para saber si la caja llega.</p>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginTop: 14 }}>
-                {WEEK.map((label) => (
-                  <div key={label} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>{label}</div>
-                ))}
-                {Array.from({ length: offset }).map((_, empty) => <div key={`empty-${empty}`} />)}
-                {place.days.map((item, itemIndex) => {
-                  const selected = itemIndex === index;
-                  return (
-                    <button
-                      key={item.date}
-                      type="button"
-                      aria-label={item.is_today ? `Hoy ${dayText(item.date)}` : dayText(item.date)}
-                      aria-pressed={selected}
-                      onClick={() => setPicked({ ...picked, [key]: itemIndex })}
-                      style={{
-                        borderRadius: 10,
-                        minHeight: 42,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: item.covers === false ? '1px solid #fecaca' : '1px solid #e2e8f0',
-                        background: selected ? '#0f172a' : item.bills.length ? '#fff7ed' : 'white',
-                        color: selected ? 'white' : item.covers === false ? '#991b1b' : '#0f172a',
-                        outline: item.is_today ? '2px solid #635bff' : 'none',
-                      }}
-                    >
-                      {Number(item.date.slice(-2))}
-                    </button>
-                  );
-                })}
-              </div>
-              {day && (
-                <>
-                  <div style={{ margin: '16px 0 8px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                    {day.is_today ? `Hoy · ${dayText(day.date)}` : dayText(day.date)}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-                    <Tile label="Caja inicio" value={euros(day.opening)} hint={place.opening_known ? 'cierre del día anterior' : 'falta el saldo del banco'} />
-                    <Tile label="Ingresos estimados" value={euros(day.inflows)} hint="ventas ya hechas · fee ya restado" />
-                    <Tile label="Erogaciones" value={euros(day.outflows)} hint={day.bills.map((bill) => bill.concept).join(', ') || 'ninguna con fecha'} />
-                    <Tile label="Caja al cierre" value={euros(day.closing)} tone={day.covers === false ? '#991b1b' : '#166534'} />
-                  </div>
-                  {day.covers === false && <p style={warn}>No cubre · {day.bills.map((bill) => `${bill.concept} ${euros(bill.amount)}`).join(', ')}</p>}
-                  {day.covers == null && day.bills.length > 0 && <p style={warn}>Vence · {day.bills.map((bill) => bill.concept).join(', ')}. Falta el saldo del banco para saber si cubre.</p>}
-                </>
-              )}
-              {place.upcoming.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Lo que vence de hoy en adelante</div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
-                    {place.upcoming.map((item) => (
-                      <li key={item.date} style={{ padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
-                        <strong>{dayText(item.date)}</strong>
-                        <span style={{ color: '#64748b' }}> · {item.bills.map((bill) => `${bill.concept} ${euros(bill.amount)}`).join(', ')}</span>
-                      </li>
-                    ))}
-                  </ul>
+              <div style={{ overflowX: 'auto', marginTop: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(132px, 1fr))', gap: 6, minWidth: 960 }}>
+                  {WEEK.map((label) => (
+                    <div key={label} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>{label}</div>
+                  ))}
+                  {Array.from({ length: offset }).map((_, empty) => <div key={`empty-${empty}`} />)}
+                  {place.days.map((item, itemIndex) => {
+                    const selected = itemIndex === index;
+                    const concepts = item.bills.map((bill) => bill.concept).join(', ');
+                    return (
+                      <button
+                        key={item.date}
+                        type="button"
+                        aria-label={`${item.is_today ? 'Hoy ' : ''}${dayText(item.date)}. Saldo inicio ${euros(item.opening)}. Cobranza estimada ${euros(item.inflows)}. Pago a realizar ${euros(item.outflows)}${concepts ? `, ${concepts}` : ''}. Saldo final ${euros(item.closing)}.`}
+                        aria-pressed={selected}
+                        onClick={() => setPicked({ ...picked, [key]: itemIndex })}
+                        style={{
+                          borderRadius: 12,
+                          minHeight: 118,
+                          padding: '8px 8px 10px',
+                          textAlign: 'left',
+                          fontFamily: 'inherit',
+                          cursor: 'pointer',
+                          border: selected ? '2px solid #312e81' : item.covers === false ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                          background: item.bills.length ? '#fff7ed' : 'white',
+                          color: '#0f172a',
+                          outline: item.is_today ? '2px solid #635bff' : 'none',
+                          boxShadow: selected ? '0 0 0 2px #e0e7ff' : 'none',
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 6 }}>
+                          {Number(item.date.slice(-2))}
+                          {item.is_today ? <span style={{ marginLeft: 6, fontSize: 10, color: '#635bff' }}>Hoy</span> : null}
+                        </div>
+                        <CellLine label="Inicio" value={euros(item.opening)} />
+                        <CellLine label="Cobranza" value={euros(item.inflows)} color={item.inflows > 0 ? '#166534' : undefined} />
+                        <CellLine label="Pago" value={euros(item.outflows)} color={item.outflows > 0 ? '#991b1b' : undefined} />
+                        {concepts && <div style={{ fontSize: 10, color: '#9a3412', fontWeight: 700, marginTop: 1 }}>{concepts}</div>}
+                        <CellLine label="Saldo" value={euros(item.closing)} color={item.covers === false ? '#991b1b' : item.covers ? '#166534' : undefined} />
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+              {day && day.covers === false && <p style={warn}>No cubre · {day.bills.map((bill) => `${bill.concept} ${euros(bill.amount)}`).join(', ')}</p>}
+              {day && day.covers == null && day.bills.length > 0 && <p style={warn}>Vence {day.bills.map((bill) => bill.concept).join(', ')}. Falta el saldo del banco para saber si cubre.</p>}
             </article>
           );
         })}
-        <p style={{ color: '#64748b', fontSize: 14 }}>
-          El día, el importe y el concepto se cargan en <Link to="/seteo">Seteo</Link>. Si el local gana, míralo en <Link to="/horizonte">Horizonte</Link>.
+        <p style={{ color: '#64748b', fontSize: 15, marginTop: 22 }}>
+          El día, el importe y el concepto se cargan en <Link to="/seteo" style={quietLink}>Seteo</Link>. Si quieres ver si estás ganando dinero o no, ve a <Link to="/horizonte" style={quietLink}>Horizonte</Link>.
         </p>
       </div>
     </main>
   );
 }
 
-function Tile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: string }) {
+function CellLine({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: tone || '#0f172a' }}>{value}</div>
-      {hint && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{hint}</div>}
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 10, lineHeight: 1.35 }}>
+      <span style={{ color: '#64748b', fontWeight: 700 }}>{label}</span>
+      <span style={{ fontWeight: 800, color: color || '#0f172a', whiteSpace: 'nowrap' }}>{value}</span>
     </div>
   );
 }
+
+const quietLink = {
+  display: 'inline-block',
+  margin: '0 4px',
+  background: '#f1f5f9',
+  border: '1px solid #cbd5e1',
+  color: '#334155',
+  fontWeight: 800,
+  textDecoration: 'none',
+  borderRadius: 12,
+  padding: '6px 10px',
+  fontSize: 13,
+};
 
 const warn = { marginTop: 10, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: 10, fontWeight: 700 };
