@@ -15,15 +15,26 @@ export default function Profitability() {
   const [costs, setCosts] = useState<CostItem[]>([]);
   const [showAddCost, setShowAddCost] = useState(false);
 
-  const [smartData, setSmartData] = useState<any>(null);
+  const [revenue, setRevenue] = useState(0);
+  const [storeName, setStoreName] = useState('');
   useEffect(() => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (raw) setSmartData(JSON.parse(raw));
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) return;
+    setStoreName(tenant.name || 'Tu cuenta');
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/dashboard?tenant_id=${tenant.id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = await res.json();
+        const collected = Number(data.summary?.total_collected) || 0;
+        if ((data.summary?.bank_transactions || 0) > 0) setRevenue(collected);
+      })
+      .catch(() => {});
   }, []);
 
-  const result = smartData?.result;
-  const stores = result ? [
-    { id: 1, name: 'Demo Restaurant', revenue: result.totalAmount || 0, providerFees: (result.totalAmount || 0) * 0.035 }
+  const stores = revenue !== 0 || storeName ? [
+    { id: 1, name: storeName || 'Tu cuenta', revenue, providerFees: 0 }
   ] : [];
   const currentStore = stores.find(s => s.id === selectedStore);
 
@@ -33,10 +44,10 @@ export default function Profitability() {
     return sum + c.amount;
   }, 0);
 
-  const revenue = currentStore?.revenue || 0;
+  const storeRevenue = currentStore?.revenue || 0;
   const providerFees = currentStore?.providerFees || 0;
-  const netProfit = revenue - providerFees - monthlyCostTotal;
-  const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  const netProfit = storeRevenue - providerFees - monthlyCostTotal;
+  const margin = storeRevenue > 0 ? (netProfit / storeRevenue) * 100 : 0;
 
   const addCost = (name: string, amount: number, frequency: 'daily' | 'weekly' | 'monthly') => {
     setCosts([...costs, { id: Date.now(), name, amount, frequency }]);
@@ -87,7 +98,7 @@ export default function Profitability() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
             <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
               <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.monthlyRevenue')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(revenue)}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(storeRevenue)}</div>
             </div>
             <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
               <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.providerFees')}</div>

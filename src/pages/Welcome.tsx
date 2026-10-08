@@ -10,7 +10,7 @@ export default function Welcome() {
     setup.userRole = role;
     localStorage.setItem('clearflowSetup', JSON.stringify(setup));
     localStorage.setItem('userRole', role);
-    navigate('/setup-wizard');
+    navigate(role === 'owner' ? '/guided-setup' : '/setup-wizard');
   };
 
   return (

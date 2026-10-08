@@ -1,222 +1,113 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
 
-interface FlowStep {
-  id: string;
-  title: string;
+interface BankLine {
+  id: number;
+  concept: string;
   amount: number;
-  status: 'ok' | 'warning' | 'error';
-  icon: string;
-  detail: string;
-  fees?: { expected: number; actual: number };
+  date: string;
+  matched: boolean;
 }
 
 export default function RevenueControl() {
-  const [selectedDay, setSelectedDay] = useState('07/08/2026');
+  const [lines, setLines] = useState<BankLine[]>([]);
+  const [selectedDay, setSelectedDay] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const dailyFlows: Record<string, FlowStep[]> = {
-    '07/08/2026': [
-      { id: 'invoice', title: 'Facturado', amount: 18200.75, status: 'ok', icon: '📄', detail: '42 tickets · Ticket promedio €43.35' },
-      { id: 'tpv', title: 'Cobrado TPV', amount: 18200.75, status: 'ok', icon: '💳', detail: 'Stripe + TPV Redsys · 38 transacciones' },
-      { id: 'liquidation', title: 'Liquidado', amount: 17754.73, status: 'warning', icon: '🏦', detail: 'Stripe: T+2 · Redsys: T+1', fees: { expected: 1.5, actual: 2.45 } },
-      { id: 'bank', title: 'En Banco', amount: 17754.73, status: 'ok', icon: '🏛️', detail: 'Cuenta Santander Business · Llegó el 07/08' },
-    ],
-    '06/08/2026': [
-      { id: 'invoice', title: 'Facturado', amount: 12500.00, status: 'ok', icon: '📄', detail: '31 tickets · Ticket promedio €40.32' },
-      { id: 'tpv', title: 'Cobrado TPV', amount: 12500.00, status: 'ok', icon: '💳', detail: 'Solo TPV Redsys · 28 transacciones' },
-      { id: 'liquidation', title: 'Liquidado', amount: 12212.50, status: 'ok', icon: '🏦', detail: 'Redsys: T+1', fees: { expected: 2.3, actual: 2.3 } },
-      { id: 'bank', title: 'En Banco', amount: 12212.50, status: 'ok', icon: '🏛️', detail: 'Cuenta Santander Business · Llegó el 06/08' },
-    ],
-    '01/08/2026': [
-      { id: 'invoice', title: 'Facturado', amount: 15420.50, status: 'ok', icon: '📄', detail: '35 tickets · Ticket promedio €44.06' },
-      { id: 'tpv', title: 'Cobrado TPV', amount: 15420.50, status: 'ok', icon: '💳', detail: 'Solo Stripe · 35 transacciones' },
-      { id: 'liquidation', title: 'Liquidado', amount: 15078.03, status: 'warning', icon: '🏦', detail: 'Stripe: T+2', fees: { expected: 1.5, actual: 2.22 } },
-      { id: 'bank', title: 'En Banco', amount: 15078.03, status: 'ok', icon: '🏛️', detail: 'Cuenta Santander Business · Llegó el 01/08' },
-    ],
-  };
+  useEffect(() => {
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) {
+      setError('No hay cuenta configurada.');
+      return;
+    }
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/?tenant_id=${tenant.id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('No se pudo leer el extracto');
+        const data = await res.json();
+        const parsed: BankLine[] = (data.transactions || []).map((row: any) => ({
+          id: row.id,
+          concept: row.concept || 'Movimiento',
+          amount: Number(row.amount) || 0,
+          date: (row.transaction_date || '').split('T')[0],
+          matched: !!row.matched,
+        }));
+        setLines(parsed);
+        const days = Array.from(new Set(parsed.map((row) => row.date).filter(Boolean)));
+        setSelectedDay(days[0] || '');
+      })
+      .catch((err) => setError(err.message));
+  }, []);
 
-  const steps = dailyFlows[selectedDay] || dailyFlows['07/08/2026'];
-
-  const totalInvoiced = steps.find(s => s.id === 'invoice')?.amount || 0;
-  const totalBanked = steps.find(s => s.id === 'bank')?.amount || 0;
-  const totalGap = totalInvoiced - totalBanked;
-  const feeDiscrepancy = steps.find(s => s.fees)?.fees;
-
-  const arrowColor = (from: FlowStep, to: FlowStep) => {
-    if (to.status === 'warning') return '#f59e0b';
-    if (to.status === 'error') return '#ef4444';
-    return '#22c55e';
-  };
+  const days = Array.from(new Set(lines.map((row) => row.date).filter(Boolean)));
+  const dayLines = lines.filter((row) => row.date === selectedDay);
+  const dayTotal = dayLines.reduce((sum, row) => sum + row.amount, 0);
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-
-      {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          🔁 Control de Ingresos
+          Control de ingresos
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Control de Ingresos</h1>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Movimientos en banco</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          De la factura al banco. Cada euro trackeado.
+          Importes tomados del extracto subido. No hay facturas ni comisiones estimadas en esta vista.
         </p>
       </div>
 
-      {/* DAY SELECTOR */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-        {Object.keys(dailyFlows).map(day => (
-          <button
-            key={day}
-            onClick={() => setSelectedDay(day)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 8,
-              border: '1px solid #e2e8f0',
-              background: selectedDay === day ? '#0f172a' : 'white',
-              color: selectedDay === day ? 'white' : '#64748b',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {day}
-          </button>
-        ))}
-      </div>
-
-      {/* FLOW VISUALIZATION */}
-      <div style={{ padding: 32, borderRadius: 16, border: '1px solid #e2e8f0', background: 'white', marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          {steps.map((step, index) => (
-            <div key={step.id} style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
-              {/* Step Card */}
-              <div style={{
-                flex: 1,
-                padding: 20,
-                borderRadius: 12,
-                border: `2px solid ${step.status === 'ok' ? '#bbf7d0' : step.status === 'warning' ? '#fde68a' : '#fecaca'}`,
-                background: step.status === 'ok' ? '#f0fdf4' : step.status === 'warning' ? '#fefce8' : '#fef2f2',
-                textAlign: 'center',
-                minWidth: 180,
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>{step.icon}</div>
-                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {step.title}
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 4, color: step.status === 'ok' ? '#166534' : step.status === 'warning' ? '#92400e' : '#991b1b' }}>
-                  {formatMoney(step.amount)}
-                </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                  {step.detail}
-                </div>
-                {step.fees && (
-                  <div style={{
-                    marginTop: 8,
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    background: step.fees.actual > step.fees.expected ? '#fee2e2' : '#dcfce7',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: step.fees.actual > step.fees.expected ? '#991b1b' : '#166534',
-                  }}>
-                    Comisión: {step.fees.actual}% (contrato: {step.fees.expected}%)
-                    {step.fees.actual > step.fees.expected && ' ⚠️'}
-                  </div>
-                )}
-              </div>
-
-              {/* Arrow */}
-              {index < steps.length - 1 && (
-                <div style={{
-                  fontSize: 24,
-                  color: arrowColor(step, steps[index + 1]),
-                  fontWeight: 700,
-                }}>
-                  →
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Summary bar */}
-        <div style={{
-          marginTop: 24,
-          padding: 16,
-          borderRadius: 10,
-          background: totalGap > 0 ? '#fef2f2' : '#f0fdf4',
-          border: `1px solid ${totalGap > 0 ? '#fecaca' : '#bbf7d0'}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          <div>
-            <div style={{ fontSize: 13, color: '#64748b' }}>Facturado vs. En Banco</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: totalGap > 0 ? '#991b1b' : '#166534' }}>
-              {formatMoney(totalInvoiced)} → {formatMoney(totalBanked)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 13, color: '#64748b' }}>Diferencia</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: totalGap > 0 ? '#991b1b' : '#166534' }}>
-              {totalGap > 0 ? '-' : ''}{formatMoney(Math.abs(totalGap))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* FEE ALERT */}
-      {feeDiscrepancy && feeDiscrepancy.actual > feeDiscrepancy.expected && (
-        <div style={{
-          padding: 20,
-          borderRadius: 12,
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
-          marginBottom: 32,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span style={{ fontSize: 24 }}>🚨</span>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#991b1b' }}>
-              Discrepancia de Comisión Detectada
-            </div>
-          </div>
-          <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-            La comisión real cobrada por el proveedor ({feeDiscrepancy.actual}%) es mayor que la comisión contratada ({feeDiscrepancy.expected}%).
-            Solo en esta transacción, te cobraron de más <strong>{formatMoney(totalInvoiced * (feeDiscrepancy.actual - feeDiscrepancy.expected) / 100)}</strong>.
-          </p>
-        </div>
+      {error && (
+        <div style={{ marginBottom: 24, padding: 16, borderRadius: 10, background: '#fef2f2', color: '#991b1b' }}>{error}</div>
       )}
 
-      {/* WHAT THIS MEANS */}
-      <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 700 }}>Qué controla ClearFlow por ti:</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
-          {[
-            { icon: '✅', text: 'Cada factura coincide con una cobranza TPV' },
-            { icon: '✅', text: 'Cada cobranza TPV coincide con un depósito bancario' },
-            { icon: '⚠️', text: 'Las comisiones coinciden con el contrato (no más altas)' },
-            { icon: '⚠️', text: 'Sin liquidaciones duplicadas' },
-            { icon: '🔍', text: 'Liquidaciones tardías marcadas automáticamente' },
-            { icon: '📊', text: 'Informe diario enviado a tu email' },
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, background: 'white', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-              <span>{item.icon}</span>
-              <span style={{ fontSize: 13, color: '#0f172a' }}>{item.text}</span>
-            </div>
-          ))}
+      {days.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 40px', color: '#64748b' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🏦</div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Todavía no hay extractos</div>
+          <div>Sube un CSV bancario en SmartCheck para ver el dinero que llegó a la cuenta.</div>
         </div>
-
-        <div style={{ marginTop: 20, padding: 16, borderRadius: 8, background: 'white', border: '1px dashed #cbd5e1' }}>
-          <div style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic' }}>
-            💡 Este es el módulo <strong>Control de Ingresos</strong>. En la implementación completa, ClearFlow se conecta a tu sistema de facturación y TPV para trackear cada euro desde la venta hasta el banco — automáticamente.
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+            {days.map((day) => (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  background: selectedDay === day ? '#0f172a' : 'white',
+                  color: selectedDay === day ? 'white' : '#64748b',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {day}
+              </button>
+            ))}
           </div>
-        </div>
-      </div>
+          <div style={{ padding: 24, borderRadius: 16, border: '1px solid #e2e8f0', background: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700 }}>En banco el {selectedDay}</div>
+              <div style={{ fontWeight: 800 }}>{formatMoney(dayTotal)}</div>
+            </div>
+            {dayLines.map((row) => (
+              <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderTop: '1px solid #f1f5f9' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{row.concept}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{row.matched ? 'Conciliado' : 'Sin contrapartida'}</div>
+                </div>
+                <div style={{ fontWeight: 700, color: row.amount < 0 ? '#991b1b' : '#166534' }}>{formatMoney(row.amount)}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

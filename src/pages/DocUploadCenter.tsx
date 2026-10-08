@@ -114,18 +114,7 @@ export default function DocUploadCenter() {
         });
 
         setChecklist(items);
-
-        // Simular check de APIs
-        const apiChecks: Record<string, 'checking' | 'connected' | 'disconnected'> = {};
-        providers.forEach((p: any) => {
-          if (['stripe', 'paypal'].includes(p.id)) {
-            apiChecks[p.id] = 'checking';
-            setTimeout(() => {
-              setApiStatus(prev => ({ ...prev, [p.id]: Math.random() > 0.3 ? 'connected' : 'disconnected' }));
-            }, 1500);
-          }
-        });
-        setApiStatus(apiChecks);
+        setApiStatus({});
       } catch {}
     }
   }, []);
@@ -190,11 +179,36 @@ export default function DocUploadCenter() {
 
   const runProcessingPhases = async () => {
     setPhase('analyzing');
-    await new Promise(r => setTimeout(r, 1500));
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) {
+      setPhase('error');
+      return;
+    }
     setPhase('matching');
-    await new Promise(r => setTimeout(r, 2000));
-    setResult({ bankTransactions: 47, providerTransactions: 63, matched: 38, mismatches: 5, disputes: 4, totalAmount: 12450.75 });
-    setPhase('complete');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token || ''}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPhase('error');
+        return;
+      }
+      const summary = data.summary || data;
+      setResult({
+        bankTransactions: summary.total_bank || 0,
+        providerTransactions: summary.total_provider || 0,
+        matched: summary.matched_count || 0,
+        mismatches: summary.unmatched_bank_count || 0,
+        disputes: summary.unmatched_provider_count || 0,
+        totalAmount: typeof data.matched_amount === 'number' ? data.matched_amount : (summary.matched_amount || 0),
+      });
+      setPhase('complete');
+    } catch {
+      setPhase('error');
+    }
   };
 
   const simulateUpload = async (file: File, fileType: string) => {
@@ -216,7 +230,10 @@ export default function DocUploadCenter() {
       if (fileType !== 'bank') formData.append('provider_name', fileType);
 
       setPhase('uploading');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`, {
+      const endpoint = fileType === 'bank'
+        ? `${import.meta.env.VITE_API_URL}/api/v1/bank-statements/upload`
+        : `${import.meta.env.VITE_API_URL}/api/v1/providers/upload`;
+      const res = await fetch(endpoint, {
         method: 'POST', headers: { Authorization: `Bearer ${token || ''}` }, body: formData,
       });
       if (res.ok) {

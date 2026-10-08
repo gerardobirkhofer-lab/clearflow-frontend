@@ -81,7 +81,7 @@ export default function PaymentCheck() {
         </div>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Verificación de Pagos</h1>
         <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Compará transacciones bancarias contra informes de proveedores. Corregí discrepancias.
+          Compara las transacciones del banco con los informes de los proveedores y corrige las discrepancias.
         </p>
       </div>
 
@@ -123,7 +123,7 @@ export default function PaymentCheck() {
             opacity: runningCheck ? 0.7 : 1,
           }}
         >
-          {runningCheck ? '⏳ Ejecutando...' : '⚡ Run Verificación de Pagos'}
+          {runningCheck ? '⏳ Ejecutando...' : '⚡ Ejecutar la verificación'}
         </button>
       </div>
 
@@ -175,7 +175,7 @@ export default function PaymentCheck() {
           <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🎉</div>
             <div style={{ fontWeight: 600, color: '#0f172a' }}>¡Todo limpio!</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>No {activeTab} transactions found.</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>No hay movimientos en esta vista.</div>
           </div>
         ) : (
           filtered.map((tx) => (

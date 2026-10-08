@@ -6,6 +6,26 @@ import BackButton from '../components/BackButton';
 const API = import.meta.env.VITE_API_URL;
 const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
+function settlementLine(match: any) {
+  const base = `${match.bank?.concept || 'Transacción'} — conciliado con ${match.provider?.provider_name || 'proveedor'}`;
+  const settlement = match.settlement;
+  if (!settlement) return base;
+  if (settlement.fee_difference > 0.01) {
+    return `${base}. Llegó ${settlement.fee_difference.toFixed(2)} € por debajo del contrato`;
+  }
+  if (settlement.days_late > 0) {
+    return `${base}. Llegó ${settlement.days_late} días más tarde de lo pactado`;
+  }
+  return `${base}. La comisión y el plazo coinciden con el contrato`;
+}
+
+function openLine(row: any) {
+  const base = `${row.concept || 'Pago de proveedor'} — sin coincidencia en el banco`;
+  if (row.expected_net == null) return base;
+  const when = row.expected_date ? ` el ${row.expected_date}` : '';
+  return `${base}. Según el contrato deberían llegar ${Number(row.expected_net).toFixed(2)} €${when}`;
+}
+
 interface DisputeItem {
   id: string;
   date: string;
@@ -45,63 +65,11 @@ export default function SmartCheckStatus() {
     newCount: 0,
   });
   const [lastCheckDate, setLastCheckDate] = useState<string | null>(null);
+  const [days, setDays] = useState<Array<{ day: string; matched_count: number; open_bank_count: number; open_provider_count: number }>>([]);
 
   useEffect(() => {
     loadData();
   }, []);
-
-  const buildFromLocalStorage = (): DisputeItem[] | null => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (!raw) return null;
-    try {
-      const sc = JSON.parse(raw);
-      const result = sc.result || sc;
-      setLastCheckDate(sc.date || null);
-
-      const demoItems: DisputeItem[] = [];
-      // Build some demo items from the stored result for display
-      const matchedCount = result.matched || 0;
-      const mismatchCount = result.mismatches || 0;
-      const disputeCount = result.disputes || 0;
-
-      for (let i = 0; i < matchedCount; i++) {
-        demoItems.push({
-          id: `R${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys', 'TPV'][i % 3],
-          amount: 500 + Math.random() * 2000,
-          status: 'resolved',
-          daysOpen: 0,
-          description: 'Transacción conciliada automáticamente',
-        });
-      }
-      for (let i = 0; i < mismatchCount; i++) {
-        demoItems.push({
-          id: `P${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - (i + 3) * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys'][i % 2],
-          amount: 200 + Math.random() * 1000,
-          status: 'pending',
-          daysOpen: i + 3,
-          description: 'Discrepancia detectada — revisar',
-        });
-      }
-      for (let i = 0; i < disputeCount; i++) {
-        demoItems.push({
-          id: `N${String(i + 1).padStart(3, '0')}`,
-          date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-          provider: ['Stripe', 'Redsys'][i % 2],
-          amount: 300 + Math.random() * 800,
-          status: 'new',
-          daysOpen: i + 1,
-          description: 'Nueva discrepancia detectada',
-        });
-      }
-      return demoItems;
-    } catch {
-      return null;
-    }
-  };
 
   const loadData = async () => {
     setLoading(true);
@@ -111,86 +79,62 @@ export default function SmartCheckStatus() {
     const tenantId = tenantData.id;
 
     if (!tenantId) {
-      // No tenant — try localStorage fallback
-      const localItems = buildFromLocalStorage();
-      if (localItems) {
-        setItems(localItems);
-        updateSummary(localItems);
-      } else {
-        setError('No hay datos de SmartCheck. Ejecutá un SmartCheck primero.');
-      }
+      setError('No hay cuenta configurada. Inicia sesión y ejecuta un SmartCheck.');
+      setItems([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Fetch reconciliation results and transaction lists in parallel
-      const [recRes, bankRes, provRes] = await Promise.all([
-        fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenantId}`, {
-          method: 'POST',
-          headers: { ...getAuth(), 'Content-Type': 'application/json' },
-        }).catch(() => null),
-        fetch(`${API}/api/v1/bank-statements/?tenant_id=${tenantId}`, { headers: getAuth() }).catch(() => null),
-        fetch(`${API}/api/v1/providers/?tenant_id=${tenantId}`, { headers: getAuth() }).catch(() => null),
-      ]);
-
-      let allItems: DisputeItem[] = [];
-
-      if (recRes && recRes.ok) {
-        const recData: ReconciliationData = await recRes.json();
-        setLastCheckDate(new Date().toISOString());
-
-        // Build items from real data
-        allItems = [
-          ...recData.matched.map((m: any, i: number) => ({
-            id: `M${String(i + 1).padStart(3, '0')}`,
-            date: m.bank?.date || m.provider?.date || new Date().toISOString().split('T')[0],
-            provider: m.provider?.provider_name || 'Provider',
-            amount: m.bank?.amount || 0,
-            status: 'resolved' as const,
-            daysOpen: 0,
-            description: `${m.bank?.concept || 'Transacción'} — conciliado (score: ${m.score})`,
-          })),
-          ...recData.unmatched_bank.map((b: any, i: number) => ({
-            id: `UB${String(i + 1).padStart(3, '0')}`,
-            date: b.date || new Date().toISOString().split('T')[0],
-            provider: 'Banco',
-            amount: b.amount || 0,
-            status: 'pending' as const,
-            daysOpen: 0,
-            description: `${b.concept || 'Movimiento bancario'} — sin contrapartida en providers`,
-          })),
-          ...recData.unmatched_provider.map((p: any, i: number) => ({
-            id: `UP${String(i + 1).padStart(3, '0')}`,
-            date: p.date || new Date().toISOString().split('T')[0],
-            provider: p.provider_name || 'Provider',
-            amount: p.amount || 0,
-            status: 'new' as const,
-            daysOpen: 0,
-            description: `${p.concept || 'Pago de provider'} — sin coincidencia en banco`,
-          })),
-        ];
+      const recRes = await fetch(`${API}/api/v1/reconciliation/status?tenant_id=${tenantId}`, {
+        headers: getAuth(),
+      });
+      if (!recRes.ok) {
+        throw new Error('No se pudo leer la conciliación');
+      }
+      const recData: ReconciliationData = await recRes.json();
+      setLastCheckDate(new Date().toISOString());
+      const daysRes = await fetch(`${API}/api/v1/reconciliation/days?tenant_id=${tenantId}`, { headers: getAuth() });
+      if (daysRes.ok) {
+        const daysData = await daysRes.json();
+        setDays(daysData.items || []);
       }
 
-      if (allItems.length === 0) {
-        // Backend returned empty — try localStorage fallback
-        const localItems = buildFromLocalStorage();
-        if (localItems) {
-          allItems = localItems;
-        }
-      }
+      const allItems: DisputeItem[] = [
+        ...(recData.matched || []).map((m: any) => ({
+          id: `M${m.bank?.id || m.provider?.id}`,
+          date: (m.bank?.date || m.provider?.date || '').split('T')[0],
+          provider: m.provider?.provider_name || 'Proveedor',
+          amount: m.bank?.amount || 0,
+          status: 'resolved' as const,
+          daysOpen: 0,
+          description: settlementLine(m),
+        })),
+        ...(recData.unmatched_bank || []).map((b: any) => ({
+          id: `UB${b.id}`,
+          date: (b.date || '').split('T')[0],
+          provider: 'Banco',
+          amount: b.amount || 0,
+          status: 'pending' as const,
+          daysOpen: 0,
+          description: `${b.concept || 'Movimiento bancario'} — sin contrapartida en proveedores`,
+        })),
+        ...(recData.unmatched_provider || []).map((p: any) => ({
+          id: `UP${p.id}`,
+          date: (p.date || '').split('T')[0],
+          provider: p.provider_name || 'Proveedor',
+          amount: p.amount || 0,
+          status: 'new' as const,
+          daysOpen: 0,
+          description: openLine(p),
+        })),
+      ];
 
       setItems(allItems);
       updateSummary(allItems);
     } catch (err: any) {
-      // Network or other error — try localStorage
-      const localItems = buildFromLocalStorage();
-      if (localItems) {
-        setItems(localItems);
-        updateSummary(localItems);
-      } else {
-        setError(err.message || 'Error cargando datos');
-      }
+      setItems([]);
+      setError(err.message || 'Error cargando datos');
     } finally {
       setLoading(false);
     }
@@ -260,6 +204,18 @@ export default function SmartCheckStatus() {
             Última actualización: {new Date(lastCheckDate).toLocaleString('es-ES')}
           </p>
         )}
+        <div style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Comprobación continua</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Cada día queda guardado. Lo ya conciliado no se vuelve a abrir. Lo que sigue abierto se mira otra vez.</div>
+          {days.length === 0 ? (
+            <div style={{ fontSize: 14, color: '#94a3b8' }}>Todavía no hay un día guardado.</div>
+          ) : days.map((day) => (
+            <div key={day.day} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
+              <span>{day.day}</span>
+              <span>{day.matched_count} conciliadas · {day.open_bank_count + day.open_provider_count} abiertas</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* RESUMEN CARDS */}

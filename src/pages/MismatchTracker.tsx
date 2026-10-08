@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
 import BackButton from '../components/BackButton';
+import StoreCheck from '../components/StoreCheck';
+
+const API = import.meta.env.VITE_API_URL;
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
@@ -40,82 +44,57 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
   const [smartCheckMessage, setSmartCheckMessage] = useState<string | null>(null);
 
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Cargar automáticamente desde localStorage al montar
   useEffect(() => {
-    loadDemoData();
+    loadFromApi();
   }, []);
 
-  const loadDemoData = () => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (raw) {
-      try {
-        const sc = JSON.parse(raw);
-        const result = sc.result || sc;
-        const mismatchesCount = typeof result.mismatches === 'number' ? result.mismatches : 0;
-        const disputesCount = typeof result.disputes === 'number' ? result.disputes : 0;
+  const toMismatch = (row: any, side: 'bank' | 'provider'): Mismatch => {
+    const amount = Number(row.amount) || 0;
+    const date = (row.date || '').split('T')[0];
+    return {
+      id: `${side === 'bank' ? 'B' : 'P'}-${row.id}`,
+      concept: row.concept || (side === 'bank' ? 'Movimiento bancario' : 'Pago de proveedor'),
+      expected: amount,
+      received: 0,
+      difference: -amount,
+      provider: side === 'bank' ? 'Banco' : (row.provider_name || 'Proveedor'),
+      store: '',
+      status: 'unresolved',
+      date,
+      notes: side === 'bank' ? 'Sin contrapartida en proveedores' : 'Sin coincidencia en el banco',
+      cardType: '',
+      firstReportedDate: date,
+      timesReported: 1,
+    };
+  };
 
-        if (mismatchesCount > 0 || disputesCount > 0) {
-          const providers = ['Stripe', 'TPV / Redsys', 'Mercado Pago'];
-          const stores = ['Pura Zona Norte', 'Pura Online Shop'];
-          const concepts = ['Payout Settlement', 'Batch Transfer', 'Daily Settlement', 'Weekly Reconciliation', 'Card Payout'];
-
-          const generateItems = (count: number, status: 'unresolved' | 'disputed') => {
-            const items: Mismatch[] = [];
-            const max = Math.min(count, 20);
-            for (let i = 0; i < max; i++) {
-              const expected = Math.floor(Math.random() * 8000) + 500;
-              const diff = -Math.floor(Math.random() * 200) - 5;
-              const received = Math.max(0, expected + diff);
-              const dateStr = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-              items.push({
-                id: `${status === 'disputed' ? 'DS' : 'MM'}-${String(i + 1).padStart(3, '0')}`,
-                concept: `${concepts[i % concepts.length]} #${i + 1}`,
-                expected,
-                received,
-                difference: received - expected,
-                provider: providers[i % providers.length],
-                store: stores[i % stores.length],
-                status,
-                date: dateStr,
-                notes: status === 'disputed' ? 'Dispute opened with provider' : '',
-                cardType: i % 2 === 0 ? 'Credit Card' : 'Debit Card',
-                firstReportedDate: dateStr,
-                timesReported: 1,
-              });
-            }
-            return items;
-          };
-
-          const items = [
-            ...generateItems(mismatchesCount, 'unresolved'),
-            ...generateItems(disputesCount, 'disputed'),
-          ];
-          setMismatches(items);
-          const date = sc.date || sc.createdAt || result.date || '';
-          if (date) {
-            setSmartCheckMessage(`Basado en tu último SmartCheck del ${new Date(date).toLocaleDateString('es-ES')}`);
-          } else {
-            setSmartCheckMessage('Basado en tu último SmartCheck');
-          }
-          return;
-        }
-      } catch {
-        // fall through to default demo data
-      }
+  const loadFromApi = async () => {
+    setLoadError(null);
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) {
+      setMismatches([]);
+      setSmartCheckMessage(null);
+      setLoadError('No hay cuenta configurada.');
+      return;
     }
-
-    setSmartCheckMessage(null);
-    setMismatches([
-      { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-07', notes: 'Fee discrepancy on international card', cardType: 'Credit Card', firstReportedDate: '2026-08-07', timesReported: 1 },
-      { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-06', notes: '', cardType: 'Debit Card', firstReportedDate: '2026-08-06', timesReported: 1 },
-      { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resolved', date: '2026-08-05', resolvedDate: '2026-08-08', notes: 'Provider confirmed rounding error, credited next batch', cardType: 'Credit Card', firstReportedDate: '2026-08-05', timesReported: 1 },
-      { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'disputed', date: '2026-08-04', notes: 'Ticket #ST-8842 opened with Stripe support', cardType: 'Credit Card', firstReportedDate: '2026-08-04', timesReported: 2 },
-      { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'unresolved', date: '2026-08-03', notes: 'Full payout missing — escalated to account manager', cardType: 'Credit Card', firstReportedDate: '2026-08-03', timesReported: 2 },
-      { id: 'TX-006', concept: 'Stripe Payout #4815', expected: 12500, received: 12450, difference: -50, provider: 'Stripe', store: 'Pura Zona Norte', status: 'resolved', date: '2026-08-01', resolvedDate: '2026-08-05', notes: 'Chargeback fee — legitimate deduction', cardType: 'Debit Card', firstReportedDate: '2026-08-01', timesReported: 1 },
-      { id: 'TX-007', concept: 'TPV Settlement Jul 28', expected: 4500, received: 4485, difference: -15, provider: 'TPV / Redsys', store: 'Pura Online Shop', status: 'resolved', date: '2026-07-28', resolvedDate: '2026-08-02', notes: 'Interchange fee adjustment', cardType: 'Credit Card', firstReportedDate: '2026-07-28', timesReported: 1 },
-      { id: 'TX-008', concept: 'Mercado Pago Payout', expected: 3800, received: 3792, difference: -8, provider: 'Mercado Pago', store: 'Pura Zona Norte', status: 'disputed', date: '2026-07-25', notes: 'Waiting for fee breakdown documentation', cardType: 'Debit Card', firstReportedDate: '2026-07-25', timesReported: 3 },
-    ]);
+    try {
+      const res = await fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenant.id}`, { headers: getAuth() });
+      if (!res.ok) throw new Error('No se pudieron cargar las discrepancias');
+      const data = await res.json();
+      const bank = data.discrepancies?.unmatched_bank || [];
+      const prov = data.discrepancies?.unmatched_provider || [];
+      setMismatches([
+        ...bank.map((row: any) => toMismatch(row, 'bank')),
+        ...prov.map((row: any) => toMismatch(row, 'provider')),
+      ]);
+      setSmartCheckMessage('Movimientos sin conciliar de tu cuenta');
+    } catch (err: any) {
+      setMismatches([]);
+      setSmartCheckMessage(null);
+      setLoadError(err.message || 'Error de conexión');
+    }
   };
 
   const updateStatus = (id: string, newStatus: Mismatch['status']) => {
@@ -155,7 +134,7 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
         tenant_id: tenant.id || '',
         provider_name: m.provider,
         amount: String(Math.abs(m.difference)),
-        description: m.notes || `Discrepancy: expected ${m.expected}, received ${m.received}`,
+        description: m.notes || `Diferencia: esperado ${m.expected}, recibido ${m.received}`,
         concept: m.concept,
         date: m.date,
         days_open: String(m.firstReportedDate ? Math.floor((Date.now() - new Date(m.firstReportedDate).getTime()) / 86400000) : 0),
@@ -178,21 +157,9 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
     }
   };
 
-  const autoCheckResolutions = () => {
-    const newlyResolved: string[] = [];
-    setMismatches(prev => prev.map(m => {
-      if (m.status === 'resolved') return m;
-      if (m.id === 'TX-001' || m.id === 'TX-002') {
-        newlyResolved.push(m.id);
-        return { ...m, status: 'resolved', resolvedDate: new Date().toISOString().split('T')[0], notes: m.notes + ' [Auto-resolved by system after new bank upload]' };
-      }
-      return m;
-    }));
-    if (newlyResolved.length > 0) {
-      setAutoCheckMessage(`✅ Auto-resolved ${newlyResolved.length} mismatches based on latest bank upload: ${newlyResolved.join(', ')}`);
-    } else {
-      setAutoCheckMessage('ℹ️ No new resolutions detected in the latest bank upload.');
-    }
+  const autoCheckResolutions = async () => {
+    await loadFromApi();
+    setAutoCheckMessage('Estado actualizado desde los movimientos de tu cuenta.');
     setTimeout(() => setAutoCheckMessage(null), 6000);
   };
 
@@ -217,7 +184,8 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
 
   const unresolved = mismatches.filter(m => m.status === 'unresolved');
   const disputed = mismatches.filter(m => m.status === 'disputed');
-  const resolvedThisMonth = mismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate.startsWith('2026-08'));
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const resolvedThisMonth = mismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate.startsWith(currentMonth));
   const totalAtRisk = unresolved.reduce((s, m) => s + Math.abs(m.difference), 0) + disputed.reduce((s, m) => s + Math.abs(m.difference), 0);
 
   const statusColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -231,7 +199,8 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
     const providerMismatches = mismatches.filter(m => m.provider === provider);
     const newOnes = providerMismatches.filter(m => m.status === 'unresolved');
     const stillOpen = providerMismatches.filter(m => m.status === 'disputed');
-    const recentlyResolved = providerMismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate >= '2026-08-01');
+    const monthStart = `${currentMonth}-01`;
+    const recentlyResolved = providerMismatches.filter(m => m.status === 'resolved' && m.resolvedDate && m.resolvedDate >= monthStart);
 
     const newTotal = newOnes.reduce((s, m) => s + Math.abs(m.difference), 0);
     const openTotal = stillOpen.reduce((s, m) => s + Math.abs(m.difference), 0);
@@ -239,48 +208,49 @@ export default function MismatchTracker({ mode = 'mismatches' }: { mode?: 'misma
 
     const tableRow = (m: Mismatch) => `${m.id}\t${m.date}\t${m.concept}\t${m.store}\t${m.cardType}\t${formatMoney(m.expected)}\t${formatMoney(m.received)}\t${formatMoney(m.difference)}\t${m.timesReported}x`;
 
-    return `CLEARFLOW — RECONCILIATION DISCREPANCY REPORT
-Provider: ${provider}
-Report Date: ${new Date().toLocaleDateString('es-ES')}
-Frequency: ${reportFrequency === 'immediate' ? 'URGENT — Immediate Escalation' : reportFrequency === 'daily' ? 'Daily Report' : 'Weekly Batch Report'}
+    const urgency = reportFrequency === 'immediate' ? 'URGENTE — envío inmediato' : reportFrequency === 'daily' ? 'Informe diario' : 'Informe semanal';
+    return `CLEARFLOW — INFORME DE DISCREPANCIAS
+Proveedor: ${provider}
+Fecha del informe: ${new Date().toLocaleDateString('es-ES')}
+Frecuencia: ${urgency}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 1: NEW DISCREPANCIES (First Time Reported)
+SECCIÓN 1: DISCREPANCIAS NUEVAS (primera vez)
 ═══════════════════════════════════════════════════════════════
-${newOnes.length > 0 ? `Ref ID\tDate\tConcept\tStore\tCard\tExpected\tReceived\tDiff\tTimes Reported
+${newOnes.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tTarjeta\tEsperado\tRecibido\tDiferencia\tVeces
 ${newOnes.map(tableRow).join('\n')}
 
-Subtotal: ${formatMoney(newTotal)} — ${newOnes.length} ticket(s)` : 'No new discrepancies this period.'}
+Subtotal: ${formatMoney(newTotal)} — ${newOnes.length} ticket(s)` : 'No hay discrepancias nuevas en este periodo.'}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 2: PREVIOUSLY REPORTED — STILL UNRESOLVED
+SECCIÓN 2: YA INFORMADAS — SIGUEN ABIERTAS
 ═══════════════════════════════════════════════════════════════
-${stillOpen.length > 0 ? `Ref ID\tDate\tConcept\tStore\tCard\tExpected\tReceived\tDiff\tTimes Reported
+${stillOpen.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tTarjeta\tEsperado\tRecibido\tDiferencia\tVeces
 ${stillOpen.map(tableRow).join('\n')}
 
-Subtotal: ${formatMoney(openTotal)} — ${stillOpen.length} ticket(s) carried forward` : 'No carried-forward discrepancies.'}
+Subtotal: ${formatMoney(openTotal)} — ${stillOpen.length} ticket(s) que siguen abiertos` : 'No hay discrepancias arrastradas.'}
 
 ═══════════════════════════════════════════════════════════════
-SECTION 3: RESOLVED SINCE LAST REPORT
+SECCIÓN 3: RESUELTAS DESDE EL INFORME ANTERIOR
 ═══════════════════════════════════════════════════════════════
-${recentlyResolved.length > 0 ? `Ref ID\tDate\tConcept\tStore\tResolved Date\tAmount
+${recentlyResolved.length > 0 ? `Ref\tFecha\tConcepto\tTienda\tFecha de resolución\tImporte
 ${recentlyResolved.map(m => `${m.id}\t${m.date}\t${m.concept}\t${m.store}\t${m.resolvedDate}\t${formatMoney(Math.abs(m.difference))}`).join('\n')}
 
-Subtotal: ${formatMoney(resolvedTotal)} — ${recentlyResolved.length} ticket(s) closed` : 'No resolutions since last report.'}
+Subtotal: ${formatMoney(resolvedTotal)} — ${recentlyResolved.length} ticket(s) cerrados` : 'No hay resoluciones desde el informe anterior.'}
 
 ═══════════════════════════════════════════════════════════════
-SUMMARY
+RESUMEN
 ═══════════════════════════════════════════════════════════════
-New this period:      ${formatMoney(newTotal)} (${newOnes.length} tickets)
-Still unresolved:     ${formatMoney(openTotal)} (${stillOpen.length} tickets)
-Resolved:             ${formatMoney(resolvedTotal)} (${recentlyResolved.length} tickets)
-TOTAL OUTSTANDING:    ${formatMoney(newTotal + openTotal)} (${newOnes.length + stillOpen.length} tickets)
+Nuevas en este periodo:  ${formatMoney(newTotal)} (${newOnes.length} tickets)
+Siguen sin resolver:     ${formatMoney(openTotal)} (${stillOpen.length} tickets)
+Resueltas:               ${formatMoney(resolvedTotal)} (${recentlyResolved.length} tickets)
+TOTAL PENDIENTE:         ${formatMoney(newTotal + openTotal)} (${newOnes.length + stillOpen.length} tickets)
 
-We request that all outstanding amounts be reviewed and credited within the next settlement cycle. Please reference the Ref IDs above in your response.
+Pedimos que los importes pendientes se revisen y se abonen en la próxima liquidación. En la respuesta, cita las referencias de arriba.
 
-Best regards,
-ClearFlow Reconciliation System
-[Merchant Account]`;
+Un saludo,
+ClearFlow
+[Cuenta del comercio]`;
   };
 
   const exportData = filtered.map(m => ({
@@ -304,7 +274,8 @@ ClearFlow Reconciliation System
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-      <BackButton />
+      <BackButton fallbackTo="/panel" />
+      <StoreCheck />
       {/* HEADER */}
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
@@ -358,11 +329,17 @@ ClearFlow Reconciliation System
         </div>
       )}
 
+      {loadError && (
+        <div style={{ marginBottom: 20, padding: 16, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontWeight: 600, fontSize: 14 }}>
+          {loadError}
+        </div>
+      )}
+
       {showExport && (
         <ExportModal
           isOpen={showExport}
           onClose={() => setShowExport(false)}
-          title="Mismatch & Dispute Tracker Report"
+          title="Informe de discrepancias y disputas"
           filename="clearflow_mismatch_tracker"
           data={exportData}
           columns={[
@@ -398,32 +375,32 @@ ClearFlow Reconciliation System
           }}>
             <h2 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{t('mismatchTracker.batchComplaint')}</h2>
             <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 20px 0' }}>
-              {batchModal} — One consolidated complaint with all discrepancies
+              {batchModal} — Un reclamo junto, con todas las diferencias
             </p>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Report Frequency / Urgency</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Frecuencia del informe</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {(['weekly', 'daily', 'immediate'] as const).map(f => (
                   <button key={f} onClick={() => setReportFrequency(f)} style={{
                     flex: 1, padding: '10px 0', borderRadius: 8, border: '1px solid #e2e8f0',
                     background: reportFrequency === f ? '#635bff' : 'white',
                     color: reportFrequency === f ? 'white' : '#64748b',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
-                    {f === 'immediate' ? '⚡ Urgent' : f}
+                    {f === 'immediate' ? '⚡ Urgente' : f === 'daily' ? 'Diario' : 'Semanal'}
                   </button>
                 ))}
               </div>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
-                {reportFrequency === 'immediate' ? 'For large amounts or missing payouts — send now.' : 
-                 reportFrequency === 'daily' ? 'For high-volume merchants with daily reconciliation.' : 
-                 'Standard: one batch report per week per provider.'}
+                {reportFrequency === 'immediate' ? 'Para importes grandes o pagos que no llegaron: se envía ahora.' :
+                 reportFrequency === 'daily' ? 'Para quien concilia todos los días.' :
+                 'Lo habitual: un informe por semana y por proveedor.'}
               </p>
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Generated Report</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Informe generado</label>
               <textarea
                 readOnly
                 value={generateBatchReport(batchModal)}
@@ -438,10 +415,10 @@ ClearFlow Reconciliation System
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setBatchModal(null)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}>{t('common.close')}</button>
               <button onClick={() => copyReport(generateBatchReport(batchModal))} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-                {copied ? '✅ ' + t('common.success') + '!' : '📋 Copy to Clipboard'}
+                {copied ? '✅ ' + t('common.success') + '!' : '📋 Copiar'}
               </button>
               <button onClick={() => sendBatchComplaint(batchModal)} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                Mark All as Disputed
+                Marcar todas en disputa
               </button>
             </div>
           </div>
@@ -453,27 +430,27 @@ ClearFlow Reconciliation System
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.unresolved')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{unresolved.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Needs immediate action</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Hay que mirarlo ya</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.disputed')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#92400e' }}>{disputed.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Complaint sent</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Reclamo enviado</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.resolved')} This Month</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.resolved')} este mes</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{resolvedThisMonth.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Closed successfully</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Cerradas</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.atRiskAmount')}</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{formatMoney(totalAtRisk)}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Unresolved + disputed</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Sin resolver y en disputa</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Providers with Issues</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Proveedores con diferencias</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#635bff' }}>{providersWithIssues.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Need batch reports</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Conviene un reclamo junto</div>
         </div>
       </div>
 
@@ -496,7 +473,7 @@ ClearFlow Reconciliation System
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{provider}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{count} tickets · {formatMoney(amount)} at risk</span>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>{count} tickets · {formatMoney(amount)} en riesgo</span>
                 </button>
               );
             })}
@@ -508,7 +485,7 @@ ClearFlow Reconciliation System
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           type="text"
-          placeholder="Search by ID or concept..."
+          placeholder="Buscar por referencia o concepto..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, minWidth: 260, outline: 'none' }}
@@ -521,17 +498,18 @@ ClearFlow Reconciliation System
         </select>
         <select value={filterProvider} onChange={(e) => setFilterProvider(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
           <option value="all">{t('common.all')} {t('common.provider')}</option>
-          <option value="Stripe">Stripe</option>
-          <option value="TPV / Redsys">TPV / Redsys</option>
-          <option value="Mercado Pago">Mercado Pago</option>
+          {Array.from(new Set(mismatches.map(m => m.provider).filter(Boolean))).map(provider => (
+            <option key={provider} value={provider}>{provider}</option>
+          ))}
         </select>
         <select value={filterStore} onChange={(e) => setFilterStore(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
           <option value="all">{t('common.all')} {t('common.store')}</option>
-          <option value="Pura Zona Norte">Pura Zona Norte</option>
-          <option value="Pura Online Shop">Pura Online Shop</option>
+          {Array.from(new Set(mismatches.map(m => m.store).filter(Boolean))).map(store => (
+            <option key={store} value={store}>{store}</option>
+          ))}
         </select>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{filtered.length} of {mismatches.length} records</span>
+        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{filtered.length} de {mismatches.length} registros</span>
       </div>
 
       {/* TABLE */}
@@ -582,7 +560,7 @@ ClearFlow Reconciliation System
                     display: 'block', width: '100%', marginBottom: 4,
                   }}
                 >
-                  {sendingEmailId === m.id ? '⏳ ' + t('common.loading') : '📧 Email'}
+                  {sendingEmailId === m.id ? '⏳ ' + t('common.loading') : '📧 Correo'}
                 </button>
               )}
               {(m.status === 'unresolved' || m.status === 'disputed') && (
@@ -624,7 +602,7 @@ ClearFlow Reconciliation System
           <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
             <div style={{ fontWeight: 600 }}>{t('common.noData')}</div>
-            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters to see results.</div>
+            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Prueba otro filtro para ver resultados.</div>
           </div>
         )}
       </div>

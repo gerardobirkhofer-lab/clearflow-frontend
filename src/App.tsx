@@ -12,6 +12,9 @@ import RevenueControl from './pages/RevenueControl';
 import PaymentCheck from './pages/PaymentCheck';
 import Setup from './pages/Setup';
 import SetupWizard from './pages/SetupWizard';
+import GuidedSetup from './pages/GuidedSetup';
+import Connections from './pages/Connections';
+import Contract from './pages/Contract';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
@@ -23,6 +26,16 @@ import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
+import Privacy from './pages/Privacy';
+import CashFlow from './pages/CashFlow';
+import MorningPanel from './pages/MorningPanel';
+import CashHealth from './pages/CashHealth';
+import Horizon from './pages/Horizon';
+import LegalEntity from './pages/LegalEntity';
+import AdjustSetup from './pages/AdjustSetup';
+import ForecastSetup from './pages/ForecastSetup';
+import Delays from './pages/Delays';
+import Products from './pages/Products';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -46,7 +59,7 @@ function AppContent() {
   };
 
   // Ocultar menu en onboarding, hub, wizard y setup-wizard (experiencia limpia)
-  const hideNav = ['/welcome', '/wizard', '/hub', '/smartcheck-wizard', '/setup-wizard'].includes(location.pathname);
+    const hideNav = ['/welcome', '/wizard', '/hub', '/panel', '/caja', '/horizonte', '/entidad', '/ajustar', '/seteo', '/setup', '/productos', '/retrasos', '/smartcheck-wizard', '/setup-wizard', '/guided-setup', '/conexiones'].includes(location.pathname);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -54,25 +67,27 @@ function AppContent() {
   const getHomeRoute = () => {
     if (!isLoggedIn) return <Landing />;
     const onboardingComplete = localStorage.getItem('onboardingComplete');
-    if (!onboardingComplete) return <Navigate to="/welcome" />;
-    return <Navigate to="/hub" />;
+    if (!onboardingComplete) return <Navigate to="/guided-setup" />;
+    return <Navigate to="/panel" />;
   };
 
   return (
     <>
       {isLoggedIn && !hideNav && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}
-          onMouseLeave={() => setMenuVisible(false)}
-        >
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, pointerEvents: 'none' }}>
           {!menuVisible && (
             <div
-              style={{ height: 10, width: '100%', cursor: 'default' }}
+              style={{ height: 10, width: '100%', cursor: 'default', pointerEvents: 'auto' }}
               onMouseEnter={() => setMenuVisible(true)}
             />
           )}
           <nav
+            onMouseLeave={() => setMenuVisible(false)}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
               padding: '12px 24px',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
@@ -80,11 +95,12 @@ function AppContent() {
               background: '#fff',
               alignItems: 'center',
               flexWrap: 'wrap',
-              transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
+              transform: menuVisible ? 'translateY(0)' : 'translateY(-110%)',
               transition: 'transform 0.3s ease',
+              pointerEvents: menuVisible ? 'auto' : 'none',
             }}
           >
-            <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
+            <Link to="/panel" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
             <Link to="/dashboard" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.dashboard')}</Link>
             <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
             <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
@@ -97,6 +113,7 @@ function AppContent() {
             <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
             <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
             <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
+            <Link to="/contrato" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>Contrato</Link>
             <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
             <div style={{ flex: 1 }}></div>
             <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
@@ -110,8 +127,20 @@ function AppContent() {
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
+          <Route path="/guided-setup" element={isLoggedIn ? <GuidedSetup /> : <Navigate to="/login" />} />
+          <Route path="/conexiones" element={isLoggedIn ? <Connections /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/hub" element={<PostLoginHub />} />
+          <Route path="/panel" element={isLoggedIn ? <MorningPanel /> : <Navigate to="/login" />} />
+          <Route path="/caja" element={isLoggedIn ? <CashHealth /> : <Navigate to="/login" />} />
+          <Route path="/horizonte" element={isLoggedIn ? <Horizon /> : <Navigate to="/login" />} />
+          <Route path="/entidad" element={isLoggedIn ? <LegalEntity /> : <Navigate to="/login" />} />
+          <Route path="/ajustar" element={isLoggedIn ? <AdjustSetup /> : <Navigate to="/login" />} />
+          <Route path="/seteo" element={isLoggedIn ? <ForecastSetup /> : <Navigate to="/login" />} />
+          <Route path="/setup" element={isLoggedIn ? <ForecastSetup /> : <Navigate to="/login" />} />
+          <Route path="/productos" element={isLoggedIn ? <Products /> : <Navigate to="/login" />} />
+          <Route path="/retrasos" element={isLoggedIn ? <Delays /> : <Navigate to="/login" />} />
           <Route path="/tenant-selector" element={<TenantSelector />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -126,6 +155,8 @@ function AppContent() {
           <Route path="/upload-center" element={<Navigate to="/smartcheck-wizard" />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/contrato" element={isLoggedIn ? <Contract /> : <Navigate to="/login" />} />
+          <Route path="/flujo" element={isLoggedIn ? <CashFlow /> : <Navigate to="/login" />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
