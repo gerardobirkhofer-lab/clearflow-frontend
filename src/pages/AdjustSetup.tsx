@@ -86,7 +86,7 @@ export default function AdjustSetup() {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 16px 72px' }}>
         <BackDashboard />
         <h1 style={{ margin: '16px 0 8px', fontSize: 32 }}>Cambiar/Ajustar setup</h1>
-        <p style={{ color: '#475569' }}>Alta de un local, cambio de nombre, o baja si lo vendes. El alta del grupo no se vuelve a recorrer.</p>
+        <p style={{ color: '#475569' }}>El alta del grupo se hace una vez. Aquí das de alta un negocio, lo modificas o lo das de baja. Precios y costos se cambian en Productos.</p>
         {error && <p style={{ color: '#991b1b' }}>{error}</p>}
         {companies.map((company) => (
           <section key={company.id} style={{ background: 'white', borderRadius: 16, padding: 20, marginTop: 16 }}>
@@ -119,7 +119,7 @@ export default function AdjustSetup() {
         ))}
         <section style={{ background: 'white', borderRadius: 16, padding: 20, marginTop: 16 }}>
           <h2 style={{ marginTop: 0 }}>Tasa Nominal Anual (TNA)</h2>
-          <p style={{ color: '#64748b' }}>La tasa de interés del seteo. Es una Tasa Nominal Anual (TNA). El coste de un retraso usa esa tasa y los días de cada importe.</p>
+          <p style={{ color: '#64748b' }}>La tasa de interés del setup. Es una Tasa Nominal Anual (TNA). El coste de un retraso usa esa tasa y los días de cada importe.</p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input aria-label="Tasa Nominal Anual (TNA)" value={rate} onChange={(event) => setRate(event.target.value)} inputMode="decimal" placeholder="15" style={field} />
             <button type="button" onClick={saveRate} style={primary}>Guardar TNA</button>
@@ -127,9 +127,10 @@ export default function AdjustSetup() {
         </section>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 18 }}>
           <Link to="/conexiones" style={{ color: '#635bff', fontWeight: 700 }}>Conexiones</Link>
-          <Link to="/seteo" style={{ color: '#635bff', fontWeight: 700 }}>Seteo</Link>
+          <Link to="/setup" style={{ color: '#635bff', fontWeight: 700 }}>Setup</Link>
+          <Link to="/productos" style={{ color: '#635bff', fontWeight: 700 }}>Productos</Link>
           <Link to="/flujo" style={{ color: '#635bff', fontWeight: 700 }}>Erogaciones</Link>
-          <Link to="/contrato" style={{ color: '#635bff', fontWeight: 700 }}>Contratos</Link>
+          <Link to="/contrato" style={{ color: '#635bff', fontWeight: 700 }}>Contratos Proveedores</Link>
           <Link to="/horizonte" style={{ color: '#635bff', fontWeight: 700 }}>Horizonte</Link>
         </div>
       </div>

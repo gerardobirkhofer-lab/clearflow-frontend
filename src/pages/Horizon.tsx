@@ -115,7 +115,7 @@ export default function Horizon() {
                 <h2 style={{ margin: 0 }}>{place.name}</h2>
                 <p style={{ color: '#94a3b8', marginTop: 4 }}>{place.company_name}</p>
                 {!place.has_history && (
-                  <p style={note}>Sin ventas pasadas no hay proyección. El histórico se carga en el seteo, a mano o desde el TPV.</p>
+                  <p style={note}>Sin ventas pasadas no hay proyección. El histórico se carga en el setup, a mano o desde el TPV.</p>
                 )}
                 {place.has_history && !place.has_products && (
                   <p style={note}>Hay ventas. Falta el precio y el costo de lo que vende, así que todavía no digo si gana.</p>
@@ -159,7 +159,7 @@ export default function Horizon() {
           </section>
         ))}
         <p style={{ color: '#64748b', fontSize: 14 }}>
-          Ventas, productos y gastos del año se cargan en <Link to="/seteo">Seteo</Link>. La caja del mes, en <Link to="/caja">Salud de Caja</Link>.
+          Ventas, productos y gastos del año se cargan en <Link to="/setup">Setup</Link>. La caja del mes, en <Link to="/caja">Salud de Caja</Link>.
         </p>
       </div>
     </main>

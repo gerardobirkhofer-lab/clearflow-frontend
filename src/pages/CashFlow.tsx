@@ -118,7 +118,7 @@ export default function CashFlow() {
         <h1 style={titleStyle}>Lo que entra y lo que sale</h1>
         <p style={leadStyle}>
           Lo que todavía debe entrar sale de los cobros pendientes. El día, el local y las ventas pasadas
-          se cargan en <Link to="/seteo">Seteo</Link>.
+          se cargan en <Link to="/setup">Setup</Link>.
         </p>
 
         <section style={answerStyle} aria-label="Resultado del mes">

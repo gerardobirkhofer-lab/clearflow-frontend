@@ -88,13 +88,6 @@ export default function MorningPanel() {
             <div className="n">{panel ? euros(panel.unresolved_total) : '—'}</div>
           </div>
         </div>
-        <div className="jumps">
-          <Link to="/caja">Salud de Caja</Link>
-          <Link to="/horizonte">Horizonte</Link>
-          <Link to="/seteo">Seteo</Link>
-          <Link to="/entidad">Chequeo según entidad legal</Link>
-          <Link to="/ajustar">Cambiar/Ajustar setup</Link>
-        </div>
         {error && <p className="error">{error}</p>}
         {panel && panel.places.length === 0 && (
           <article className="place">
@@ -122,8 +115,8 @@ export default function MorningPanel() {
                 tone={place.late_amount > 0 ? 'delay' : 'quiet'}
                 label="Días de retraso"
                 value={euros(place.late_amount)}
-                hint={place.late_amount > 0 ? `${place.late_days} días${place.late_cost != null ? ` · TNA ${place.debt_rate}% · coste ${euros(place.late_cost)}` : ' · falta la TNA en el seteo'}` : 'al día'}
-                note="El coste se calcula de acuerdo a la tasa de interés que indicaste en el seteo del sistema. Esa tasa es una Tasa Nominal Anual (TNA)."
+                hint={place.late_amount > 0 ? `${place.late_days} días${place.late_cost != null ? ` · TNA ${place.debt_rate}% · coste ${euros(place.late_cost)}` : ' · falta la TNA en el setup'}` : 'al día'}
+                note="El coste se calcula de acuerdo a la tasa de interés que indicaste en el setup del sistema. Esa tasa es una Tasa Nominal Anual (TNA)."
                 action={place.site_id ? `/retrasos?site=${place.site_id}` : `/retrasos?lugar=${encodeURIComponent(place.name)}`}
               />
               <Soft tone={place.uncollected_count > 0 ? 'vale' : 'quiet'} label="Ventas no cobradas" value={euros(place.uncollected_amount)} hint={`${place.uncollected_count} vales`} note="Ventas hechas y todavía no cobradas." />
@@ -137,21 +130,26 @@ export default function MorningPanel() {
           </article>
         ))}
         <section className="calm">
-          <h2>Para mirar con calma</h2>
-          <ul>
-            <li><Link to="/caja">Salud de Caja</Link></li>
-            <li><Link to="/horizonte">Horizonte</Link></li>
-            <li><Link to="/seteo">Seteo</Link></li>
-            <li><Link to="/entidad">Chequeo según entidad legal</Link></li>
-            <li><Link to="/reports">Informes</Link></li>
-            <li><Link to="/communications">Comunicaciones</Link></li>
-            <li><Link to="/profitability">Rentabilidad</Link></li>
-            <li><Link to="/revenue-control">Control de ingresos</Link></li>
-            <li><Link to="/contrato">Contrato</Link></li>
-            <li><Link to="/conexiones">Conexiones</Link></li>
-            <li><Link to="/flujo">Flujo de caja</Link></li>
-            <li><Link to="/ajustar">Cambiar/Ajustar setup</Link></li>
-          </ul>
+          <div className="cols">
+            <div>
+              <h2>Para mirar</h2>
+              <Link to="/caja" className="menu c1">Salud de Caja</Link>
+              <Link to="/horizonte" className="menu c2">Horizonte</Link>
+              <Link to="/entidad" className="menu c3">Chequeo según entidad legal</Link>
+              <Link to="/reports" className="menu c4">Informes</Link>
+              <Link to="/communications" className="menu c5">Comunicaciones</Link>
+              <Link to="/profitability" className="menu c6">Rentabilidad</Link>
+              <Link to="/revenue-control" className="menu c7">Control de ingresos</Link>
+              <Link to="/flujo" className="menu c8">Flujo de caja</Link>
+            </div>
+            <div>
+              <h2>Setup</h2>
+              <Link to="/setup" className="menu s1">Setup</Link>
+              <Link to="/contrato" className="menu s2">Contratos Proveedores</Link>
+              <Link to="/conexiones" className="menu s3">Conexiones</Link>
+              <Link to="/ajustar" className="menu s4">Cambiar/Ajustar setup</Link>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -198,10 +196,22 @@ const css = `
   .pill { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; border-radius: 12px; padding: 10px 14px; min-width: 180px; }
   .pill .lbl, .card .lbl, .soft .lbl { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
   .pill .n { font-size: 22px; font-weight: 800; margin-top: 4px; }
-  .jumps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-  .jumps a { display: inline-flex; align-items: center; background: #e0e7ff; border: 1px solid #818cf8; color: #312e81; font-weight: 800; text-decoration: none; border-radius: 999px; padding: 10px 16px; font-size: 14px; }
-  .calm ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
-  .calm a { display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; font-weight: 700; text-decoration: none; border-radius: 999px; padding: 8px 12px; font-size: 13px; }
+  .calm { margin-top: 8px; }
+  .cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+  .cols h2 { font-size: 13px; margin: 0 0 10px; color: #64748b; text-transform: uppercase; letter-spacing: .4px; }
+  .menu { display: block; margin-bottom: 8px; border-radius: 12px; padding: 12px 14px; font-size: 14px; font-weight: 800; text-decoration: none; }
+  .c1 { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+  .c2 { background: #faf5ff; border: 1px solid #d8b4fe; color: #6b21a8; }
+  .c3 { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+  .c4 { background: #ecfdf5; border: 1px solid #6ee7b7; color: #047857; }
+  .c5 { background: #eef2ff; border: 1px solid #a5b4fc; color: #3730a3; }
+  .c6 { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+  .c7 { background: #fdf2f8; border: 1px solid #f9a8d4; color: #9d174d; }
+  .c8 { background: #f0fdfa; border: 1px solid #5eead4; color: #0f766e; }
+  .s1 { background: #e0e7ff; border: 1px solid #818cf8; color: #312e81; }
+  .s2 { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; }
+  .s3 { background: #e0f2fe; border: 1px solid #7dd3fc; color: #075985; }
+  .s4 { background: #f1f5f9; border: 1px solid #94a3b8; color: #0f172a; }
   .place { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 18px; }
   .place h2 { margin: 0; font-size: 20px; }
   .meta { margin: 4px 0 16px; color: #94a3b8; font-size: 13px; }
@@ -232,7 +242,6 @@ const css = `
   .a5 { background: #faf5ff; border: 1px solid #e9d5ff; color: #7e22ce; }
   .a6 { background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; }
   .a7 { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; }
-  .calm h2 { font-size: 18px; margin: 0 0 10px; }
   .error { color: #991b1b; }
-  @media (max-width: 800px) { .grid, .split, .actions { grid-template-columns: 1fr 1fr; } h1 { font-size: 26px; } }
+  @media (max-width: 800px) { .grid, .split, .actions, .cols { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
 `;

@@ -130,7 +130,7 @@ export default function Contract() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-      <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Contrato</div>
+      <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Contratos Proveedores</div>
       <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>La comisión y el día del abono</h1>
       <p style={{ color: '#64748b', marginTop: 8 }}>
         Suelta el contrato que firmaste con el banco, el datáfono o la empresa que te paga.

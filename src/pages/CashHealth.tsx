@@ -73,7 +73,7 @@ export default function CashHealth() {
         <BackDashboard />
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 18 }}>El mes entero</div>
         <h1 style={{ margin: '8px 0 0', fontSize: 32 }}>Salud de Caja</h1>
-        <p style={{ color: '#64748b' }}>Cada día lleva su saldo de inicio, la cobranza estimada, el pago a realizar y el saldo final.</p>
+        <p style={{ color: '#64748b' }}>Cada día lleva su saldo de inicio, las cobranzas estimadas, los pagos a realizar y el saldo final. Al elegir un día aparece el detalle de esos pagos.</p>
         {error && <p style={{ color: '#991b1b' }}>{error}</p>}
         {places.map((place) => {
           const key = place.site_id || place.name;
@@ -103,12 +103,11 @@ export default function CashHealth() {
                   {Array.from({ length: offset }).map((_, empty) => <div key={`empty-${empty}`} />)}
                   {place.days.map((item, itemIndex) => {
                     const selected = itemIndex === index;
-                    const concepts = item.bills.map((bill) => bill.concept).join(', ');
                     return (
                       <button
                         key={item.date}
                         type="button"
-                        aria-label={`${item.is_today ? 'Hoy ' : ''}${dayText(item.date)}. Saldo inicio ${euros(item.opening)}. Cobranza estimada ${euros(item.inflows)}. Pago a realizar ${euros(item.outflows)}${concepts ? `, ${concepts}` : ''}. Saldo final ${euros(item.closing)}.`}
+                        aria-label={`${item.is_today ? 'Hoy ' : ''}${dayText(item.date)}. Saldo inicio ${euros(item.opening)}. Cobranzas estimadas ${euros(item.inflows)}. Pagos a realizar ${euros(item.outflows)}. Saldo final ${euros(item.closing)}.`}
                         aria-pressed={selected}
                         onClick={() => setPicked({ ...picked, [key]: itemIndex })}
                         style={{
@@ -130,22 +129,38 @@ export default function CashHealth() {
                           {item.is_today ? <span style={{ marginLeft: 6, fontSize: 10, color: '#635bff' }}>Hoy</span> : null}
                         </div>
                         <CellLine label="Inicio" value={euros(item.opening)} />
-                        <CellLine label="Cobranza" value={euros(item.inflows)} color={item.inflows > 0 ? '#166534' : undefined} />
-                        <CellLine label="Pago" value={euros(item.outflows)} color={item.outflows > 0 ? '#991b1b' : undefined} />
-                        {concepts && <div style={{ fontSize: 10, color: '#9a3412', fontWeight: 700, marginTop: 1 }}>{concepts}</div>}
+                        <CellLine label="Cobranzas" value={euros(item.inflows)} color={item.inflows > 0 ? '#166534' : undefined} />
+                        <CellLine label="Pagos" value={euros(item.outflows)} color={item.outflows > 0 ? '#991b1b' : undefined} />
                         <CellLine label="Saldo" value={euros(item.closing)} color={item.covers === false ? '#991b1b' : item.covers ? '#166534' : undefined} />
                       </button>
                     );
                   })}
                 </div>
               </div>
-              {day && day.covers === false && <p style={warn}>No cubre · {day.bills.map((bill) => `${bill.concept} ${euros(bill.amount)}`).join(', ')}</p>}
-              {day && day.covers == null && day.bills.length > 0 && <p style={warn}>Vence {day.bills.map((bill) => bill.concept).join(', ')}. Falta el saldo del banco para saber si cubre.</p>}
+              {day && (
+                <div style={detailBox}>
+                  <div style={{ fontWeight: 800 }}>{dayText(day.date)}</div>
+                  {day.bills.length === 0 ? (
+                    <p style={{ margin: '8px 0 0' }}>Este día no tiene pagos cargados.</p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
+                      {day.bills.map((bill) => (
+                        <li key={`${bill.concept}-${bill.amount}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderTop: '1px solid #ffedd5' }}>
+                          <span>{bill.concept}</span>
+                          <strong>{euros(bill.amount)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {day.covers === false && <p style={{ margin: '8px 0 0' }}>No cubre. Cierre {euros(day.closing)}.</p>}
+                  {day.covers == null && day.bills.length > 0 && <p style={{ margin: '8px 0 0' }}>Falta el saldo del banco para saber si cubre.</p>}
+                </div>
+              )}
             </article>
           );
         })}
         <p style={{ color: '#64748b', fontSize: 15, marginTop: 22 }}>
-          El día, el importe y el concepto se cargan en <Link to="/seteo" style={quietLink}>Seteo</Link>. Si quieres ver si estás ganando dinero o no, ve a <Link to="/horizonte" style={quietLink}>Horizonte</Link>.
+          El día, el importe y el concepto se cargan en <Link to="/setup" style={quietLink}>Setup</Link>. Si quieres ver si estás ganando dinero o no, ve a <Link to="/horizonte" style={quietLink}>Horizonte</Link>.
         </p>
       </div>
     </main>
@@ -175,3 +190,4 @@ const quietLink = {
 };
 
 const warn = { marginTop: 10, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: 10, fontWeight: 700 };
+const detailBox = { marginTop: 12, background: '#fff7ed', color: '#9a3412', borderRadius: 12, padding: 12, fontWeight: 700 };

@@ -16,7 +16,6 @@ type Expense = {
   site_id: string | null;
 };
 type SaleMonth = { id: number; site_id: string; year: number; month: number; amount: number; source: string };
-type Product = { id: number; site_id: string | null; name: string; sale_price: number; cost: number };
 
 const KINDS = [
   { value: 'rent', label: 'Alquiler' },
@@ -49,7 +48,6 @@ export default function ForecastSetup() {
   const [companyId, setCompanyId] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [months, setMonths] = useState<SaleMonth[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
   const [kind, setKind] = useState('rent');
   const [concept, setConcept] = useState('');
@@ -62,30 +60,23 @@ export default function ForecastSetup() {
   const [saleYear, setSaleYear] = useState(String(new Date().getFullYear() - 1));
   const [saleMonth, setSaleMonth] = useState(String(new Date().getMonth() + 1));
   const [saleAmount, setSaleAmount] = useState('');
-  const [productName, setProductName] = useState('');
-  const [productPrice, setProductPrice] = useState('');
-  const [productCost, setProductCost] = useState('');
-  const [productSite, setProductSite] = useState('');
 
   const company = companies.find((item) => item.id === companyId);
   const sites = (company?.sites || []).filter((site) => site.active);
   const siteName = (id: string | null) => sites.find((site) => site.id === id)?.name || company?.sites.find((site) => site.id === id)?.name || 'Todos los locales';
 
   const loadCompany = async (id: string) => {
-    const [expenseRes, monthRes, productRes] = await Promise.all([
+    const [expenseRes, monthRes] = await Promise.all([
       fetch(`${API}/api/v1/expenses?tenant_id=${id}`, { headers: authHeaders() }),
       fetch(`${API}/api/v1/sale-months?tenant_id=${id}`, { headers: authHeaders() }),
-      fetch(`${API}/api/v1/products?tenant_id=${id}`, { headers: authHeaders() }),
     ]);
     const expenseBody = await expenseRes.json();
     const monthBody = await monthRes.json();
-    const productBody = await productRes.json();
-    if (!expenseRes.ok || !monthRes.ok || !productRes.ok) {
-      throw new Error('No se pudo leer el seteo.');
+    if (!expenseRes.ok || !monthRes.ok) {
+      throw new Error('No se pudo leer el setup.');
     }
     setExpenses(expenseBody.items || []);
     setMonths(monthBody.items || []);
-    setProducts(productBody.items || []);
   };
 
   useEffect(() => {
@@ -109,7 +100,7 @@ export default function ForecastSetup() {
     try {
       await loadCompany(id);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'No se pudo leer el seteo.');
+      setError(reason instanceof Error ? reason.message : 'No se pudo leer el setup.');
     }
   };
 
@@ -184,49 +175,15 @@ export default function ForecastSetup() {
     await loadCompany(companyId);
   };
 
-  const addProduct = async (event: FormEvent) => {
-    event.preventDefault();
-    setError('');
-    const response = await fetch(`${API}/api/v1/products?tenant_id=${companyId}`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        name: productName,
-        sale_price: productPrice,
-        cost: productCost || '0',
-        site_id: productSite || null,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setError(detail(data, 'No se pudo guardar el producto.'));
-      return;
-    }
-    setProductName('');
-    setProductPrice('');
-    setProductCost('');
-    await loadCompany(companyId);
-  };
-
-  const removeProduct = async (id: number) => {
-    setError('');
-    const response = await fetch(`${API}/api/v1/products/${id}?tenant_id=${companyId}`, { method: 'DELETE', headers: authHeaders() });
-    if (!response.ok) {
-      setError('No se pudo quitar el producto.');
-      return;
-    }
-    await loadCompany(companyId);
-  };
-
   const years = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - index);
 
   return (
     <main style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 72px' }}>
         <BackDashboard />
-        <div style={{ fontSize: 13, color: '#635bff', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 18 }}>Aparte del alta</div>
-        <h1 style={{ margin: '8px 0 0', fontSize: 32 }}>Seteo</h1>
-        <p style={{ color: '#64748b' }}>Gastos de los próximos 12 meses, ventas pasadas y lo que cuesta cada producto. Con eso Horizonte dice si gana.</p>
+        <div style={{ fontSize: 13, color: '#635bff', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 18 }}>Una vez</div>
+        <h1 style={{ margin: '8px 0 0', fontSize: 32 }}>Setup</h1>
+        <p style={{ color: '#64748b' }}>Gastos y ventas pasadas, una vez para el grupo. Los precios y costos van en Productos. Después solo se toca si cambia un importe, o si das de alta o de baja un negocio.</p>
         {companies.length > 1 && (
           <label style={{ display: 'block', marginTop: 12 }}>
             <span style={label}>Sociedad</span>
@@ -314,33 +271,10 @@ export default function ForecastSetup() {
         </section>
 
         <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Productos</h2>
-          <p style={muted}>Precio de venta y lo que cuesta hacerlo. El facturador suele tener el precio. El costo sale del escandallo del TPV, o se escribe aquí.</p>
-          <form onSubmit={addProduct}>
-            <div style={grid}>
-              <input aria-label="Nombre del producto" value={productName} placeholder="Nombre" onChange={(event) => setProductName(event.target.value)} style={field} />
-              <input aria-label="Precio de venta" value={productPrice} inputMode="decimal" placeholder="Precio de venta" onChange={(event) => setProductPrice(event.target.value)} style={field} />
-              <input aria-label="Costo" value={productCost} inputMode="decimal" placeholder="Costo" onChange={(event) => setProductCost(event.target.value)} style={field} />
-              {sites.length > 0 && (
-                <select aria-label="Local del producto" value={productSite} onChange={(event) => setProductSite(event.target.value)} style={field}>
-                  <option value="">Todos los locales</option>
-                  {sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-                </select>
-              )}
-            </div>
-            <button type="submit" style={{ ...primary, marginTop: 12 }}>Añadir producto</button>
-          </form>
-          <ul style={list}>
-            {products.map((item) => (
-              <li key={item.id} style={row}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <div style={muted}>{siteName(item.site_id)} · venta {euros(item.sale_price)} · costo {euros(item.cost)}</div>
-                </div>
-                <button type="button" onClick={() => removeProduct(item.id)} style={quiet}>Quitar</button>
-              </li>
-            ))}
-          </ul>
+          <p style={{ marginTop: 0, background: '#eef2ff', color: '#312e81', borderRadius: 12, padding: '12px 14px', fontWeight: 800 }}>Esta información es necesaria para armar Horizonte y Salud de Caja.</p>
+          <h2 style={{ marginBottom: 8 }}>Productos</h2>
+          <p style={muted}>Precio y costo, una sola vez. No se repite por local.</p>
+          <Link to="/productos" style={{ ...link, display: 'inline-block', marginTop: 12 }}>Abrir productos</Link>
         </section>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 8 }}>

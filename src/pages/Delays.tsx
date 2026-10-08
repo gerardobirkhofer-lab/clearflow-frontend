@@ -100,7 +100,7 @@ export default function Delays() {
       setError('No se pudo guardar la TNA.');
       return;
     }
-    setSaved('TNA guardada en el seteo.');
+    setSaved('TNA guardada en el setup.');
   };
 
   return (
@@ -120,7 +120,7 @@ export default function Delays() {
               <span>%</span>
               <button type="button" onClick={saveRate}>Guardar</button>
             </div>
-            <p>La tasa que escribes es una Tasa Nominal Anual. Es la misma que queda en el seteo.</p>
+            <p>La tasa que escribes es una Tasa Nominal Anual. Es la misma que queda en el setup.</p>
             {saved && <p className="ok">{saved}</p>}
           </div>
           <div className="box loss">
