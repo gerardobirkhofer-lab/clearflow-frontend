@@ -20,6 +20,8 @@ interface Tx {
   type: string;
   provider_name?: string;
   matched?: boolean;
+  source?: string;
+  bank_name?: string;
 }
 
 export default function Dashboard() {
@@ -30,7 +32,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<any>({});
   const [recent, setRecent] = useState<Tx[]>([]);
   const [error, setError] = useState<string | null>(null);
-    const [smartCheckDate, setSmartCheckDate] = useState<string | null>(null);
+  const [smartCheckDate, setSmartCheckDate] = useState<string | null>(null);
 
   useEffect(() => {
     const tenantData = JSON.parse(localStorage.getItem('tenant') || '{}');
@@ -74,39 +76,42 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dashRes, recRes] = await Promise.all([
-        fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`, { headers: getAuth() }),
-        fetch(`${API}/api/v1/reconciliation/status?tenant_id=${tenantId}`, { headers: getAuth() }),
-      ]);
-
+      const dashRes = await fetch(
+        `${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`,
+        { headers: getAuth() },
+      );
       if (!dashRes.ok) throw new Error(`Dashboard error: ${dashRes.status}`);
-      if (!recRes.ok) throw new Error(`Reconciliation error: ${recRes.status}`);
 
       const dashData = await dashRes.json();
-      const recData = await recRes.json();
 
-      const hasData = dashData.summary && (
-        (dashData.summary.bank_transactions || 0) > 0 ||
-        (dashData.summary.provider_transactions || 0) > 0 ||
-        (dashData.recent_activity || []).length > 0
-      );
+      let recData: any = {};
+      try {
+        const recRes = await fetch(
+          `${API}/api/v1/reconciliation/status?tenant_id=${tenantId}`,
+          { headers: getAuth() },
+        );
+        if (recRes.ok) recData = await recRes.json();
+      } catch {
+        // Reconciliation status is optional for the dashboard snapshot
+      }
 
-      if (!hasData) throw new Error('No dashboard data');
-
-      setSummary({ ...dashData.summary, ...recData });
+      setSummary({ ...(dashData.summary || {}), ...recData });
       setSmartCheckDate(null);
 
       const activity = (dashData.recent_activity || [])
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''))
-        .slice(0, 10)
+        .slice(0, 25)
         .map((item: any) => ({
           id: item.id,
           concept: item.concept || '—',
           amount: item.amount || 0,
-          date: item.date ? item.date.split('T')[0] : '—',
+          date: item.date ? String(item.date).split('T')[0] : '—',
           status: item.matched ? 'matched' : 'unmatched',
           type: item.type || (item.provider_name ? 'provider' : 'bank'),
           provider_name: item.provider_name,
+          matched: !!item.matched,
+          source: item.source,
+          bank_name: item.bank_name,
         }));
       setRecent(activity);
     } catch (err: any) {
@@ -145,10 +150,13 @@ export default function Dashboard() {
   }
 
   const s = summary;
-  const totalTx = (s.bank_transactions || 0) + (s.provider_transactions || 0);
-  const matchedTx = (s.matched_bank || 0) + (s.matched_provider || 0);
-  const pendingTx = (s.pending_bank || 0) + (s.pending_provider || 0);
-  const collectionRate = s.collection_rate || (totalTx ? (matchedTx / totalTx * 100) : 0);
+  const bankTxCount = s.bank_transactions || s.bank_count || 0;
+  const providerTxCount = s.provider_transactions || s.provider_count || 0;
+  const obCount = s.open_banking_transactions || 0;
+  const matchedCount = s.matched_count || 0;
+  const pendingCount = s.pending_count || Math.max(0, bankTxCount - matchedCount);
+  const collectionRate = s.collection_rate || (bankTxCount ? (matchedCount / bankTxCount * 100) : 0);
+  const hasMovements = bankTxCount > 0 || providerTxCount > 0 || recent.length > 0;
 
   const tierColors: Record<string, { bg: string; color: string }> = {
     starter: { bg: '#f1f5f9', color: '#64748b' },
@@ -157,6 +165,13 @@ export default function Dashboard() {
   };
   const currentTier = tenant?.tier || 'starter';
   const tierStyle = tierColors[currentTier] || tierColors.starter;
+
+  const sourceLabel = (tx: Tx) => {
+    if (tx.source === 'open_banking') return 'Open Banking';
+    if (tx.source === 'csv') return 'CSV';
+    if (tx.type === 'provider') return tx.provider_name || 'Proveedor';
+    return tx.type === 'bank' ? 'Banco' : 'Proveedor';
+  };
 
   return (
     <div className="print-full" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
@@ -220,7 +235,11 @@ export default function Dashboard() {
         </div>
       )}
 
-
+      {obCount > 0 && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
+          🏦 {obCount} movimientos sincronizados por Open Banking
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
@@ -233,27 +252,128 @@ export default function Dashboard() {
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.matched')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{matchedTx}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{matchedCount}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{collectionRate.toFixed(0)}% {t('dashboard.rate')}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.unmatched')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{pendingTx}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{pendingCount}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{t('dashboard.needsAttention')}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.bankTxns')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{s.bank_transactions || 0}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{bankTxCount}</div>
+          {obCount > 0 && (
+            <div style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>{obCount} Open Banking</div>
+          )}
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.providerTxns')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{s.provider_transactions || 0}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{providerTxCount}</div>
         </div>
+      </div>
+
+      <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🏦 Movimientos recientes</h2>
+          <Link to="/payment-check" style={{ fontSize: 13, fontWeight: 600, color: '#635bff', textDecoration: 'none' }}>
+            Ver verificación de pagos →
+          </Link>
+        </div>
+
+        {!hasMovements ? (
+          <div style={{ padding: '28px 12px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Todavía no hay movimientos</div>
+            <div style={{ fontSize: 14, marginBottom: 16 }}>
+              Conectá el banco en Setup (Open Banking) o subí un extracto CSV.
+            </div>
+            <Link
+              to="/setup"
+              style={{ display: 'inline-block', padding: '10px 18px', borderRadius: 8, background: '#635bff', color: 'white', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}
+            >
+              Ir a Setup → Banco
+            </Link>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '2fr 1fr 1fr 120px 110px',
+              padding: '10px 12px',
+              background: '#f8fafc',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginBottom: 4,
+              minWidth: 640,
+            }}>
+              <div>Concepto</div>
+              <div style={{ textAlign: 'right' }}>Monto</div>
+              <div style={{ textAlign: 'right' }}>Fecha</div>
+              <div style={{ textAlign: 'center' }}>Origen</div>
+              <div style={{ textAlign: 'center' }}>Estado</div>
+            </div>
+            {recent.map((tx) => (
+              <div
+                key={`${tx.type}-${tx.id}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1fr 1fr 120px 110px',
+                  padding: '12px',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #f1f5f9',
+                  minWidth: 640,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{tx.concept}</div>
+                  {tx.bank_name && (
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{tx.bank_name}</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14, color: tx.amount >= 0 ? '#166534' : '#991b1b' }}>
+                  {tx.amount >= 0 ? '+' : ''}{formatMoney(tx.amount)}
+                </div>
+                <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{tx.date || '—'}</div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: tx.source === 'open_banking' ? '#d1fae5' : tx.type === 'bank' ? '#dbeafe' : '#f3e8ff',
+                    color: tx.source === 'open_banking' ? '#065f46' : tx.type === 'bank' ? '#1e40af' : '#7c3aed',
+                  }}>
+                    {sourceLabel(tx)}
+                  </span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: tx.matched ? '#dcfce7' : '#fee2e2',
+                    color: tx.matched ? '#166534' : '#991b1b',
+                  }}>
+                    {tx.matched ? 'Conciliado' : 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
         <h2 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 700 }}>⚡ Acciones Rápidas</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Link to="/payment-check" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            ⚡ Verificación de Pagos
+          </Link>
           <Link to="/mismatch-tracker" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             ⚠️ Ver Discrepancias
           </Link>
@@ -266,14 +386,8 @@ export default function Dashboard() {
           <Link to="/reports" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #d1fae5', background: '#f0fdf4', color: '#166534', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             📊 Ver Informes
           </Link>
-          <Link to="/revenue-control" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7e22ce', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            💰 Control de Ingresos (Beta)
-          </Link>
-          <Link to="/statistics" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ccfbf1', background: '#f0fdfa', color: '#0f766e', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📈 Estadísticas
-          </Link>
-          <Link to="/profitability" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fef08a', background: '#fefce8', color: '#854d0e', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📉 Rentabilidad
+          <Link to="/setup" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #d1fae5', background: '#ecfdf5', color: '#065f46', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            🏦 Banco / Open Banking
           </Link>
         </div>
       </div>
