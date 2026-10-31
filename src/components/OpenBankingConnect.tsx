@@ -26,6 +26,24 @@ const API = (import.meta.env.VITE_API_URL || '').includes('railway')
   ? import.meta.env.VITE_API_URL
   : import.meta.env.VITE_API_URL || 'https://clearflow-api-production.up.railway.app';
 
+function friendlyBankName(id: string, name: string): string {
+  if (id === 'demo' || id.includes('demobank') || /demo bank/i.test(name)) {
+    return 'Banco demo (prueba)';
+  }
+  return name.replace(/\s*\(sandbox alias\)/i, '').trim() || name;
+}
+
+function statusLabel(status?: string): string {
+  switch ((status || '').toLowerCase()) {
+    case 'connected':
+      return 'Conectado';
+    case 'pending':
+      return 'Pendiente de autorización';
+    default:
+      return status || 'Sin conexión';
+  }
+}
+
 export default function OpenBankingConnect({ tenantId }: Props) {
   const [loading, setLoading] = useState(true);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -37,7 +55,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState(false);
-  const [providerName, setProviderName] = useState('tink');
+  const [providerName, setProviderName] = useState('Tink');
 
   const connected = connections.some((c) => c.status === 'connected');
   const activeConnection = connections.find((c) => c.status === 'connected') || connections[0];
@@ -49,15 +67,11 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       setMessage(
         `Banco conectado${params.get('accounts') ? ` (${params.get('accounts')} cuentas)` : ''}. Ya puedes sincronizar movimientos.`,
       );
-      // Clean query without reload
-      const url = new URL(window.location.href);
-      url.search = '';
-      window.history.replaceState({}, '', url.pathname);
+      // Replace history so browser Back does not return to Tink
+      window.history.replaceState({}, '', '/setup');
     } else if (ob === 'error') {
       setError(params.get('error') || 'Error en la autorización bancaria');
-      const url = new URL(window.location.href);
-      url.search = '';
-      window.history.replaceState({}, '', url.pathname);
+      window.history.replaceState({}, '', '/setup');
     }
   }, []);
 
@@ -83,10 +97,26 @@ export default function OpenBankingConnect({ tenantId }: Props) {
 
       if (instRes.ok) {
         const data = await instRes.json();
-        const list: Institution[] = data.institutions || [];
-        setInstitutions(list);
-        if (list.some((i) => i.id === 'demo')) setSelectedBank('demo');
-        else if (list[0]) setSelectedBank(list[0].id);
+        const raw: Institution[] = data.institutions || [];
+        // One clean demo entry for the pitch; drop duplicate alias rows
+        const cleaned: Institution[] = [];
+        let demoAdded = false;
+        for (const inst of raw) {
+          const isDemo =
+            inst.id === 'demo' ||
+            inst.id.includes('demobank') ||
+            /demo bank/i.test(inst.name || '');
+          if (isDemo) {
+            if (demoAdded) continue;
+            cleaned.push({ id: 'demo', name: 'Banco demo (prueba)', logo: inst.logo });
+            demoAdded = true;
+            continue;
+          }
+          cleaned.push({ ...inst, name: friendlyBankName(inst.id, inst.name) });
+        }
+        setInstitutions(cleaned);
+        if (cleaned.some((i) => i.id === 'demo')) setSelectedBank('demo');
+        else if (cleaned[0]) setSelectedBank(cleaned[0].id);
       } else if (instRes.status === 503) {
         setConfigured(false);
       }
@@ -105,7 +135,9 @@ export default function OpenBankingConnect({ tenantId }: Props) {
   const filteredBanks = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return institutions.slice(0, 40);
-    return institutions.filter((b) => b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q)).slice(0, 40);
+    return institutions
+      .filter((b) => b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q))
+      .slice(0, 40);
   }, [institutions, search]);
 
   const connectBank = async () => {
@@ -158,7 +190,12 @@ export default function OpenBankingConnect({ tenantId }: Props) {
         setError(typeof data.detail === 'string' ? data.detail : 'Error al sincronizar movimientos');
         return;
       }
-      setMessage(`Sincronizado: ${data.synced_count ?? 0} movimientos de ${data.accounts ?? 0} cuentas`);
+      const count = data.synced_count ?? 0;
+      setMessage(
+        count > 0
+          ? `Sincronizado: ${count} movimientos de ${data.accounts ?? 0} cuentas`
+          : `Sincronización OK: no hay movimientos nuevos (${data.accounts ?? 0} cuentas)`,
+      );
       await bootstrap();
     } catch (err: any) {
       setError(err?.message || 'Error de conexión');
@@ -170,7 +207,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
   if (loading) {
     return (
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', marginBottom: 16, color: '#64748b' }}>
-        Cargando Open Banking…
+        Cargando conexión bancaria…
       </div>
     );
   }
@@ -180,9 +217,9 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div style={{ fontSize: 24 }}>🏦</div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Open Banking</div>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Conexión bancaria (Open Banking)</div>
           <div style={{ fontSize: 13, color: '#64748b' }}>
-            {connected ? '🟢 Conectado' : configured ? '⚪ Listo para conectar' : '⚪ No configurado en servidor'}
+            {connected ? '🟢 Conectado' : configured ? '⚪ Listo para conectar' : '⚪ No configurado en el servidor'}
             {' · '}
             {providerName}
           </div>
@@ -190,8 +227,8 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       </div>
 
       <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 16 }}>
-        Conecta la cuenta del negocio con consentimiento PSD2 (~90 días) y sincroniza movimientos automáticamente.
-        En sandbox usa <strong>Tink Demo Bank</strong>.
+        Conecta la cuenta del negocio con consentimiento PSD2 (aprox. 90 días) y sincroniza movimientos automáticamente.
+        Para la demo usa <strong>Banco demo (prueba)</strong>.
       </p>
 
       {error && (
@@ -208,7 +245,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
 
       {!configured && (
         <div style={{ padding: 12, borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 13 }}>
-          Open Banking no está configurado en el API. Revisa las variables Tink en Railway.
+          La conexión bancaria no está configurada en el servidor. Revisa las variables de Tink en Railway.
         </div>
       )}
 
@@ -217,14 +254,14 @@ export default function OpenBankingConnect({ tenantId }: Props) {
           {activeConnection && (
             <div style={{ padding: 12, borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: 14, fontSize: 13 }}>
               <div>
-                <strong>Estado:</strong> {activeConnection.status}
+                <strong>Estado:</strong> {statusLabel(activeConnection.status)}
                 {activeConnection.extra?.account_ids?.length
                   ? ` · ${activeConnection.extra.account_ids.length} cuentas`
                   : ''}
               </div>
               {activeConnection.last_sync_at && (
                 <div style={{ color: '#64748b', marginTop: 4 }}>
-                  Última sync: {new Date(activeConnection.last_sync_at).toLocaleString('es-ES')}
+                  Última sincronización: {new Date(activeConnection.last_sync_at).toLocaleString('es-ES')}
                   {typeof activeConnection.extra?.last_sync_count === 'number'
                     ? ` · ${activeConnection.extra.last_sync_count} movimientos`
                     : ''}
@@ -238,7 +275,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Santander, BBVA, Demo…"
+              placeholder="Santander, BBVA, demo…"
               style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, marginBottom: 8 }}
             />
             <select
@@ -295,7 +332,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
           </div>
 
           <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 10 }}>
-            🔒 ClearFlow no ve tu contraseña del banco. La autorización la hace Tink / el banco con tu consentimiento.
+            🔒 ClearFlow no ve la contraseña del banco. La autorización la hace el banco (vía Tink) con tu consentimiento.
           </div>
         </>
       )}

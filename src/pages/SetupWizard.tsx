@@ -752,18 +752,34 @@ export default function SetupWizard() {
       )}
 
       {/* NAVIGATION BUTTONS */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid #e2e8f0' }}>
-        <button
-          onClick={prevStep}
-          disabled={step === 1}
-          style={{
-            padding: '12px 28px', borderRadius: 8, border: '1px solid #e2e8f0',
-            background: 'white', color: step === 1 ? '#94a3b8' : '#0f172a',
-            fontSize: 14, fontWeight: 600, cursor: step === 1 ? 'not-allowed' : 'pointer',
-          }}
-        >
-          ← Anterior
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid #e2e8f0', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={prevStep}
+            disabled={step === 1}
+            style={{
+              padding: '12px 28px', borderRadius: 8, border: '1px solid #e2e8f0',
+              background: 'white', color: step === 1 ? '#94a3b8' : '#0f172a',
+              fontSize: 14, fontWeight: 600, cursor: step === 1 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            ← Anterior
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.setItem('onboardingComplete', 'true');
+              window.location.href = '/hub';
+            }}
+            style={{
+              padding: '12px 20px', borderRadius: 8, border: '1px solid #c7d2fe',
+              background: '#eef2ff', color: '#4338ca',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            🏠 Salir al inicio
+          </button>
+        </div>
 
         <button
           onClick={nextStep}

@@ -18,8 +18,14 @@ export default function BackButton({
   const handleBack = () => {
     if (to) {
       navigate(to);
-    } else {
+      return;
+    }
+    // After external redirects (Tink/banks), history.back() can trap the user.
+    // Prefer an in-app destination when there is little useful history.
+    if (window.history.length > 2) {
       navigate(-1);
+    } else {
+      navigate(fallbackTo);
     }
   };
 

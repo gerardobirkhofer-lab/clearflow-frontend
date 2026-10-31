@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StripeConnect from '../components/StripeConnect';
 import OpenBankingConnect from '../components/OpenBankingConnect';
+import BackButton from '../components/BackButton';
 
 interface Client {
   id: string;
@@ -42,6 +44,7 @@ interface ProviderFee {
 
 export default function Setup() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'clients' | 'providers' | 'bank_accounts' | 'privacy' | 'cloud'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -161,11 +164,19 @@ export default function Setup() {
   };
 
   const deleteAllData = () => {
-    localStorage.removeItem('tenant');
-    localStorage.removeItem('clearflow_auto_purge');
-    localStorage.removeItem('clearflow_purge_days');
-    alert('All local data cleared. Refreshing...');
-    window.location.href = '/login';
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        key.startsWith('clearflow') ||
+        key === 'token' ||
+        key === 'user' ||
+        key === 'tenant' ||
+        key === 'onboardingComplete'
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
+    alert('Datos locales eliminados. Volviendo al inicio de sesión…');
+    navigate('/login', { replace: true });
   };
 
   const totalStores = clients.reduce((sum, c) => sum + c.stores.length, 0);
@@ -174,23 +185,8 @@ export default function Setup() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-      <button
-          onClick={() => window.location.href = '/hub'}
-          style={{
-            display: 'inline-block',
-            padding: '10px 18px',
-            marginBottom: 20,
-            backgroundColor: '#f1f5f9',
-            border: '1px solid #cbd5e1',
-            borderRadius: 8,
-            color: '#475569',
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: 'pointer'
-          }}
-        >
-          ← Volver al Panel
-        </button>
+      {/* Always go to hub — browser Back breaks after Tink/Open Banking redirects */}
+      <BackButton to="/hub" label="Volver al Panel" fallbackTo="/hub" />
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
           ⚙️ {t('setup.title')}
@@ -597,7 +593,7 @@ export default function Setup() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('setup.bankAccounts')} (manual)</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('setup.bankAccounts')} (manual / CSV)</h2>
             <button onClick={() => setShowAddBank(true)} style={{
               padding: '8px 16px', borderRadius: 8, border: 'none', background: '#635bff',
               color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
