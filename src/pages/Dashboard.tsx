@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ExportModal from '../components/ExportModal';
+import BackButton from '../components/BackButton';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
 // Force Railway API in production — Vercel env var may be stale
@@ -159,6 +160,7 @@ export default function Dashboard() {
 
   return (
     <div className="print-full" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <BackButton />
       <style>{`
         @media print {
           nav, .no-print { display: none !important; }
