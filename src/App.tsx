@@ -62,12 +62,20 @@ function AppContent() {
     <>
       {isLoggedIn && !hideNav && (
         <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            // When collapsed, don't steal clicks from page buttons (Volver / Inicio).
+            pointerEvents: menuVisible ? 'auto' : 'none',
+          }}
           onMouseLeave={() => setMenuVisible(false)}
         >
           {!menuVisible && (
             <div
-              style={{ height: 10, width: '100%', cursor: 'default' }}
+              style={{ height: 12, width: '100%', cursor: 'default', pointerEvents: 'auto' }}
               onMouseEnter={() => setMenuVisible(true)}
             />
           )}
@@ -82,6 +90,11 @@ function AppContent() {
               flexWrap: 'wrap',
               transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
               transition: 'transform 0.3s ease',
+              pointerEvents: menuVisible ? 'auto' : 'none',
+              position: menuVisible ? 'relative' : 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
             }}
           >
             <Link to="/hub" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 700 }}>🏠 {t('nav.home', 'Inicio')}</Link>
@@ -99,7 +112,7 @@ function AppContent() {
             <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
             <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
             <div style={{ flex: 1 }}></div>
-            <button onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
+            <button type="button" onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
           </nav>
         </div>
       )}
