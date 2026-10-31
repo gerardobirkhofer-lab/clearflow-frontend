@@ -235,6 +235,10 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
+        <strong>Piloto cerrado (Fase 0).</strong> Vista operativa — no sustituye un cierre contable firmado.
+      </div>
+
       {obCount > 0 && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
           🏦 {obCount} movimientos sincronizados por Open Banking

@@ -214,6 +214,11 @@ export default function PaymentCheck() {
         </p>
       </div>
 
+      <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
+        <strong>Piloto cerrado (Fase 0).</strong> ClearFlow propone emparejamientos; aún no es un cierre contable firmado.
+        Validá siempre con vuestros extractos antes de tomar decisiones de negocio.
+      </div>
+
       {obCount > 0 && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
           {obCount} movimientos de Open Banking · {summaryCounts.bank} movimientos banco en total (vista limitada a recientes / pendientes)
@@ -322,12 +327,18 @@ export default function PaymentCheck() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
             <div style={{ fontWeight: 600, color: '#0f172a' }}>
-              {transactions.length === 0 ? 'Sin movimientos cargados' : 'Sin resultados en esta pestaña'}
+              {transactions.length === 0
+                ? 'Sin movimientos cargados'
+                : activeTab === 'unmatched'
+                  ? 'No hay pendientes en esta muestra'
+                  : 'Sin resultados en esta pestaña'}
             </div>
             <div style={{ fontSize: 13, marginTop: 4 }}>
               {transactions.length === 0
-                ? 'Sincronizá Open Banking en Setup o subí un CSV.'
-                : `No hay movimientos ${activeTab === 'matched' ? 'conciliados' : 'en esta vista'}.`}
+                ? 'Sincronizá Open Banking en Setup o subí un CSV. Esto no significa que esté todo conciliado.'
+                : activeTab === 'unmatched'
+                  ? 'Puede haber más pendientes fuera de la muestra (limit 50). Revisá totales arriba.'
+                  : `No hay movimientos ${activeTab === 'matched' ? 'conciliados en la muestra' : 'en esta vista'}.`}
             </div>
             {transactions.length === 0 && (
               <Link to="/setup" style={{ display: 'inline-block', marginTop: 16, color: '#635bff', fontWeight: 600, fontSize: 13 }}>

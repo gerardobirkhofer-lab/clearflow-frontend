@@ -26,6 +26,11 @@ const API = (import.meta.env.VITE_API_URL || '').includes('railway')
   ? import.meta.env.VITE_API_URL
   : 'https://clearflow-api-production.up.railway.app';
 
+const authHeaders = (extra: Record<string, string> = {}) => ({
+  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+  ...extra,
+});
+
 function apiDetail(data: any, fallback: string) {
   if (typeof data?.detail === 'string') return data.detail;
   if (Array.isArray(data?.detail)) {
@@ -108,8 +113,13 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       const [statusRes, instRes, connRes] = await Promise.all([
         fetch(`${API}/api/v1/open-banking/status`),
         fetch(`${API}/api/v1/open-banking/institutions?country=ES`),
-        fetch(`${API}/api/v1/open-banking/connections/${tenantId}`),
+        fetch(`${API}/api/v1/open-banking/connections/${tenantId}`, {
+          headers: authHeaders(),
+        }),
       ]);
+      if (connRes.status === 401 || connRes.status === 403) {
+        setError('Sesión inválida o sin acceso a este negocio. Volvé a iniciar sesión.');
+      }
 
       if (statusRes.ok) {
         const status = await statusRes.json();
@@ -173,7 +183,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
     try {
       const res = await fetch(`${API}/api/v1/open-banking/link`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           tenant_id: tenantId,
           institution_id: selectedBank,
@@ -206,6 +216,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
     try {
       const res = await fetch(`${API}/api/v1/open-banking/sync/${tenantId}?days=90`, {
         method: 'POST',
+        headers: authHeaders(),
       });
       const data = await res.json();
       if (!res.ok) {
