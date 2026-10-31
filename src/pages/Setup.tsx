@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import StripeConnect from '../components/StripeConnect';
+import OpenBankingConnect from '../components/OpenBankingConnect';
 
 interface Client {
   id: string;
@@ -89,6 +90,11 @@ export default function Setup() {
       const cfg = JSON.parse(savedCloud);
       setCloudConfig(cfg);
       setCloudConnected(!!cfg.host && !!cfg.database);
+    }
+    // After Tink/Open Banking callback we land on /setup?open_banking=...
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('open_banking')) {
+      setActiveSection('bank_accounts');
     }
   }, []);
 
@@ -582,8 +588,16 @@ export default function Setup() {
 
       {activeSection === 'bank_accounts' && (
         <div>
+          {tenantId ? (
+            <OpenBankingConnect tenantId={tenantId} />
+          ) : (
+            <div style={{ padding: 16, borderRadius: 12, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontSize: 13, marginBottom: 20 }}>
+              No hay tenant activo. Inicia sesión de nuevo para conectar el banco.
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('setup.bankAccounts')}</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('setup.bankAccounts')} (manual)</h2>
             <button onClick={() => setShowAddBank(true)} style={{
               padding: '8px 16px', borderRadius: 8, border: 'none', background: '#635bff',
               color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
