@@ -111,26 +111,31 @@ function AppContent() {
           <Route path="/wizard" element={isLoggedIn ? <OnboardingWizard /> : <Navigate to="/login" />} />
           <Route path="/setup-wizard" element={isLoggedIn ? <SetupWizard /> : <Navigate to="/login" />} />
           <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
-          <Route path="/hub" element={<PostLoginHub />} />
-          <Route path="/tenant-selector" element={<TenantSelector />} />
+          {/* /app is the ClearView CTA entry into the product */}
+          <Route
+            path="/app"
+            element={isLoggedIn ? <Navigate to="/hub" replace /> : <Navigate to="/login" replace />}
+          />
+          <Route path="/hub" element={isLoggedIn ? <PostLoginHub /> : <Navigate to="/login" replace />} />
+          <Route path="/tenant-selector" element={isLoggedIn ? <TenantSelector /> : <Navigate to="/login" replace />} />
           <Route path="/tenants" element={<Navigate to="/tenant-selector" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/statistics" element={<Statistics />} />
-          <Route path="/profitability" element={<Profitability />} />
-          <Route path="/revenue-control" element={<RevenueControl />} />
-          <Route path="/mismatch-tracker" element={<MismatchTracker />} />
-          <Route path="/dispute-tracker" element={<DisputeTracker />} />
-          <Route path="/communications" element={<Communications />} />
-          <Route path="/reconciliation" element={<SmartCheckStatus />} />
-          <Route path="/payment-check" element={<PaymentCheck />} />
+          <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
+          <Route path="/statistics" element={isLoggedIn ? <Statistics /> : <Navigate to="/login" replace />} />
+          <Route path="/profitability" element={isLoggedIn ? <Profitability /> : <Navigate to="/login" replace />} />
+          <Route path="/revenue-control" element={isLoggedIn ? <RevenueControl /> : <Navigate to="/login" replace />} />
+          <Route path="/mismatch-tracker" element={isLoggedIn ? <MismatchTracker /> : <Navigate to="/login" replace />} />
+          <Route path="/dispute-tracker" element={isLoggedIn ? <DisputeTracker /> : <Navigate to="/login" replace />} />
+          <Route path="/communications" element={isLoggedIn ? <Communications /> : <Navigate to="/login" replace />} />
+          <Route path="/reconciliation" element={isLoggedIn ? <SmartCheckStatus /> : <Navigate to="/login" replace />} />
+          <Route path="/payment-check" element={isLoggedIn ? <PaymentCheck /> : <Navigate to="/login" replace />} />
           <Route path="/upload-center" element={<Navigate to="/smartcheck-wizard" />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/setup" element={<Setup />} />
+          <Route path="/reports" element={isLoggedIn ? <Reports /> : <Navigate to="/login" replace />} />
+          <Route path="/setup" element={isLoggedIn ? <Setup /> : <Navigate to="/login" replace />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
-          <Route path="/smartcheck-wizard" element={<SmartCheckWizard />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/smartcheck-wizard" element={isLoggedIn ? <SmartCheckWizard /> : <Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </>
