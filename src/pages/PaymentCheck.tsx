@@ -54,26 +54,35 @@ export default function PaymentCheck() {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token || ''}` };
 
-      // Fast path only: dashboard aggregates + capped samples (never the full 3k+ list)
-      const dashRes = await fetch(
-        `${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`,
-        { headers },
-      );
-      if (!dashRes.ok) {
+      // Fast path: dashboard + capped unreconciled list (limit=50) — never the full 3k+ dump
+      const [dashRes, listRes] = await Promise.all([
+        fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`, { headers }),
+        fetch(
+          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=0`,
+          { headers },
+        ),
+      ]);
+
+      if (!dashRes.ok && !listRes.ok) {
         const data = await dashRes.json().catch(() => ({}));
         throw new Error(apiDetail(data, `Error cargando movimientos (${dashRes.status})`));
       }
-      const dashData = await dashRes.json();
+
+      const dashData = dashRes.ok ? await dashRes.json() : {};
+      const listData = listRes.ok ? await listRes.json() : { transactions: [] };
       const s = dashData.summary || {};
 
-      const unmatchedBank: Transaction[] = (dashData.discrepancies?.unmatched_bank || []).map((t: any) => ({
+      const unmatchedBank: Transaction[] = (listData.transactions?.length
+        ? listData.transactions
+        : dashData.discrepancies?.unmatched_bank || []
+      ).map((t: any) => ({
         id: t.id,
         concept: t.concept || '—',
         amount: t.amount || 0,
-        date: t.date || '',
+        date: t.date || t.transaction_date || '',
         type: 'bank' as const,
         matched: false,
-        source: t.source || 'bank',
+        source: t.source || (t.filename === 'open_banking' ? 'open_banking' : 'bank'),
         bank_name: t.bank_name,
       }));
       const matchedBank: Transaction[] = (dashData.discrepancies?.matched_bank || []).map((t: any) => ({
@@ -115,12 +124,16 @@ export default function PaymentCheck() {
       const all = Array.from(byKey.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
       setTransactions(all);
-      setObCount(s.open_banking_transactions || all.filter((t) => t.source === 'open_banking').length);
+      setObCount(
+        listData.open_banking_count
+        ?? s.open_banking_transactions
+        ?? all.filter((t) => t.source === 'open_banking').length,
+      );
       setSummaryCounts({
-        bank: s.bank_transactions || 0,
-        pendingBank: s.pending_count != null
+        bank: s.bank_transactions || listData.total_count || 0,
+        pendingBank: s.matched_count != null
           ? Math.max(0, (s.bank_transactions || 0) - (s.matched_count || 0))
-          : unmatchedBank.length,
+          : (listData.total_count || unmatchedBank.length),
         pendingProvider: unmatchedProv.length,
       });
     } catch (err: any) {
