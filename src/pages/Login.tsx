@@ -6,10 +6,46 @@ interface LoginProps {
   onLogin?: () => void;
 }
 
-// Demo fallback credentials
-const DEMO_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6ImRlbW9AY2xlYXJmbG93LmxvY2FsIiwiZXhwIjo5OTk5OTk5OTk5fQ.demo';
-const DEMO_USER = {"id": 1, "email": "demo@clearflow.local", "name": "Demo User", "role": "self_owner"};
-const DEMO_TENANT = {"id": "22222222-2222-2222-2222-222222222222", "name": "Demo Restaurant", "tier": "starter"};
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
+
+function persistTenant(user: any, extra?: { name?: string; tier?: string }) {
+  const tenantId = user?.tenant_id;
+  if (!tenantId) return false;
+  localStorage.setItem(
+    'tenant',
+    JSON.stringify({
+      id: tenantId,
+      name: extra?.name || user?.name || 'Mi negocio',
+      tier: extra?.tier || 'starter',
+    }),
+  );
+  return true;
+}
+
+async function enrichTenantFromApi(token: string) {
+  try {
+    const res = await fetch(`${API}/api/v1/tenants/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const tenant = await res.json();
+    if (tenant?.id) {
+      localStorage.setItem(
+        'tenant',
+        JSON.stringify({
+          id: tenant.id,
+          name: tenant.name || 'Mi negocio',
+          tier: tenant.tier || 'starter',
+          slug: tenant.slug,
+        }),
+      );
+    }
+  } catch {
+    // Keep tenant from user.tenant_id if /me fails
+  }
+}
 
 export default function Login({ onLogin }: LoginProps) {
   const { t } = useTranslation();
@@ -19,79 +55,77 @@ export default function Login({ onLogin }: LoginProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [role, setRole] = useState('self_owner');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     const endpoint = mode === 'login' ? 'login' : 'register';
-    const body = mode === 'login' 
+    const body = mode === 'login'
       ? { email, password }
       : { email, password, name, role };
-    
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/${endpoint}`, {
+      const res = await fetch(`${API}/api/v1/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      
-      // Error de credenciales u otro error HTTP: mostrar mensaje real, NO activar demo
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok || data.detail) {
-        setError(data.detail || (mode === 'login' ? 'Email o contraseña incorrectos' : 'Error al registrar cuenta'));
+        const detail = typeof data.detail === 'string'
+          ? data.detail
+          : (mode === 'login' ? 'Email o contraseña incorrectos' : 'Error al registrar cuenta');
+        setError(detail);
         return;
       }
-      
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+
+      if (!data.token || !data.user) {
+        setError('Respuesta de autenticación incompleta');
+        return;
+      }
+
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
+
+      // Always bind session to the account's real tenant — never invent DEMO here
+      const hasTenant = persistTenant(data.user);
+      if (!hasTenant) {
+        setError('La cuenta no tiene tenant asignado. Contacta soporte.');
+        return;
+      }
+      await enrichTenantFromApi(data.token);
+
       if (onLogin) onLogin();
-      
-      // Check onboarding status - redirect new users to Welcome/Wizard
+
       const onboardingComplete = localStorage.getItem('onboardingComplete');
       if (!onboardingComplete) {
         navigate('/welcome');
         return;
       }
-      
-      // Onboarding done - go to HUB (not dashboard directly)
-      try {
-        const tenantRes = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/tenants/`, {
-          headers: { Authorization: `Bearer ${data.token}` }
-        });
-        const tenantData = await tenantRes.json();
-        const tenantCount = tenantData.tenants?.length || 0;
-        if (data.user.role === 'accountant' || tenantCount === 0) {
-          navigate('/tenants');
-        } else {
-          navigate('/hub');
-        }
-      } catch {
-        localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-        navigate('/hub');
+
+      if (data.user.role === 'accountant') {
+        navigate('/tenants');
+        return;
       }
+
+      navigate('/hub');
     } catch (err: any) {
-      // DEMO FALLBACK SOLO para errores de red (backend caido, sin conexion)
-      const isNetworkError = err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('Failed') || err.message?.includes('Network');
+      const isNetworkError =
+        err?.name === 'TypeError' ||
+        err?.message?.includes('fetch') ||
+        err?.message?.includes('Failed') ||
+        err?.message?.includes('Network');
       if (isNetworkError) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.setItem('token', DEMO_TOKEN);
-        localStorage.setItem('user', JSON.stringify(DEMO_USER));
-        localStorage.setItem('tenant', JSON.stringify(DEMO_TENANT));
-        if (onLogin) onLogin();
-        const onboardingComplete = localStorage.getItem('onboardingComplete');
-        if (!onboardingComplete) {
-          navigate('/welcome');
-        } else {
-          navigate('/hub');
-        }
+        setError('No hay conexión con el servidor. Revisa la red e inténtalo de nuevo — no se activa modo demo automático.');
       } else {
         setError('Error inesperado. Intenta de nuevo.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -101,29 +135,29 @@ export default function Login({ onLogin }: LoginProps) {
       <p style={{ textAlign: 'center', color: '#64748b', marginBottom: 32 }}>
         {mode === 'login' ? t('login.subtitle') : t('login.createAccount')}
       </p>
-      
+
       <form onSubmit={handleSubmit}>
         {mode === 'register' && (
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
               {t('login.fullName')}
             </label>
-            <input value={name} onChange={e => setName(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+            <input value={name} onChange={(e) => setName(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
           </div>
         )}
-        
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
             {t('login.email')}
           </label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
         </div>
-        
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
             {t('login.password')}
           </label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
         </div>
 
         {mode === 'register' && (
@@ -131,33 +165,45 @@ export default function Login({ onLogin }: LoginProps) {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>
               {t('login.iAmA')}
             </label>
-            <select value={role} onChange={e => setRole(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}>
+            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}>
               <option value="self_owner">{t('login.businessOwner')}</option>
               <option value="accountant">{t('login.accountant')}</option>
             </select>
           </div>
         )}
-        
-        {error && error !== 'backend-error' && <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>❌ {error}</div>}
-        
-        <button type="submit" style={{ width: '100%', padding: '12px', background: '#635bff', color: 'white', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-          {mode === 'login' ? t('login.signIn') : t('login.createAccountBtn')}
+
+        {error && (
+          <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: '#635bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: submitting ? 'not-allowed' : 'pointer',
+            opacity: submitting ? 0.7 : 1,
+          }}
+        >
+          {submitting ? '…' : mode === 'login' ? t('login.signIn') : t('login.createAccountBtn')}
         </button>
       </form>
-      
+
       <p style={{ textAlign: 'center', marginTop: 24, color: '#64748b', fontSize: 14 }}>
         {mode === 'login' ? t('login.noAccount') : t('login.hasAccount')}
         <span onClick={() => setMode(mode === 'login' ? 'register' : 'login')} style={{ color: '#635bff', fontWeight: 600, cursor: 'pointer' }}>
           {mode === 'login' ? t('login.register') : t('login.signIn')}
         </span>
       </p>
-
-      <div style={{ marginTop: 24, padding: 16, background: '#f8fafc', borderRadius: 8, textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
-          <strong>{t('login.demoAccount')}</strong><br/>
-          {t('login.demoEmail')} / {t('login.demoPassword')}
-        </p>
-      </div>
     </div>
   );
 }

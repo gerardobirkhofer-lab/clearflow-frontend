@@ -24,7 +24,29 @@ interface Props {
 
 const API = (import.meta.env.VITE_API_URL || '').includes('railway')
   ? import.meta.env.VITE_API_URL
-  : import.meta.env.VITE_API_URL || 'https://clearflow-api-production.up.railway.app';
+  : 'https://clearflow-api-production.up.railway.app';
+
+function apiDetail(data: any, fallback: string) {
+  if (typeof data?.detail === 'string') return data.detail;
+  if (Array.isArray(data?.detail)) {
+    return data.detail.map((d: any) => d?.msg || JSON.stringify(d)).join('; ');
+  }
+  return fallback;
+}
+
+function friendlySyncError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes('token') || lower.includes('unauthorized') || lower.includes('expired') || lower.includes('401')) {
+    return 'La autorización del banco caducó. Volvé a conectar el banco (no hace falta borrar datos ya sincronizados).';
+  }
+  if (lower.includes('not configured') || lower.includes('503')) {
+    return 'Open Banking no está configurado en el servidor.';
+  }
+  if (lower.includes('no connected')) {
+    return 'No hay banco conectado para este negocio. Conectá primero.';
+  }
+  return raw;
+}
 
 function friendlyBankName(id: string, name: string): string {
   if (id === 'demo' || id.includes('demobank') || /demo bank/i.test(name)) {
@@ -161,7 +183,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(typeof data.detail === 'string' ? data.detail : 'No se pudo crear el enlace bancario');
+        setError(apiDetail(data, 'No se pudo crear el enlace bancario'));
         return;
       }
       if (!data.link) {
@@ -187,18 +209,23 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(typeof data.detail === 'string' ? data.detail : 'Error al sincronizar movimientos');
+        setError(friendlySyncError(apiDetail(data, 'Error al sincronizar movimientos')));
         return;
       }
       const count = data.synced_count ?? 0;
+      const accounts = data.accounts ?? 0;
+      if (accounts === 0 && count === 0) {
+        setError('La sincronización no vio cuentas. Reconectá el banco e intentá de nuevo.');
+        return;
+      }
       setMessage(
         count > 0
-          ? `Sincronizado: ${count} movimientos de ${data.accounts ?? 0} cuentas`
-          : `Sincronización OK: no hay movimientos nuevos (${data.accounts ?? 0} cuentas)`,
+          ? `Sincronizado: ${count} movimientos nuevos de ${accounts} cuentas`
+          : `Sincronización OK: no hay movimientos nuevos (${accounts} cuentas). Los anteriores siguen en Dashboard.`,
       );
       await bootstrap();
     } catch (err: any) {
-      setError(err?.message || 'Error de conexión');
+      setError(friendlySyncError(err?.message || 'Error de conexión al sincronizar'));
     } finally {
       setSyncing(false);
     }
