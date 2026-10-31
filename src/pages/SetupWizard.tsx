@@ -769,7 +769,7 @@ export default function SetupWizard() {
             type="button"
             onClick={() => {
               localStorage.setItem('onboardingComplete', 'true');
-              window.location.href = '/hub';
+              window.location.assign('/hub');
             }}
             style={{
               padding: '12px 20px', borderRadius: 8, border: '1px solid #c7d2fe',

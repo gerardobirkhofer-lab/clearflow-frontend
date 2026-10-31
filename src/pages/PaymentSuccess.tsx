@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -37,17 +37,20 @@ export default function PaymentSuccess() {
         </div>
       )}
 
-      <Link to="/dashboard" style={{
-        display: 'inline-block',
-        background: '#635bff',
-        color: 'white',
-        padding: '12px 32px',
-        borderRadius: 8,
-        textDecoration: 'none',
-        fontWeight: 600
-      }}>
+      <a
+        href="/hub"
+        style={{
+          display: 'inline-block',
+          background: '#635bff',
+          color: 'white',
+          padding: '12px 32px',
+          borderRadius: 8,
+          textDecoration: 'none',
+          fontWeight: 600,
+        }}
+      >
         Volver al Panel
-      </Link>
+      </a>
     </div>
   );
 }

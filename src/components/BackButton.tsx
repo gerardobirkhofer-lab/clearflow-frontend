@@ -1,42 +1,42 @@
-import { useNavigate } from 'react-router-dom';
-
 interface BackButtonProps {
+  /** Explicit destination for "Volver". Defaults to hub. */
   to?: string;
   label?: string;
+  /** Destination for "Ir al Inicio". Defaults to hub. */
   fallbackTo?: string;
   showHome?: boolean;
 }
 
+/**
+ * In-app back/home controls.
+ * Uses full page navigation (location.assign) so buttons still work after
+ * external redirects (Tink Open Banking) where React Router history is unreliable.
+ */
 export default function BackButton({
-  to,
+  to = '/hub',
   label,
   fallbackTo = '/hub',
   showHome = true,
 }: BackButtonProps) {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    if (to) {
-      navigate(to);
-      return;
-    }
-    // After external redirects (Tink/banks), history.back() can trap the user.
-    // Prefer an in-app destination when there is little useful history.
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate(fallbackTo);
-    }
-  };
-
-  const handleHome = () => {
-    navigate(fallbackTo);
+  const go = (path: string) => {
+    const target = path.startsWith('/') ? path : `/${path}`;
+    window.location.assign(target);
   };
 
   return (
-    <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 10,
+        marginBottom: 20,
+        flexWrap: 'wrap',
+        position: 'relative',
+        zIndex: 20,
+      }}
+    >
       <button
-        onClick={handleBack}
+        type="button"
+        onClick={() => go(to)}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -56,7 +56,8 @@ export default function BackButton({
       </button>
       {showHome && (
         <button
-          onClick={handleHome}
+          type="button"
+          onClick={() => go(fallbackTo)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
