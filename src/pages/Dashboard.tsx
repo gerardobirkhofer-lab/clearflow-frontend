@@ -153,9 +153,10 @@ export default function Dashboard() {
   const bankTxCount = s.bank_transactions || s.bank_count || 0;
   const providerTxCount = s.provider_transactions || s.provider_count || 0;
   const obCount = s.open_banking_transactions || 0;
-  const matchedCount = s.matched_count || 0;
-  const pendingCount = s.pending_count || Math.max(0, bankTxCount - matchedCount);
-  const collectionRate = s.collection_rate || (bankTxCount ? (matchedCount / bankTxCount * 100) : 0);
+  // Prefer reconciliation status (confirmed/pending) when present — same truth as Payment Check
+  const matchedCount = s.confirmed_bank ?? s.matched_bank ?? s.matched_count ?? 0;
+  const pendingCount = s.pending_bank ?? s.pending_count ?? Math.max(0, bankTxCount - matchedCount);
+  const collectionRate = bankTxCount ? (matchedCount / bankTxCount * 100) : (s.collection_rate || 0);
   const hasMovements = bankTxCount > 0 || providerTxCount > 0 || recent.length > 0;
 
   const tierColors: Record<string, { bg: string; color: string }> = {
@@ -236,8 +237,9 @@ export default function Dashboard() {
       )}
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Auto-conciliación sin tu intervención.</strong> Solo se confirman pares con evidencia fuerte
-        (referencia + importe exactos). Lo dudoso queda pendiente — no hay cola de “confirmar” para el cliente.
+        <strong>Propuesta del motor · no es un cierre firmado.</strong> Solo se confirman pares con evidencia fuerte
+        (referencia/settlement + importe o neto/bruto−fee). Lo dudoso queda <em>Pendiente</em>.{' '}
+        <Link to="/trial-report" style={{ color: '#635bff', fontWeight: 700 }}>Ver informe de ensayo →</Link>
       </div>
 
       {obCount > 0 && (
@@ -256,14 +258,14 @@ export default function Dashboard() {
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(s.total_sales)}</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.matched')}</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Confirmados</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{matchedCount}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{collectionRate.toFixed(0)}% {t('dashboard.rate')}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{collectionRate.toFixed(0)}% del banco</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.unmatched')}</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Pendientes</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{pendingCount}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{t('dashboard.needsAttention')}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>sin evidencia suficiente</div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.bankTxns')}</div>
@@ -364,7 +366,7 @@ export default function Dashboard() {
                     background: tx.matched ? '#dcfce7' : '#fee2e2',
                     color: tx.matched ? '#166534' : '#991b1b',
                   }}>
-                    {tx.matched || tx.status === 'matched' ? 'Auto-confirmado' : 'Pendiente evidencia'}
+                    {tx.matched || tx.status === 'matched' ? 'Confirmado' : 'Pendiente'}
                   </span>
                 </div>
               </div>
@@ -376,6 +378,9 @@ export default function Dashboard() {
       <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
         <h2 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 700 }}>⚡ Acciones Rápidas</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Link to="/trial-report" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #c7d2fe', background: '#eef2ff', color: '#3730a3', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            🧪 Informe de ensayo
+          </Link>
           <Link to="/payment-check" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             ⚡ Verificación de Pagos
           </Link>

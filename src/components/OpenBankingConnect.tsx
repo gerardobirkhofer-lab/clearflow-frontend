@@ -66,6 +66,10 @@ function statusLabel(status?: string): string {
       return 'Conectado';
     case 'pending':
       return 'Pendiente de autorización';
+    case 'needs_reconnect':
+    case 'expired':
+    case 'revoked':
+      return 'Hay que reconectar el banco';
     default:
       return status || 'Sin conexión';
   }
@@ -84,8 +88,14 @@ export default function OpenBankingConnect({ tenantId }: Props) {
   const [configured, setConfigured] = useState(false);
   const [providerName, setProviderName] = useState('Tink');
 
-  const connected = connections.some((c) => c.status === 'connected');
-  const activeConnection = connections.find((c) => c.status === 'connected') || connections[0];
+  const needsReconnect = connections.some((c) =>
+    ['needs_reconnect', 'expired', 'revoked'].includes((c.status || '').toLowerCase()),
+  );
+  const connected = connections.some((c) => c.status === 'connected') && !needsReconnect;
+  const activeConnection =
+    connections.find((c) => (c.status || '').toLowerCase() === 'needs_reconnect')
+    || connections.find((c) => c.status === 'connected')
+    || connections[0];
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -221,6 +231,7 @@ export default function OpenBankingConnect({ tenantId }: Props) {
       const data = await res.json();
       if (!res.ok) {
         setError(friendlySyncError(apiDetail(data, 'Error al sincronizar movimientos')));
+        await bootstrap();
         return;
       }
       const count = data.synced_count ?? 0;
@@ -257,7 +268,13 @@ export default function OpenBankingConnect({ tenantId }: Props) {
         <div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Conexión bancaria (Open Banking)</div>
           <div style={{ fontSize: 13, color: '#64748b' }}>
-            {connected ? '🟢 Conectado' : configured ? '⚪ Listo para conectar' : '⚪ No configurado en el servidor'}
+            {needsReconnect
+              ? '🟠 Hay que reconectar'
+              : connected
+                ? '🟢 Conectado'
+                : configured
+                  ? '⚪ Listo para conectar'
+                  : '⚪ No configurado en el servidor'}
             {' · '}
             {providerName}
           </div>
@@ -269,9 +286,21 @@ export default function OpenBankingConnect({ tenantId }: Props) {
         Para la demo usa <strong>Banco demo (prueba)</strong>.
       </p>
 
+      {needsReconnect && (
+        <div style={{ padding: 12, borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13, marginBottom: 12, lineHeight: 1.45 }}>
+          <strong>La autorización del banco caducó o falló.</strong> Pulsá{' '}
+          <em>Reconectar banco</em> abajo. Los movimientos ya sincronizados <strong>no se borran</strong>.
+        </div>
+      )}
+
       {error && (
         <div style={{ padding: 12, borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, marginBottom: 12 }}>
           ⚠️ {error}
+          {needsReconnect || /caduc|reconect|token|401/i.test(error) ? (
+            <div style={{ marginTop: 8 }}>
+              Usá el botón <strong>Reconectar banco</strong> — no hace falta borrar datos.
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -346,7 +375,13 @@ export default function OpenBankingConnect({ tenantId }: Props) {
                 cursor: connecting ? 'not-allowed' : 'pointer',
               }}
             >
-              {connecting ? '⏳ Abriendo banco…' : connected ? '🔗 Reconectar / añadir banco' : '🔗 Conectar banco'}
+              {connecting
+                ? '⏳ Abriendo banco…'
+                : needsReconnect
+                  ? '🔗 Reconectar banco'
+                  : connected
+                    ? '🔗 Reconectar / añadir banco'
+                    : '🔗 Conectar banco'}
             </button>
 
             <button

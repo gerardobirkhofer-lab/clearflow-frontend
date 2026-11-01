@@ -23,6 +23,7 @@ import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
+import TrialReport from './pages/TrialReport';
 import PilotBanner from './components/PilotBanner';
 
 function AppContent() {
@@ -108,6 +109,7 @@ function AppContent() {
             <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
             <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
             <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
+            <Link to="/trial-report" style={{ textDecoration: 'none', color: '#4338ca', fontWeight: 600 }}>Ensayo</Link>
             <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
             <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
             <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
@@ -143,6 +145,7 @@ function AppContent() {
           <Route path="/communications" element={isLoggedIn ? <Communications /> : <Navigate to="/login" replace />} />
           <Route path="/reconciliation" element={isLoggedIn ? <SmartCheckStatus /> : <Navigate to="/login" replace />} />
           <Route path="/payment-check" element={isLoggedIn ? <PaymentCheck /> : <Navigate to="/login" replace />} />
+          <Route path="/trial-report" element={isLoggedIn ? <TrialReport /> : <Navigate to="/login" replace />} />
           <Route path="/upload-center" element={<Navigate to="/smartcheck-wizard" />} />
           <Route path="/reports" element={isLoggedIn ? <Reports /> : <Navigate to="/login" replace />} />
           <Route path="/setup" element={isLoggedIn ? <Setup /> : <Navigate to="/login" replace />} />
