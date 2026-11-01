@@ -35,7 +35,69 @@ interface ProviderConfig {
   is_virtual_account: boolean;
   transfer_days: string;
   transfer_threshold: string;
+  contract_file_name?: string;
+  contract_file_url?: string;
 }
+
+type ContractGuide = {
+  title: string;
+  steps: string[];
+  tip?: string;
+};
+
+const CONTRACT_GUIDES: Record<string, ContractGuide> = {
+  stripe: {
+    title: 'Stripe — dónde descargar el contrato / tarifas',
+    steps: [
+      'Entra en Stripe Dashboard → Settings (Configuración).',
+      'Abre Billing / Pricing o Account → Legal / Agreements (según tu país).',
+      'Descarga el PDF de Pricing / Fee Schedule o el contrato de condiciones particulares de tu cuenta.',
+      'Si tienes Pricing personalizado: Settings → Pricing → descarga el schedule acordado con Stripe.',
+    ],
+    tip: 'No uses capturas de pantalla ni tarifas públicas genéricas: hace falta el PDF oficial de tu cuenta.',
+  },
+  redsys: {
+    title: 'Redsys / TPV banca — documento oficial',
+    steps: [
+      'Accede a la banca de empresas del banco que te dio el TPV (CaixaBank, Santander, BBVA, Sabadell, etc.).',
+      'Ve a Comercios / TPV / Redsys → Contratos o Documentación contractual.',
+      'Descarga el PDF de condiciones particulares (comisión %, fee fijo, cuota mensual, liquidación).',
+      'Alternativa: pide a tu gestor comercial el contrato firmado del TPV / Redsys.',
+    ],
+    tip: 'El extracto CSV del TPV no sustituye el contrato: ClearFlow necesita las tarifas firmadas.',
+  },
+  tpv: {
+    title: 'TPV físico bancario — contrato de comisiones',
+    steps: [
+      'Entra en banca de empresas → Área comercios / Datáfono / TPV.',
+      'Busca “Condiciones particulares”, “Tarifas TPV” o “Contrato de adquisición”.',
+      'Descarga el PDF firmado (no el resumen comercial genérico).',
+      'Si no aparece online, solicita el PDF a tu gestor del banco emisor del datáfono.',
+    ],
+  },
+  paypal: {
+    title: 'PayPal — tarifas de tu cuenta',
+    steps: [
+      'PayPal Business → Configuración de la cuenta → Pagos / Comisiones.',
+      'Descarga o guarda el PDF/HTML de la tarifa aplicable a tu país y producto.',
+      'Si tienes acuerdo enterprise, usa el contrato comercial firmado con PayPal.',
+    ],
+  },
+  sumup: {
+    title: 'SumUp — condiciones de tarifa',
+    steps: [
+      'SumUp Profile → Settings → Fees / Tarifas.',
+      'Descarga el documento de tarifas de tu plan (o el contrato si eres cuenta negociada).',
+    ],
+  },
+  mercadopago: {
+    title: 'Mercado Pago — costos y contrato',
+    steps: [
+      'Mercado Pago → Tu negocio → Costos / Tarifas.',
+      'Descarga el detalle de comisiones de tu cuenta o el contrato comercial si aplica.',
+    ],
+  },
+};
 
 interface BankAccount {
   id: string;
@@ -61,6 +123,18 @@ export default function SetupWizard() {
   const totalSteps = 8;
   const [societySubStep, setSocietySubStep] = useState(0);
   const [storeSubStep, setStoreSubStep] = useState(0);
+  const [contractHelpOpen, setContractHelpOpen] = useState(true);
+  const [openGuideId, setOpenGuideId] = useState<string | null>(null);
+
+  const onContractFile = (pid: string, file: File | null) => {
+    if (!file) {
+      updateProviderConfig(pid, 'contract_file_name', '');
+      updateProviderConfig(pid, 'contract_file_url', '');
+      return;
+    }
+    updateProviderConfig(pid, 'contract_file_name', file.name);
+    updateProviderConfig(pid, 'contract_file_url', `attached:${file.name}`);
+  };
 
   // Auto-initialize bank accounts when reaching step 6 if empty
   useEffect(() => {
@@ -181,7 +255,7 @@ export default function SetupWizard() {
       if (!exists) {
         setProviderConfigs(cf => ({
           ...cf,
-          [id]: { id, name: providerOptions.find(p => p.id === id)?.name || id, email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '0', payout_days: '3', is_virtual_account: false, transfer_days: '2', transfer_threshold: '100' },
+          [id]: { id, name: providerOptions.find(p => p.id === id)?.name || id, email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '0', payout_days: '3', is_virtual_account: false, transfer_days: '2', transfer_threshold: '100', contract_file_name: '', contract_file_url: '' },
         }));
       }
       return updated;
@@ -260,6 +334,7 @@ export default function SetupWizard() {
           payout_destination: c.is_virtual_account ? 'wallet' : 'bank',
           email: c.email,
           dispute_email: c.email,
+          contract_file_url: c.contract_file_url || (c.contract_file_name ? `attached:${c.contract_file_name}` : undefined),
         };
       });
       await fetch(`${API}/api/v1/providers/contracts/sync`, {
@@ -555,19 +630,113 @@ export default function SetupWizard() {
       {step === 4 && (
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Configura tus proveedores</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Indica los datos de contacto, comisiones y plazos de liquidación para cada proveedor.</p>
+          <p style={{ color: '#64748b', marginBottom: 16 }}>
+            Indica contacto, comisiones y plazos. Las tarifas deben coincidir con el <strong>documento oficial</strong> de cada liquidadora: ClearFlow recalcula el neto de forma independiente y alerta si el banco no cuadra.
+          </p>
+
+          <div style={{ marginBottom: 24, borderRadius: 12, border: '1px solid #c7d2fe', background: '#eef2ff', overflow: 'hidden' }}>
+            <button
+              type="button"
+              onClick={() => setContractHelpOpen(v => !v)}
+              style={{
+                width: '100%', padding: '14px 18px', border: 'none', background: 'transparent',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: 15, color: '#312e81' }}>
+                ¿No encuentras tu contrato?
+              </span>
+              <span style={{ color: '#6366f1', fontSize: 13, fontWeight: 600 }}>
+                {contractHelpOpen ? 'Ocultar guías' : 'Ver guías de descarga'}
+              </span>
+            </button>
+            {contractHelpOpen && (
+              <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: '#4338ca', lineHeight: 1.45 }}>
+                  Rutas exactas para descargar el PDF oficial en las principales pasarelas. Úsalo al rellenar % y fees — no inventes tarifas.
+                </p>
+                {(['stripe', 'redsys', 'tpv'] as const).map((gid) => {
+                  const g = CONTRACT_GUIDES[gid];
+                  const open = openGuideId === gid;
+                  return (
+                    <div key={gid} style={{ background: 'white', borderRadius: 10, border: '1px solid #e0e7ff' }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenGuideId(open ? null : gid)}
+                        style={{
+                          width: '100%', padding: '12px 14px', border: 'none', background: 'transparent',
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{g.title}</span>
+                        <span style={{ color: '#64748b', fontSize: 12 }}>{open ? '−' : '+'}</span>
+                      </button>
+                      {open && (
+                        <ol style={{ margin: '0 14px 14px', paddingLeft: 18, color: '#334155', fontSize: 13, lineHeight: 1.55 }}>
+                          {g.steps.map((s) => (
+                            <li key={s} style={{ marginBottom: 6 }}>{s}</li>
+                          ))}
+                          {g.tip && (
+                            <li style={{ listStyle: 'none', marginLeft: -18, marginTop: 8, padding: '8px 10px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a', color: '#92400e', fontWeight: 600 }}>
+                              {g.tip}
+                            </li>
+                          )}
+                        </ol>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {selectedProviders.map(pid => {
-              const cfg: ProviderConfig = providerConfigs[pid] || { id: '', name: '', email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '', payout_days: '', is_virtual_account: false, transfer_days: '', transfer_threshold: '' };
+              const cfg: ProviderConfig = providerConfigs[pid] || { id: '', name: '', email: '', fee_percent: '', fee_fixed: '', has_iva: false, iva_percent: '21', monthly_fee: '', payout_days: '', is_virtual_account: false, transfer_days: '', transfer_threshold: '', contract_file_name: '', contract_file_url: '' };
               const pInfo = providerOptions.find(p => p.id === pid);
+              const guide = CONTRACT_GUIDES[pid];
               return (
                 <div key={pid} style={{ padding: 28, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
                   <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 24 }}>{pInfo?.icon}</span> {pInfo?.name}
                   </h3>
 
+                  {guide && (
+                    <details style={{ marginBottom: 16, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#475569' }}>
+                        Cómo descargar el contrato de {pInfo?.name}
+                      </summary>
+                      <ol style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
+                        {guide.steps.map((s) => (
+                          <li key={s} style={{ marginBottom: 4 }}>{s}</li>
+                        ))}
+                      </ol>
+                    </details>
+                  )}
+
                   <div style={{ display: 'grid', gap: 16 }}>
+                    <div style={{ padding: 14, borderRadius: 10, border: '1px solid #fecaca', background: '#fef2f2' }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#991b1b', marginBottom: 8, textTransform: 'uppercase' }}>
+                        Subir contrato oficial (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,.PDF,application/pdf,image/*"
+                        onChange={(e) => onContractFile(pid, e.target.files?.[0] || null)}
+                        style={{ width: '100%', fontSize: 13, marginBottom: 10 }}
+                      />
+                      {cfg.contract_file_name ? (
+                        <div style={{ fontSize: 13, color: '#166534', fontWeight: 600, marginBottom: 8 }}>
+                          Adjunto: {cfg.contract_file_name}
+                        </div>
+                      ) : null}
+                      <p style={{ margin: 0, fontSize: 12, color: '#7f1d1d', lineHeight: 1.5 }}>
+                        Para garantizar una precisión matemática del 100% y emitir alertas de discrepancia infalibles
+                        ante las liquidadoras, se requiere el documento oficial. Sin él, ClearFlow tendría que estimar
+                        comisiones — y una estimación inexacta puede comprometer la tesorería del cliente.
+                      </p>
+                    </div>
+
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>Email de consultas y reclamaciones</label>
                       <input value={cfg.email || ''} onChange={e => updateProviderConfig(pid, 'email', e.target.value)} placeholder="soporte@stripe.com" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} />
