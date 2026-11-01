@@ -9,6 +9,8 @@ interface Transaction {
   date: string;
   type: 'bank' | 'provider';
   matched: boolean;
+  match_status?: string;
+  match_evidence?: string | null;
   provider_name?: string;
   source?: string;
   bank_name?: string;
@@ -82,6 +84,8 @@ export default function PaymentCheck() {
         date: t.date || t.transaction_date || '',
         type: 'bank' as const,
         matched: false,
+        match_status: t.match_status || 'pending',
+        match_evidence: t.match_evidence,
         source: t.source || (t.filename === 'open_banking' ? 'open_banking' : 'bank'),
         bank_name: t.bank_name,
       }));
@@ -92,6 +96,8 @@ export default function PaymentCheck() {
         date: t.date || '',
         type: 'bank' as const,
         matched: true,
+        match_status: t.match_status || 'confirmed',
+        match_evidence: t.match_evidence,
         source: t.source || 'bank',
         bank_name: t.bank_name,
       }));
@@ -102,6 +108,7 @@ export default function PaymentCheck() {
         date: t.date || '',
         type: 'provider' as const,
         matched: false,
+        match_status: 'pending',
         source: 'provider',
         provider_name: t.provider_name,
       }));
@@ -111,7 +118,9 @@ export default function PaymentCheck() {
         amount: t.amount || 0,
         date: t.date || '',
         type: (t.type === 'provider' ? 'provider' : 'bank') as 'bank' | 'provider',
-        matched: !!t.matched,
+        matched: !!t.matched || t.match_status === 'confirmed',
+        match_status: t.match_status || (t.matched ? 'confirmed' : 'pending'),
+        match_evidence: t.match_evidence,
         source: t.source,
         bank_name: t.bank_name,
         provider_name: t.provider_name,
@@ -164,9 +173,9 @@ export default function PaymentCheck() {
         setError(apiDetail(data, `La verificación falló (${res.status})`));
         return;
       }
-      const matched = data.matched_count ?? data.matched ?? 0;
+      const confirmed = data.confirmed_count ?? data.matched_count ?? 0;
       setRunMessage(
-        `Verificación completada: ${matched} emparejamientos nuevos. Banco pendiente: ${data.unmatched_bank_count ?? '—'} · Proveedor pendiente: ${data.unmatched_provider_count ?? '—'}`,
+        `Auto-confirmados: ${confirmed} (ref+importe exactos). Pendientes banco: ${data.pending_bank_count ?? data.unmatched_bank_count ?? '—'} · Pendientes proveedor: ${data.pending_provider_count ?? data.unmatched_provider_count ?? '—'}`,
       );
       await fetchTransactions();
     } catch (err: any) {
@@ -215,8 +224,9 @@ export default function PaymentCheck() {
       </div>
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Piloto cerrado (Fase 0).</strong> ClearFlow propone emparejamientos; aún no es un cierre contable firmado.
-        Validá siempre con vuestros extractos antes de tomar decisiones de negocio.
+        <strong>Conciliación automática (sin confirmación tuya).</strong> ClearFlow solo marca
+        <em> Conciliado automáticamente</em> cuando hay referencia e importe exactos. El resto queda
+        <em> Pendiente de evidencia</em> — no hace falta que revises ítem por ítem.
       </div>
 
       {obCount > 0 && (
@@ -256,7 +266,7 @@ export default function PaymentCheck() {
                 textTransform: 'capitalize',
               }}
             >
-              {tab === 'unmatched' ? 'Sin conciliar' : tab === 'matched' ? 'Conciliado' : 'Muestra'}
+              {tab === 'unmatched' ? 'Pendiente evidencia' : tab === 'matched' ? 'Auto-confirmado' : 'Muestra'}
             </button>
           ))}
         </div>
@@ -388,7 +398,7 @@ export default function PaymentCheck() {
                   background: tx.matched ? '#dcfce7' : '#fee2e2',
                   color: tx.matched ? '#166534' : '#991b1b',
                 }}>
-                  {tx.matched ? 'Conciliado' : 'Pendiente'}
+                  {tx.matched || tx.match_status === 'confirmed' ? 'Auto-confirmado' : 'Pendiente evidencia'}
                 </span>
               </div>
             </div>

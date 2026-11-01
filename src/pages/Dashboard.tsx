@@ -106,10 +106,10 @@ export default function Dashboard() {
           concept: item.concept || '—',
           amount: item.amount || 0,
           date: item.date ? String(item.date).split('T')[0] : '—',
-          status: item.matched ? 'matched' : 'unmatched',
+          status: (item.match_status === 'confirmed' || item.matched) ? 'matched' : 'unmatched',
           type: item.type || (item.provider_name ? 'provider' : 'bank'),
           provider_name: item.provider_name,
-          matched: !!item.matched,
+          matched: !!item.matched || item.match_status === 'confirmed',
           source: item.source,
           bank_name: item.bank_name,
         }));
@@ -236,7 +236,8 @@ export default function Dashboard() {
       )}
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Piloto cerrado (Fase 0).</strong> Vista operativa — no sustituye un cierre contable firmado.
+        <strong>Auto-conciliación sin tu intervención.</strong> Solo se confirman pares con evidencia fuerte
+        (referencia + importe exactos). Lo dudoso queda pendiente — no hay cola de “confirmar” para el cliente.
       </div>
 
       {obCount > 0 && (
@@ -363,7 +364,7 @@ export default function Dashboard() {
                     background: tx.matched ? '#dcfce7' : '#fee2e2',
                     color: tx.matched ? '#166534' : '#991b1b',
                   }}>
-                    {tx.matched ? 'Conciliado' : 'Pendiente'}
+                    {tx.matched || tx.status === 'matched' ? 'Auto-confirmado' : 'Pendiente evidencia'}
                   </span>
                 </div>
               </div>
