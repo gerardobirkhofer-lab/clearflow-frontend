@@ -232,7 +232,46 @@ export default function SetupWizard() {
     } else {
       localStorage.setItem('onboardingComplete', 'true');
       saveSetup({ completedAt: new Date().toISOString() });
-      navigate('/hub');
+      void syncContractsToApi().finally(() => navigate('/hub'));
+    }
+  };
+
+  const syncContractsToApi = async () => {
+    try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const token = localStorage.getItem('token');
+      if (!tenant.id || !token) return;
+      const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+        ? import.meta.env.VITE_API_URL
+        : 'https://clearflow-api-production.up.railway.app';
+      const providers = selectedProviders.map((id) => {
+        const c = providerConfigs[id] || ({} as ProviderConfig);
+        return {
+          id,
+          name: c.name || id,
+          provider_type: id,
+          fee_percent: c.fee_percent,
+          fee_fixed: c.fee_fixed,
+          monthly_fee: c.monthly_fee,
+          has_iva: !!c.has_iva,
+          iva_percent: c.iva_percent || '21',
+          payout_days: c.payout_days,
+          is_virtual_account: !!c.is_virtual_account,
+          payout_destination: c.is_virtual_account ? 'wallet' : 'bank',
+          email: c.email,
+          dispute_email: c.email,
+        };
+      });
+      await fetch(`${API}/api/v1/providers/contracts/sync`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tenant_id: tenant.id, providers }),
+      });
+    } catch {
+      // Setup still completes locally; contracts can be re-synced later
     }
   };
 
