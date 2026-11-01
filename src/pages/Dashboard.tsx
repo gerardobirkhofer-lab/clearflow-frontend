@@ -384,20 +384,11 @@ export default function Dashboard() {
           <Link to="/payment-check" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             ⚡ Verificación de Pagos
           </Link>
-          <Link to="/mismatch-tracker" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #fee2e2', background: '#fef2f2', color: '#991b1b', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            ⚠️ Ver Discrepancias
-          </Link>
-          <Link to="/dispute-tracker" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #ffedd5', background: '#fff7ed', color: '#9a3412', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            🔴 Ver Disputas Abiertas
-          </Link>
-          <Link to="/communications" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #dbeafe', background: '#eff6ff', color: '#1e40af', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📧 Ver Comunicaciones
-          </Link>
-          <Link to="/reports" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #d1fae5', background: '#f0fdf4', color: '#166534', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📊 Ver Informes
-          </Link>
           <Link to="/setup" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #d1fae5', background: '#ecfdf5', color: '#065f46', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             🏦 Banco / Open Banking
+          </Link>
+          <Link to="/hub" style={{ textDecoration: 'none', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: '#0f172a', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            🏠 Camino piloto
           </Link>
         </div>
       </div>

@@ -123,6 +123,7 @@ export default function TrialReport() {
               { label: 'Banco', value: totals.bank ?? 0 },
               { label: 'Proveedor', value: totals.provider ?? 0 },
               { label: 'Confirmados', value: totals.confirmed_bank ?? 0, color: '#166534' },
+              { label: 'Sugeridos', value: totals.suggested_bank ?? 0, color: '#b45309' },
               { label: 'Pendientes', value: totals.pending_bank ?? 0, color: '#991b1b' },
               { label: '% confirmado', value: `${totals.confirm_rate_pct ?? 0}%`, color: '#4338ca' },
             ].map((c) => (
@@ -188,9 +189,15 @@ export default function TrialReport() {
                     {s.matched_at ? ` · ${new Date(s.matched_at).toLocaleString('es-ES')}` : ''}
                   </div>
                   <div style={{ color: '#4338ca', marginTop: 4, fontSize: 12 }}>
+                    {s.match_status || 'confirmed'} · {s.evidence?.match_mode || '1:1'} ·{' '}
                     {(s.evidence?.rules_fired || []).join(', ') || 'sin rules_fired'}
                     {s.evidence?.amount_rule ? ` · ${s.evidence.amount_rule}` : ''}
-                    {s.evidence?.provider_tx_id != null ? ` · provider #${s.evidence.provider_tx_id}` : ''}
+                    {s.evidence?.legs_sum != null ? ` · sum ${s.evidence.legs_sum}` : ''}
+                    {Array.isArray(s.evidence?.provider_tx_ids)
+                      ? ` · providers [${s.evidence.provider_tx_ids.join(', ')}]`
+                      : s.evidence?.provider_tx_id != null
+                        ? ` · provider #${s.evidence.provider_tx_id}`
+                        : ''}
                   </div>
                 </div>
               ))

@@ -186,16 +186,58 @@ export default function PaymentCheck() {
         return;
       }
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token || ''}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(apiDetail(data, `La verificación falló (${res.status})`));
-        return;
+      const headers = { Authorization: `Bearer ${token || ''}` };
+
+      // Prefer async job (progress) — fall back to sync if endpoint missing
+      let data: any = null;
+      const asyncRes = await fetch(
+        `${API}/api/v1/reconciliation/run-async?tenant_id=${tenant.id}`,
+        { method: 'POST', headers },
+      );
+      if (asyncRes.ok) {
+        const started = await asyncRes.json();
+        const jobId = started.job_id;
+        setRunMessage('Motor en marcha… 0%');
+        for (let i = 0; i < 90; i++) {
+          await new Promise((r) => setTimeout(r, 500));
+          const jobRes = await fetch(
+            `${API}/api/v1/reconciliation/jobs/${jobId}?tenant_id=${tenant.id}`,
+            { headers },
+          );
+          const job = await jobRes.json().catch(() => ({}));
+          if (!jobRes.ok) {
+            setError(apiDetail(job, 'Error consultando job'));
+            return;
+          }
+          setRunMessage(`Motor en marcha… ${job.progress ?? 0}% (${job.status})`);
+          if (job.status === 'done') {
+            data = job.result || {};
+            break;
+          }
+          if (job.status === 'error') {
+            setError(job.error || 'El job de conciliación falló');
+            return;
+          }
+        }
+        if (!data) {
+          setError('Timeout esperando el job. Probá de nuevo o usá menos datos.');
+          return;
+        }
+      } else {
+        const res = await fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
+          method: 'POST',
+          headers,
+        });
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(apiDetail(data, `La verificación falló (${res.status})`));
+          return;
+        }
       }
+
       const confirmed = data.confirmed_count ?? data.matched_count ?? 0;
+      const oneN = data.confirmed_1n_bank_count ?? 0;
+      const suggested = data.suggested_count ?? 0;
       const rejects = data.reject_reason_counts
         ? Object.entries(data.reject_reason_counts)
             .slice(0, 3)
@@ -203,8 +245,13 @@ export default function PaymentCheck() {
             .join(' · ')
         : '';
       setRunMessage(
-        `Auto-confirmados: ${confirmed}. Pendientes banco: ${data.pending_bank_count ?? data.unmatched_bank_count ?? '—'} · Pendientes proveedor: ${data.pending_provider_count ?? data.unmatched_provider_count ?? '—'}`
-        + (rejects ? ` · Motivos pendientes: ${rejects}` : ''),
+        `Confirmados: ${confirmed}`
+        + (oneN ? ` (de ellos 1:N: ${oneN} abonos)` : '')
+        + (suggested ? ` · Sugeridos (no confirmados): ${suggested}` : '')
+        + ` · Pendientes banco: ${data.pending_bank_count ?? '—'}`
+        + ` · Pendientes proveedor: ${data.pending_provider_count ?? '—'}`
+        + (rejects ? ` · Motivos: ${rejects}` : '')
+        + ` · motor ${data.engine || ''}`.trim(),
       );
       await fetchTransactions();
     } catch (err: any) {
@@ -215,8 +262,8 @@ export default function PaymentCheck() {
   };
 
   const filtered = transactions.filter((t) => {
-    if (activeTab === 'unmatched') return !t.matched;
-    if (activeTab === 'matched') return t.matched;
+    if (activeTab === 'unmatched') return !t.matched; // includes suggested + pending
+    if (activeTab === 'matched') return !!t.matched || t.match_status === 'confirmed';
     return true;
   });
 
@@ -253,9 +300,9 @@ export default function PaymentCheck() {
       </div>
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Auto-confirmación con evidencia.</strong> Se confirma solo con referencia/settlement
-        exactos e importe exacto (o neto / bruto−fee). Cada confirmado guarda el porqué (audit trail).
-        El resto queda <em>Pendiente</em> — expandí una fila confirmada para ver las reglas.
+        <strong>Motor v4 · 1:1 y 1:N.</strong> Confirma con ref/settlement + importe (o neto), o cuando
+        la <em>suma</em> de ventas de un settlement iguala el abono banco (±€0.01). Casi-igual (≤€1) →
+        <em> sugerido</em> (no confirmado). Expandí una fila para ver evidencia / legs.
       </div>
 
       {obCount > 0 && (
@@ -390,7 +437,8 @@ export default function PaymentCheck() {
             const rowKey = `${tx.type}-${tx.id}`;
             const open = expandedId === rowKey;
             const ev = parseEvidence(tx.match_evidence);
-            const canExpand = !!(tx.matched && tx.match_evidence);
+            const isSuggested = tx.match_status === 'suggested';
+            const canExpand = !!tx.match_evidence;
             return (
               <div key={rowKey}>
                 <div
@@ -401,7 +449,7 @@ export default function PaymentCheck() {
                     padding: '14px 20px',
                     alignItems: 'center',
                     borderBottom: open ? 'none' : '1px solid #f1f5f9',
-                    background: !tx.matched ? '#fef2f2' : 'white',
+                    background: isSuggested ? '#fffbeb' : !tx.matched ? '#fef2f2' : 'white',
                     cursor: canExpand ? 'pointer' : 'default',
                   }}
                 >
@@ -443,10 +491,22 @@ export default function PaymentCheck() {
                       borderRadius: 12,
                       fontSize: 11,
                       fontWeight: 600,
-                      background: tx.matched ? '#dcfce7' : '#fee2e2',
-                      color: tx.matched ? '#166534' : '#991b1b',
+                      background: tx.matched || tx.match_status === 'confirmed'
+                        ? '#dcfce7'
+                        : isSuggested
+                          ? '#fef3c7'
+                          : '#fee2e2',
+                      color: tx.matched || tx.match_status === 'confirmed'
+                        ? '#166534'
+                        : isSuggested
+                          ? '#92400e'
+                          : '#991b1b',
                     }}>
-                      {tx.matched || tx.match_status === 'confirmed' ? 'Confirmado' : 'Pendiente'}
+                      {tx.matched || tx.match_status === 'confirmed'
+                        ? 'Confirmado'
+                        : isSuggested
+                          ? 'Sugerido'
+                          : 'Pendiente'}
                     </span>
                   </div>
                 </div>
@@ -460,15 +520,20 @@ export default function PaymentCheck() {
                     lineHeight: 1.5,
                   }}>
                     <div style={{ fontWeight: 700, marginBottom: 4, color: '#0f172a' }}>Evidencia de auto-confirmación</div>
-                    <div>Motor: {String(ev.engine || '—')}</div>
+                    <div>Motor: {String(ev.engine || '—')} · modo: {String(ev.match_mode || '1:1')}</div>
                     <div>Reglas: {Array.isArray(ev.rules_fired) ? (ev.rules_fired as string[]).join(', ') : '—'}</div>
                     <div>Importe banco: {String(ev.bank_amount ?? '—')} · proveedor: {String(ev.provider_amount ?? '—')}
                       {ev.provider_net != null ? ` · neto: ${String(ev.provider_net)}` : ''}
+                      {ev.legs_sum != null ? ` · suma legs: ${String(ev.legs_sum)}` : ''}
                       {ev.provider_fee != null ? ` · fee: ${String(ev.provider_fee)}` : ''}
                     </div>
                     <div>Diff importe: {String(ev.amount_diff ?? '—')} · días: {String(ev.day_diff ?? 'n/d')}</div>
-                    <div>Confirmado por: {String(ev.confirmed_by || 'system_auto')} · {String(ev.confirmed_at || '')}</div>
-                    {ev.provider_tx_id != null && <div>Provider tx: {String(ev.provider_tx_id)}</div>}
+                    <div>Confirmado por: {String(ev.confirmed_by || ev.suggested_by || 'system_auto')} · {String(ev.confirmed_at || ev.suggested_at || '')}</div>
+                    {Array.isArray(ev.provider_tx_ids) && (ev.provider_tx_ids as unknown[]).length > 0 ? (
+                      <div>Provider txs: {(ev.provider_tx_ids as unknown[]).join(', ')}</div>
+                    ) : ev.provider_tx_id != null ? (
+                      <div>Provider tx: {String(ev.provider_tx_id)}</div>
+                    ) : null}
                   </div>
                 )}
               </div>

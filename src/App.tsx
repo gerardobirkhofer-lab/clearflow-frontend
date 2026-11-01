@@ -17,13 +17,12 @@ import PaymentCancel from './pages/PaymentCancel';
 import Login from './pages/Login';
 import TenantSelector from './pages/TenantSelector';
 import Reports from './pages/Reports';
-import MismatchTracker from './pages/MismatchTracker';
 import SmartCheckStatus from './pages/SmartCheckStatus';
 import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
-import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
 import TrialReport from './pages/TrialReport';
+import DemoRetired from './pages/DemoRetired';
 import PilotBanner from './components/PilotBanner';
 
 function AppContent() {
@@ -104,8 +103,6 @@ function AppContent() {
             <Link to="/statistics" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.statistics')}</Link>
             <Link to="/profitability" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.profitability')}</Link>
             <Link to="/revenue-control" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔁 {t('nav.revenue')}</Link>
-            <Link to="/dispute-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🎯 {t('nav.disputes')}</Link>
-            <Link to="/mismatch-tracker" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔍 {t('nav.mismatches')}</Link>
             <Link to="/communications" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>📧 {t('nav.communications')}</Link>
             <Link to="/reconciliation" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reconciliation')}</Link>
             <Link to="/payment-check" style={{ textDecoration: 'none', color: '#0f172a' }}>{t('nav.paymentCheck')}</Link>
@@ -140,8 +137,8 @@ function AppContent() {
           <Route path="/statistics" element={isLoggedIn ? <Statistics /> : <Navigate to="/login" replace />} />
           <Route path="/profitability" element={isLoggedIn ? <Profitability /> : <Navigate to="/login" replace />} />
           <Route path="/revenue-control" element={isLoggedIn ? <RevenueControl /> : <Navigate to="/login" replace />} />
-          <Route path="/mismatch-tracker" element={isLoggedIn ? <MismatchTracker /> : <Navigate to="/login" replace />} />
-          <Route path="/dispute-tracker" element={isLoggedIn ? <DisputeTracker /> : <Navigate to="/login" replace />} />
+          <Route path="/mismatch-tracker" element={isLoggedIn ? <DemoRetired /> : <Navigate to="/login" replace />} />
+          <Route path="/dispute-tracker" element={isLoggedIn ? <DemoRetired /> : <Navigate to="/login" replace />} />
           <Route path="/communications" element={isLoggedIn ? <Communications /> : <Navigate to="/login" replace />} />
           <Route path="/reconciliation" element={isLoggedIn ? <SmartCheckStatus /> : <Navigate to="/login" replace />} />
           <Route path="/payment-check" element={isLoggedIn ? <PaymentCheck /> : <Navigate to="/login" replace />} />
