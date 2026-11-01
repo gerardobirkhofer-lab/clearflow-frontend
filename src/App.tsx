@@ -23,6 +23,7 @@ import SmartCheckWizard from './pages/SmartCheckWizard';
 import Pricing from './pages/Pricing';
 import DisputeTracker from './pages/DisputeTracker';
 import Communications from './pages/Communications';
+import PilotBanner from './components/PilotBanner';
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -118,6 +119,7 @@ function AppContent() {
       )}
 
       <div style={{ fontFamily: 'sans-serif', background: '#f8fafc', minHeight: '100vh' }}>
+        {isLoggedIn && !hideNav && <PilotBanner />}
         <Routes>
           <Route path="/" element={getHomeRoute()} />
           <Route path="/welcome" element={isLoggedIn ? <Welcome /> : <Navigate to="/login" />} />

@@ -14,6 +14,25 @@ interface Transaction {
   provider_name?: string;
   source?: string;
   bank_name?: string;
+  reference?: string;
+}
+
+function parseEvidence(raw: string | null | undefined): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    return typeof raw === 'string' ? JSON.parse(raw) : (raw as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
+function evidenceSummary(raw: string | null | undefined): string {
+  const ev = parseEvidence(raw);
+  if (!ev) return '';
+  const rules = Array.isArray(ev.rules_fired) ? (ev.rules_fired as string[]).join(', ') : '';
+  const amountRule = ev.amount_rule ? `importe=${ev.amount_rule}` : '';
+  const parts = [rules, amountRule].filter(Boolean);
+  return parts.join(' · ');
 }
 
 const API = (import.meta.env.VITE_API_URL || '').includes('railway')
@@ -37,10 +56,25 @@ export default function PaymentCheck() {
   const [summaryCounts, setSummaryCounts] = useState({ bank: 0, pendingBank: 0, pendingProvider: 0 });
   const [error, setError] = useState<string | null>(null);
   const [runMessage, setRunMessage] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  const mapBank = (t: any, matchedDefault: boolean): Transaction => ({
+    id: t.id,
+    concept: t.concept || '—',
+    amount: t.amount || 0,
+    date: t.date || t.transaction_date || '',
+    type: 'bank',
+    matched: matchedDefault || !!t.matched || t.match_status === 'confirmed',
+    match_status: t.match_status || (matchedDefault || t.matched ? 'confirmed' : 'pending'),
+    match_evidence: t.match_evidence,
+    source: t.source || (t.filename === 'open_banking' ? 'open_banking' : 'csv'),
+    bank_name: t.bank_name,
+    reference: t.reference,
+  });
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -56,51 +90,37 @@ export default function PaymentCheck() {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token || ''}` };
 
-      // Fast path: dashboard + capped unreconciled list (limit=50) — never the full 3k+ dump
-      const [dashRes, listRes] = await Promise.all([
+      // Fast path: dashboard + capped lists — never the full 3k+ dump
+      const [dashRes, pendingRes, matchedRes] = await Promise.all([
         fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`, { headers }),
         fetch(
           `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=0`,
           { headers },
         ),
+        fetch(
+          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=1`,
+          { headers },
+        ),
       ]);
 
-      if (!dashRes.ok && !listRes.ok) {
+      if (!dashRes.ok && !pendingRes.ok) {
         const data = await dashRes.json().catch(() => ({}));
         throw new Error(apiDetail(data, `Error cargando movimientos (${dashRes.status})`));
       }
 
       const dashData = dashRes.ok ? await dashRes.json() : {};
-      const listData = listRes.ok ? await listRes.json() : { transactions: [] };
+      const pendingData = pendingRes.ok ? await pendingRes.json() : { transactions: [] };
+      const matchedData = matchedRes.ok ? await matchedRes.json() : { transactions: [] };
       const s = dashData.summary || {};
 
-      const unmatchedBank: Transaction[] = (listData.transactions?.length
-        ? listData.transactions
+      const unmatchedBank: Transaction[] = (pendingData.transactions?.length
+        ? pendingData.transactions
         : dashData.discrepancies?.unmatched_bank || []
-      ).map((t: any) => ({
-        id: t.id,
-        concept: t.concept || '—',
-        amount: t.amount || 0,
-        date: t.date || t.transaction_date || '',
-        type: 'bank' as const,
-        matched: false,
-        match_status: t.match_status || 'pending',
-        match_evidence: t.match_evidence,
-        source: t.source || (t.filename === 'open_banking' ? 'open_banking' : 'bank'),
-        bank_name: t.bank_name,
-      }));
-      const matchedBank: Transaction[] = (dashData.discrepancies?.matched_bank || []).map((t: any) => ({
-        id: t.id,
-        concept: t.concept || '—',
-        amount: t.amount || 0,
-        date: t.date || '',
-        type: 'bank' as const,
-        matched: true,
-        match_status: t.match_status || 'confirmed',
-        match_evidence: t.match_evidence,
-        source: t.source || 'bank',
-        bank_name: t.bank_name,
-      }));
+      ).map((t: any) => mapBank(t, false));
+      const matchedBank: Transaction[] = (matchedData.transactions?.length
+        ? matchedData.transactions
+        : dashData.discrepancies?.matched_bank || []
+      ).map((t: any) => mapBank(t, true));
       const unmatchedProv: Transaction[] = (dashData.discrepancies?.unmatched_provider || []).map((t: any) => ({
         id: t.id,
         concept: t.concept || '—',
@@ -111,6 +131,7 @@ export default function PaymentCheck() {
         match_status: 'pending',
         source: 'provider',
         provider_name: t.provider_name,
+        match_evidence: t.match_evidence,
       }));
       const recent: Transaction[] = (dashData.recent_activity || []).map((t: any) => ({
         id: t.id,
@@ -124,6 +145,7 @@ export default function PaymentCheck() {
         source: t.source,
         bank_name: t.bank_name,
         provider_name: t.provider_name,
+        reference: t.reference,
       }));
 
       const byKey = new Map<string, Transaction>();
@@ -134,15 +156,15 @@ export default function PaymentCheck() {
 
       setTransactions(all);
       setObCount(
-        listData.open_banking_count
+        pendingData.open_banking_count
         ?? s.open_banking_transactions
         ?? all.filter((t) => t.source === 'open_banking').length,
       );
       setSummaryCounts({
-        bank: s.bank_transactions || listData.total_count || 0,
+        bank: s.bank_transactions || pendingData.total_count || 0,
         pendingBank: s.matched_count != null
           ? Math.max(0, (s.bank_transactions || 0) - (s.matched_count || 0))
-          : (listData.total_count || unmatchedBank.length),
+          : (pendingData.total_count || unmatchedBank.length),
         pendingProvider: unmatchedProv.length,
       });
     } catch (err: any) {
@@ -174,8 +196,15 @@ export default function PaymentCheck() {
         return;
       }
       const confirmed = data.confirmed_count ?? data.matched_count ?? 0;
+      const rejects = data.reject_reason_counts
+        ? Object.entries(data.reject_reason_counts)
+            .slice(0, 3)
+            .map(([k, v]) => `${k}:${v}`)
+            .join(' · ')
+        : '';
       setRunMessage(
-        `Auto-confirmados: ${confirmed} (ref+importe exactos). Pendientes banco: ${data.pending_bank_count ?? data.unmatched_bank_count ?? '—'} · Pendientes proveedor: ${data.pending_provider_count ?? data.unmatched_provider_count ?? '—'}`,
+        `Auto-confirmados: ${confirmed}. Pendientes banco: ${data.pending_bank_count ?? data.unmatched_bank_count ?? '—'} · Pendientes proveedor: ${data.pending_provider_count ?? data.unmatched_provider_count ?? '—'}`
+        + (rejects ? ` · Motivos pendientes: ${rejects}` : ''),
       );
       await fetchTransactions();
     } catch (err: any) {
@@ -224,9 +253,9 @@ export default function PaymentCheck() {
       </div>
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Conciliación automática (sin confirmación tuya).</strong> ClearFlow solo marca
-        <em> Conciliado automáticamente</em> cuando hay referencia e importe exactos. El resto queda
-        <em> Pendiente de evidencia</em> — no hace falta que revises ítem por ítem.
+        <strong>Auto-confirmación con evidencia.</strong> Se confirma solo con referencia/settlement
+        exactos e importe exacto (o neto / bruto−fee). Cada confirmado guarda el porqué (audit trail).
+        El resto queda <em>Pendiente</em> — expandí una fila confirmada para ver las reglas.
       </div>
 
       {obCount > 0 && (
@@ -314,7 +343,7 @@ export default function PaymentCheck() {
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', overflow: 'hidden' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '40px 2fr 1fr 1fr 140px 100px',
+          gridTemplateColumns: '40px 2fr 1fr 1fr 140px 120px',
           padding: '14px 20px',
           background: '#f8fafc',
           fontSize: 11,
@@ -357,52 +386,94 @@ export default function PaymentCheck() {
             )}
           </div>
         ) : (
-          filtered.map((tx) => (
-            <div key={`${tx.type}-${tx.id}`} style={{
-              display: 'grid',
-              gridTemplateColumns: '40px 2fr 1fr 1fr 140px 100px',
-              padding: '14px 20px',
-              alignItems: 'center',
-              borderBottom: '1px solid #f1f5f9',
-              background: !tx.matched ? '#fef2f2' : 'white',
-            }}>
-              <div style={{ fontSize: 18 }}>{tx.type === 'bank' ? '🏦' : '💳'}</div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{tx.concept || '—'}</div>
-                {(tx.provider_name || tx.bank_name) && (
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{tx.provider_name || tx.bank_name}</div>
+          filtered.map((tx) => {
+            const rowKey = `${tx.type}-${tx.id}`;
+            const open = expandedId === rowKey;
+            const ev = parseEvidence(tx.match_evidence);
+            const canExpand = !!(tx.matched && tx.match_evidence);
+            return (
+              <div key={rowKey}>
+                <div
+                  onClick={() => canExpand && setExpandedId(open ? null : rowKey)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '40px 2fr 1fr 1fr 140px 120px',
+                    padding: '14px 20px',
+                    alignItems: 'center',
+                    borderBottom: open ? 'none' : '1px solid #f1f5f9',
+                    background: !tx.matched ? '#fef2f2' : 'white',
+                    cursor: canExpand ? 'pointer' : 'default',
+                  }}
+                >
+                  <div style={{ fontSize: 18 }}>{tx.type === 'bank' ? '🏦' : '💳'}</div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{tx.concept || '—'}</div>
+                    {(tx.provider_name || tx.bank_name || tx.reference) && (
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                        {[tx.provider_name || tx.bank_name, tx.reference ? `ref ${tx.reference}` : '']
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    )}
+                    {canExpand && !open && evidenceSummary(tx.match_evidence) && (
+                      <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2 }}>
+                        {evidenceSummary(tx.match_evidence)} · ver evidencia
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14, color: tx.amount >= 0 ? '#166534' : '#991b1b' }}>
+                    {tx.amount >= 0 ? '+' : ''}{formatMonto(tx.amount)}
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{formatFecha(tx.date)}</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: 12,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      background: tx.source === 'open_banking' ? '#d1fae5' : tx.type === 'bank' ? '#dbeafe' : '#f3e8ff',
+                      color: tx.source === 'open_banking' ? '#065f46' : tx.type === 'bank' ? '#1e40af' : '#7c3aed',
+                    }}>
+                      {originLabel(tx)}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: 12,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      background: tx.matched ? '#dcfce7' : '#fee2e2',
+                      color: tx.matched ? '#166534' : '#991b1b',
+                    }}>
+                      {tx.matched || tx.match_status === 'confirmed' ? 'Confirmado' : 'Pendiente'}
+                    </span>
+                  </div>
+                </div>
+                {open && ev && (
+                  <div style={{
+                    padding: '12px 20px 16px 60px',
+                    background: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: 12,
+                    color: '#334155',
+                    lineHeight: 1.5,
+                  }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4, color: '#0f172a' }}>Evidencia de auto-confirmación</div>
+                    <div>Motor: {String(ev.engine || '—')}</div>
+                    <div>Reglas: {Array.isArray(ev.rules_fired) ? (ev.rules_fired as string[]).join(', ') : '—'}</div>
+                    <div>Importe banco: {String(ev.bank_amount ?? '—')} · proveedor: {String(ev.provider_amount ?? '—')}
+                      {ev.provider_net != null ? ` · neto: ${String(ev.provider_net)}` : ''}
+                      {ev.provider_fee != null ? ` · fee: ${String(ev.provider_fee)}` : ''}
+                    </div>
+                    <div>Diff importe: {String(ev.amount_diff ?? '—')} · días: {String(ev.day_diff ?? 'n/d')}</div>
+                    <div>Confirmado por: {String(ev.confirmed_by || 'system_auto')} · {String(ev.confirmed_at || '')}</div>
+                    {ev.provider_tx_id != null && <div>Provider tx: {String(ev.provider_tx_id)}</div>}
+                  </div>
                 )}
               </div>
-              <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14, color: tx.amount >= 0 ? '#166534' : '#991b1b' }}>
-                {tx.amount >= 0 ? '+' : ''}{formatMonto(tx.amount)}
-              </div>
-              <div style={{ textAlign: 'right', fontSize: 13, color: '#64748b' }}>{formatFecha(tx.date)}</div>
-              <div style={{ textAlign: 'center' }}>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: 12,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: tx.source === 'open_banking' ? '#d1fae5' : tx.type === 'bank' ? '#dbeafe' : '#f3e8ff',
-                  color: tx.source === 'open_banking' ? '#065f46' : tx.type === 'bank' ? '#1e40af' : '#7c3aed',
-                }}>
-                  {originLabel(tx)}
-                </span>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: 12,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: tx.matched ? '#dcfce7' : '#fee2e2',
-                  color: tx.matched ? '#166534' : '#991b1b',
-                }}>
-                  {tx.matched || tx.match_status === 'confirmed' ? 'Auto-confirmado' : 'Pendiente evidencia'}
-                </span>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
