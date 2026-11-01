@@ -239,10 +239,18 @@ export default function Dashboard() {
       )}
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Propuesta del motor · no es un cierre firmado.</strong> Solo se confirman pares con evidencia fuerte
-        (referencia/settlement + importe o neto/bruto−fee). Lo dudoso queda <em>Pendiente</em>.{' '}
+        <strong>Propuesta del motor · no es un cierre firmado.</strong> Solo se confirman pares si el apunte bancario
+        cuadra con el neto recalculado desde el contrato (no el neto de la pasarela). Lo dudoso o desviado queda
+        <em> Pendiente</em> o como <em>Discrepancia contractual</em>.{' '}
         <Link to="/trial-report" style={{ color: '#635bff', fontWeight: 700 }}>Ver informe de ensayo →</Link>
       </div>
+
+      {contractualCount > 0 && (
+        <div style={{ marginBottom: 16, padding: '12px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, color: '#991b1b', fontSize: 13, lineHeight: 1.45, fontWeight: 600 }}>
+          {contractualCount} discrepancia(s) contractual(es) bloqueada(s): el banco no encaja con las reglas de comisión del contrato.
+          Alta automática denegada para proteger al cliente.
+        </div>
+      )}
 
       {obCount > 0 && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
