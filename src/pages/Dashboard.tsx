@@ -156,6 +156,8 @@ export default function Dashboard() {
   // Prefer reconciliation status (confirmed/pending) when present — same truth as Payment Check
   const matchedCount = s.confirmed_bank ?? s.matched_bank ?? s.matched_count ?? 0;
   const pendingCount = s.pending_bank ?? s.pending_count ?? Math.max(0, bankTxCount - matchedCount);
+  const contractualCount = s.contractual_discrepancies ?? 0;
+  const gatewayDevCount = s.gateway_fee_deviations ?? 0;
   const collectionRate = bankTxCount ? (matchedCount / bankTxCount * 100) : (s.collection_rate || 0);
   const hasMovements = bankTxCount > 0 || providerTxCount > 0 || recent.length > 0;
 
@@ -266,6 +268,22 @@ export default function Dashboard() {
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Pendientes</div>
           <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{pendingCount}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>sin evidencia suficiente</div>
+        </div>
+        <div style={{
+          padding: 24,
+          borderRadius: 12,
+          border: contractualCount > 0 ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+          background: contractualCount > 0 ? '#fef2f2' : 'white',
+        }}>
+          <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Discrepancias contractuales
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{contractualCount}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+            {gatewayDevCount > 0
+              ? `${gatewayDevCount} desviación(es) vs pasarela`
+              : 'banco ≠ neto del contrato'}
+          </div>
         </div>
         <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('dashboard.bankTxns')}</div>
