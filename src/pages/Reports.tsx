@@ -1,360 +1,181 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import ExportModal from '../components/ExportModal';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 
-const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
-const formatNumber = (n: number) => new Intl.NumberFormat('es-ES').format(n);
-const formatPct = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n) + '%';
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
-interface ReportCard {
-  id: string;
-  icon: string;
-  titleKey: string;
-  descKey: string;
-  filename: string;
-  data: any[];
-  columns: { key: string; label: string }[];
-  dateField: string;
-}
-
+/** Real export / summary only — demo Pura datasets removed. */
 export default function Reports() {
-  const { t } = useTranslation();
-  const [activeReport, setActiveReport] = useState<string | null>(null);
-  const [viewingReport, setViewingReport] = useState<ReportCard | null>(null);
+  const [summary, setSummary] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
 
-  const stores = [
-    { id: 'all', name: t('reports.store') + ' ' + t('common.all') },
-    { id: '1', name: 'Pura Zona Norte' },
-    { id: '2', name: 'Pura Online Shop' },
-  ];
+  const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
 
-  // --- PROVIDER HEALTH DATA (weighted) ---
-  const providerHealthData = [
-    { provider: 'Stripe', volumePct: 65, feePct: 3.0, weightedCost: 1.95, payoutDays: 3, speedRisk: 1.95, health: 'Healthy', recommendation: 'Negotiate 0.2% reduction = €712/year savings', date: '2026-08-01' },
-    { provider: 'Mercado Pago', volumePct: 20, feePct: 3.0, weightedCost: 0.60, payoutDays: 5, speedRisk: 1.00, health: 'Watch', recommendation: 'Acceptable but monitor fee increases', date: '2026-08-01' },
-    { provider: 'TPV / Redsys', volumePct: 10, feePct: 3.5, weightedCost: 0.35, payoutDays: 7, speedRisk: 0.70, health: 'At Risk', recommendation: 'Push for faster settlement or reduce volume', date: '2026-08-01' },
-    { provider: 'Cash / Other', volumePct: 5, feePct: 0.0, weightedCost: 0.00, payoutDays: 0, speedRisk: 0.00, health: 'Healthy', recommendation: 'No fees — encourage where possible', date: '2026-08-01' },
-  ];
+  useEffect(() => {
+    void loadSummary();
+  }, []);
 
-  // --- OTHER DEMO DATASETS ---
-  const dashboardSummaryData = [
-    { metric: 'Ventas Totales', value: '€35.620,00', change: '+12%', period: 'Ago 2026' },
-    { metric: 'Payouts Pendientes', value: '€8.420,00', change: '-3%', period: 'Ago 2026' },
-    { metric: 'Transacciones Conciliadas', value: '1.149', change: '+5%', period: 'Ago 2026' },
-    { metric: 'Transacciones No Conciliadas', value: '23', change: '-8%', period: 'Ago 2026' },
-    { metric: 'Ticket Promedio', value: '€30,52', change: '+2%', period: 'Ago 2026' },
-    { metric: 'Balance Cash Flow', value: '€4.150,00', change: '+18%', period: 'Ago 2026' },
-  ];
-
-  const profitabilityData = [
-    { store: 'Pura Zona Norte', revenue: 15420, fees: 462, costs: 6280, net: 8678, margin: '56,3%', date: '2026-08-01' },
-    { store: 'Pura Online Shop', revenue: 8930, fees: 268, costs: 3100, net: 5562, margin: '62,3%', date: '2026-08-01' },
-    { store: 'Pura Zona Norte', revenue: 14800, fees: 444, costs: 6280, net: 8076, margin: '54,6%', date: '2026-07-01' },
-    { store: 'Pura Online Shop', revenue: 9200, fees: 276, costs: 3100, net: 5824, margin: '63,3%', date: '2026-07-01' },
-  ];
-
-  const mismatchData = [
-    { id: 'TX-001', concept: 'Stripe Payout #4821', expected: 5420, received: 5385, difference: -35, provider: 'Stripe', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-07' },
-    { id: 'TX-002', concept: 'TPV Settlement Aug 5', expected: 3200, received: 3180, difference: -20, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-06' },
-    { id: 'TX-003', concept: 'Mercado Pago Batch', expected: 2100, received: 2095, difference: -5, provider: 'Mercado Pago', store: 'Pura Online Shop', status: 'resuelto', date: '2026-08-05' },
-    { id: 'TX-004', concept: 'Stripe Payout #4819', expected: 4800, received: 4770, difference: -30, provider: 'Stripe', store: 'Pura Online Shop', status: 'en disputa', date: '2026-08-04' },
-    { id: 'TX-005', concept: 'TPV Settlement Aug 3', expected: 2800, received: 0, difference: -2800, provider: 'TPV / Redsys', store: 'Pura Zona Norte', status: 'sin resolver', date: '2026-08-03' },
-  ];
-
-  const feeAnalysisData = [
-    { provider: 'Stripe', cardType: 'Tarjeta de Crédito', transactions: 342, gross: 15420, feeAmount: 462, feePct: '3,0%', avgTicket: 45.09, payoutDays: 3, date: '2026-08-07' },
-    { provider: 'Stripe', cardType: 'Tarjeta de Débito', transactions: 89, gross: 3200, feeAmount: 96, feePct: '3,0%', avgTicket: 35.96, payoutDays: 3, date: '2026-08-07' },
-    { provider: 'TPV / Redsys', cardType: 'Tarjeta de Crédito', transactions: 310, gross: 6200, feeAmount: 186, feePct: '3,0%', avgTicket: 20.00, payoutDays: 7, date: '2026-08-06' },
-    { provider: 'TPV / Redsys', cardType: 'Tarjeta de Débito', transactions: 210, gross: 2730, feeAmount: 82, feePct: '3,0%', avgTicket: 13.00, payoutDays: 7, date: '2026-08-06' },
-    { provider: 'Mercado Pago', cardType: 'Tarjeta de Crédito', transactions: 150, gross: 5200, feeAmount: 156, feePct: '3,0%', avgTicket: 34.67, payoutDays: 5, date: '2026-08-05' },
-    { provider: 'Mercado Pago', cardType: 'Tarjeta de Débito', transactions: 48, gross: 1944, feeAmount: 58, feePct: '3,0%', avgTicket: 40.50, payoutDays: 5, date: '2026-08-05' },
-  ];
-
-  const reconciliationData = [
-    { date: '2026-08-07', concept: 'Stripe Payout #4821', bankAmount: 5385, providerAmount: 5420, difference: -35, status: 'sin coincidir', bank: 'Santander', provider: 'Stripe', store: 'Pura Zona Norte' },
-    { date: '2026-08-06', concept: 'TPV Settlement', bankAmount: 3180, providerAmount: 3200, difference: -20, status: 'sin coincidir', bank: 'BBVA', provider: 'TPV / Redsys', store: 'Pura Zona Norte' },
-    { date: '2026-08-06', concept: 'Bank Fee', bankAmount: -45, providerAmount: 0, difference: -45, status: 'coincide', bank: 'Santander', provider: 'N/A', store: 'Pura Zona Norte' },
-    { date: '2026-08-05', concept: 'Mercado Pago Batch', bankAmount: 2095, providerAmount: 2095, difference: 0, status: 'coincide', bank: 'Santander', provider: 'Mercado Pago', store: 'Pura Online Shop' },
-    { date: '2026-08-04', concept: 'Stripe Payout #4819', bankAmount: 4770, providerAmount: 4770, difference: 0, status: 'coincide', bank: 'BBVA', provider: 'Stripe', store: 'Pura Online Shop' },
-  ];
-
-  const reports: ReportCard[] = [
-    {
-      id: 'dashboard',
-      icon: '📊',
-      titleKey: 'reports.dashboardSummary',
-      descKey: 'reports.dashboardSummaryDesc',
-      filename: 'clearflow_dashboard_summary',
-      data: dashboardSummaryData,
-      columns: [
-        { key: 'metric', label: 'Métrica' },
-        { key: 'value', label: 'Valor' },
-        { key: 'change', label: 'Cambio' },
-        { key: 'period', label: 'Período' },
-      ],
-      dateField: 'period',
-    },
-    {
-      id: 'profitability',
-      icon: '💰',
-      titleKey: 'reports.profitability',
-      descKey: 'reports.profitabilityDesc',
-      filename: 'clearflow_profitability',
-      data: profitabilityData,
-      columns: [
-        { key: 'store', label: 'Tienda' },
-        { key: 'date', label: 'Mes' },
-        { key: 'revenue', label: 'Ingresos (€)' },
-        { key: 'fees', label: 'Comisiones (€)' },
-        { key: 'costs', label: 'Costos (€)' },
-        { key: 'net', label: 'Beneficio Neto (€)' },
-        { key: 'margin', label: 'Margen' },
-      ],
-      dateField: 'date',
-    },
-    {
-      id: 'mismatch',
-      icon: '🔍',
-      titleKey: 'reports.mismatch',
-      descKey: 'reports.mismatchDesc',
-      filename: 'clearflow_mismatches',
-      data: mismatchData,
-      columns: [
-        { key: 'id', label: 'Ref ID' },
-        { key: 'date', label: 'Fecha' },
-        { key: 'store', label: 'Tienda' },
-        { key: 'provider', label: 'Proveedor' },
-        { key: 'concept', label: 'Concepto' },
-        { key: 'expected', label: 'Esperado (€)' },
-        { key: 'received', label: 'Recibido (€)' },
-        { key: 'difference', label: 'Dif. (€)' },
-        { key: 'status', label: 'Estado' },
-      ],
-      dateField: 'date',
-    },
-    {
-      id: 'fees',
-      icon: '💳',
-      titleKey: 'reports.fees',
-      descKey: 'reports.feesDesc',
-      filename: 'clearflow_fee_analysis',
-      data: feeAnalysisData,
-      columns: [
-        { key: 'provider', label: 'Proveedor' },
-        { key: 'cardType', label: 'Tipo de Tarjeta' },
-        { key: 'date', label: 'Fecha' },
-        { key: 'transactions', label: 'Trans.' },
-        { key: 'gross', label: 'Bruto (€)' },
-        { key: 'feeAmount', label: 'Comisiones (€)' },
-        { key: 'feePct', label: '% Comisión' },
-        { key: 'avgTicket', label: 'Ticket Prom.' },
-        { key: 'payoutDays', label: 'Liquidación (d)' },
-      ],
-      dateField: 'date',
-    },
-    {
-      id: 'reconciliation',
-      icon: '🏦',
-      titleKey: 'reports.reconciliation',
-      descKey: 'reports.reconciliationDesc',
-      filename: 'clearflow_reconciliation',
-      data: reconciliationData,
-      columns: [
-        { key: 'date', label: 'Fecha' },
-        { key: 'store', label: 'Tienda' },
-        { key: 'bank', label: 'Banco' },
-        { key: 'provider', label: 'Proveedor' },
-        { key: 'concept', label: 'Concepto' },
-        { key: 'bankAmount', label: 'Banco (€)' },
-        { key: 'providerAmount', label: 'Proveedor (€)' },
-        { key: 'difference', label: 'Dif. (€)' },
-        { key: 'status', label: 'Estado' },
-      ],
-      dateField: 'date',
-    },
-    {
-      id: 'health',
-      icon: '📈',
-      titleKey: 'reports.health',
-      descKey: 'reports.healthDesc',
-      filename: 'clearflow_provider_health',
-      data: providerHealthData,
-      columns: [
-        { key: 'provider', label: 'Proveedor' },
-        { key: 'volumePct', label: '% Volumen' },
-        { key: 'feePct', label: '% Comisión' },
-        { key: 'weightedCost', label: 'Costo Ponderado %' },
-        { key: 'payoutDays', label: 'Liquidación (d)' },
-        { key: 'speedRisk', label: 'Riesgo Velocidad' },
-        { key: 'health', label: 'Salud' },
-        { key: 'recommendation', label: 'Recomendación' },
-      ],
-      dateField: 'date',
-    },
-  ];
-
-  const active = reports.find(r => r.id === activeReport);
-
-  const formatCell = (row: any, key: string) => {
-    const val = row[key];
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') {
-      const k = key.toLowerCase();
-      if (k.includes('pct') || k.includes('margin') || k.includes('change')) {
-        return formatPct(val);
+  const loadSummary = async () => {
+    setError(null);
+    try {
+      if (!tenant.id) {
+        setError('No hay tenant activo.');
+        return;
       }
-      if (k.includes('days') || k.includes('transactions') || k.includes('txns')) {
-        return formatNumber(val);
+      const res = await fetch(`${API}/api/v1/data/summary?tenant_id=${tenant.id}`, { headers: getAuth() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.detail === 'string' ? data.detail : `Error ${res.status}`);
+        return;
       }
-      return formatMoney(val);
+      setSummary(data);
+    } catch (e: any) {
+      setError(e?.message || 'Error de red');
     }
-    return String(val ?? '-');
+  };
+
+  const download = async (format: 'json' | 'csv') => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API}/api/v1/data/export?tenant_id=${tenant.id}&format=${format}&limit=5000`,
+        { headers: getAuth() },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(typeof data.detail === 'string' ? data.detail : `Export falló (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clearflow_export_${tenant.id}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message || 'Error descargando');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const purge = async () => {
+    const ok = window.confirm(
+      '¿Borrar TODOS los movimientos banco/proveedor de este tenant? Irreversible. El login y el tenant se conservan.',
+    );
+    if (!ok) return;
+    const typed = window.prompt('Escribí DELETE para confirmar:');
+    if (typed !== 'DELETE') {
+      setPurgeMsg('Cancelado — hay que escribir DELETE exactamente.');
+      return;
+    }
+    setBusy(true);
+    setPurgeMsg(null);
+    try {
+      const res = await fetch(`${API}/api/v1/data/purge`, {
+        method: 'POST',
+        headers: { ...getAuth(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE', tenant_id: tenant.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.detail === 'string' ? data.detail : `Purge falló (${res.status})`);
+        return;
+      }
+      setPurgeMsg(
+        `Borrados: banco ${data.deleted?.bank_transactions ?? 0}, proveedor ${data.deleted?.provider_transactions ?? 0}.`,
+      );
+      await loadSummary();
+    } catch (e: any) {
+      setError(e?.message || 'Error en purge');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-      {/* HEADER */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-          📥 {t('reports.title')}
-        </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('reports.title')}</h1>
-        <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          {t('reports.subtitle')}
-        </p>
+      <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800 }}>Datos e informes</h1>
+      <p style={{ color: '#64748b' }}>
+        Export real de tu partición (tenant). Las plantillas demo “Pura / Ago 2026” fueron retiradas.
+      </p>
+
+      <div style={{ marginBottom: 16, padding: 12, background: '#0f172a', color: '#e2e8f0', borderRadius: 8, fontSize: 13, lineHeight: 1.45 }}>
+        {summary?.disclaimer
+          || 'Partición lógica por tenant_id en la nube ClearFlow — no es DB dedicada / BYO.'}
       </div>
 
-      {/* STORE FILTER */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>{t('reports.store')}</label>
-        <select style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white', minWidth: 220 }}>
-          {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-      </div>
+      {error && (
+        <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, marginBottom: 12 }}>{error}</div>
+      )}
+      {purgeMsg && (
+        <div style={{ padding: 12, background: '#ecfdf5', color: '#065f46', borderRadius: 8, marginBottom: 12 }}>{purgeMsg}</div>
+      )}
 
-      {/* REPORT CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-        {reports.map(report => (
-          <div key={report.id} style={{ padding: 28, borderRadius: 16, border: '1px solid #e2e8f0', background: 'white', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>{report.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{t(report.titleKey)}</div>
-            <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>{t(report.descKey)}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{report.data.length} {t('reports.records')}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setViewingReport(report)}
-                style={{
-                  flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
-                  background: 'white', color: '#0f172a', fontSize: 13,
-                  fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                👁️ {t('reports.view') || 'Ver'}
-              </button>
-              <button
-                onClick={() => setActiveReport(report.id)}
-                style={{
-                  flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none',
-                  background: '#0f172a', color: 'white', fontSize: 13,
-                  fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                📥 {t('reports.download')}
-              </button>
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Banco', value: summary?.bank_transactions ?? '—' },
+          { label: 'Proveedor', value: summary?.provider_transactions ?? '—' },
+          { label: 'Confirmados', value: summary?.confirmed_bank ?? '—' },
+          { label: 'Pendientes', value: summary?.pending_bank ?? '—' },
+        ].map((c) => (
+          <div key={c.label} style={{ padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>{c.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>{c.value}</div>
           </div>
         ))}
       </div>
 
-      {/* DISCLAIMER */}
-      <div style={{ marginTop: 32, padding: 16, borderRadius: 10, background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
-        <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-          <strong>{t('reports.usage')}:</strong> {t('reports.usageDesc')}
+      <div style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', marginBottom: 16 }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 16 }}>Exportar</h2>
+        <p style={{ fontSize: 13, color: '#64748b', marginTop: 0 }}>
+          Incluye movimientos y <code>match_evidence</code> (hasta 5.000 filas por tabla).
+        </p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={busy || !tenant.id}
+            onClick={() => void download('json')}
+            style={{ padding: '10px 16px', borderRadius: 8, border: 'none', background: '#635bff', color: 'white', fontWeight: 700, cursor: 'pointer' }}
+          >
+            Descargar JSON
+          </button>
+          <button
+            type="button"
+            disabled={busy || !tenant.id}
+            onClick={() => void download('csv')}
+            style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Descargar CSV
+          </button>
+          <Link to="/trial-report" style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #c7d2fe', background: '#eef2ff', color: '#3730a3', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>
+            Informe de ensayo →
+          </Link>
         </div>
       </div>
 
-      {/* VIEW MODAL */}
-      {viewingReport && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 960,
-            boxShadow: '0 24px 80px rgba(0,0,0,0.2)', maxHeight: '90vh', overflow: 'auto',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
-                {viewingReport.icon} {t(viewingReport.titleKey)}
-              </h2>
-              <button
-                onClick={() => setViewingReport(null)}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}
-              >
-                ✕ {t('common.close')}
-              </button>
-            </div>
-
-            <div style={{ overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: 12 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    {viewingReport.columns.map(col => (
-                      <th key={col.key} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {viewingReport.data.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      {viewingReport.columns.map(col => (
-                        <td key={col.key} style={{ padding: '10px 16px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                          {formatCell(row, col.key)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setViewingReport(null)}
-                style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#64748b' }}
-              >
-                {t('common.close')}
-              </button>
-              <button
-                onClick={() => { setActiveReport(viewingReport.id); setViewingReport(null); }}
-                style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
-                📥 {t('reports.download')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EXPORT MODAL */}
-      {active && (
-        <ExportModal
-          isOpen={!!activeReport}
-          onClose={() => setActiveReport(null)}
-          title={t(active.titleKey)}
-          filename={active.filename}
-          data={active.data}
-          columns={active.columns}
-          dateField={active.dateField}
-        />
-      )}
+      <div style={{ padding: 20, border: '1px solid #fecaca', borderRadius: 12, background: '#fef2f2' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 16, color: '#991b1b' }}>Borrar datos del tenant</h2>
+        <p style={{ fontSize: 13, color: '#7f1d1d', marginTop: 0 }}>
+          Purge de movimientos y jobs. No borra el usuario ni el registro del tenant. Irreversible.
+        </p>
+        <button
+          type="button"
+          disabled={busy || !tenant.id}
+          onClick={() => void purge()}
+          style={{ padding: '10px 16px', borderRadius: 8, border: 'none', background: '#991b1b', color: 'white', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Purge (pedir confirmación)
+        </button>
+      </div>
     </div>
   );
 }

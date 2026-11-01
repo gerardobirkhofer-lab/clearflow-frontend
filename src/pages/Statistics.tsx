@@ -1,165 +1,142 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
-const formatNumber = (n: number) => new Intl.NumberFormat('es-ES').format(n || 0);
-const formatPct = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n || 0) + '%';
 
+/** Live stats from trial-report + dashboard — no fabricated card-mix / provider splits. */
 export default function Statistics() {
-  const { t } = useTranslation();
-  const [period, setPeriod] = useState('30d');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totals, setTotals] = useState<any>({});
+  const [rules, setRules] = useState<Record<string, number>>({});
+  const [modes, setModes] = useState<Record<string, number>>({});
+  const [engine, setEngine] = useState('');
 
-  const [smartData, setSmartData] = useState<any>(null);
   useEffect(() => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (raw) setSmartData(JSON.parse(raw));
+    void load();
   }, []);
 
-  const result = smartData?.result || smartData;
-  const totalRevenue = result?.totalAmount || result?.expectedTotal || 0;
-  const totalFees = result?.totalFees || 0;
-  const totalDiff = result?.totalDiscrepancy || result?.differenceTotal || 0;
-  const mismatches = result?.mismatches || 0;
-  const disputes = result?.disputes || 0;
-  const providerTxns = result?.providerTransactions || 0;
-
-  const providers = result ? [
-    { name: 'Stripe', txns: Math.round(providerTxns * 0.45), amount: totalRevenue * 0.52, pct: 2.9, fees: totalFees * 0.55 },
-    { name: 'Redsys', txns: Math.round(providerTxns * 0.38), amount: totalRevenue * 0.35, pct: 1.8, fees: totalFees * 0.30 },
-    { name: 'Mercado Pago', txns: Math.round(providerTxns * 0.17), amount: totalRevenue * 0.13, pct: 3.5, fees: totalFees * 0.15 },
-  ] : [];
-
-  const cardTypes = result ? [
-    { type: 'Visa', pct: 62, amount: totalRevenue * 0.62 },
-    { type: 'Mastercard', pct: 28, amount: totalRevenue * 0.28 },
-    { type: 'Amex', pct: 7, amount: totalRevenue * 0.07 },
-    { type: 'Otras', pct: 3, amount: totalRevenue * 0.03 },
-  ] : [];
-
-  const monthly = result ? [
-    { month: 'Jun', amount: totalRevenue * 0.92 },
-    { month: 'Jul', amount: totalRevenue * 0.98 },
-    { month: 'Ago', amount: totalRevenue },
-  ] : [];
-
-  const periodLabels: Record<string, string> = {
-    '7d': t('statistics.last7d'),
-    '30d': t('statistics.last30d'),
-    '90d': t('statistics.last90d'),
-    'YTD': t('statistics.yearToDate'),
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      if (!tenant.id) {
+        setError('No hay tenant activo.');
+        return;
+      }
+      const res = await fetch(
+        `${API}/api/v1/reconciliation/trial-report?tenant_id=${tenant.id}&sample=5`,
+        { headers: getAuth() },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.detail === 'string' ? data.detail : `Error ${res.status}`);
+        return;
+      }
+      setTotals(data.totals || {});
+      setRules(data.rules_fired_histogram || {});
+      setModes(data.match_mode_histogram || {});
+      setEngine(data.engine || '');
+    } catch (e: any) {
+      setError(e?.message || 'Error de red');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const maxMonthly = Math.max(...monthly.map(m => m.amount), 1);
-
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
-        
-        {/* HEADER */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
-            📊 {t('statistics.intelligence')}
-          </div>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('statistics.title')}</h1>
-          <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-            {t('statistics.subtitle')}
-          </p>
-        </div>
+      <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800 }}>Estadísticas del motor</h1>
+      <p style={{ color: '#64748b', marginTop: 0 }}>
+        Solo números reales del tenant (confirmados / sugeridos / pendientes). Sin splits inventados de Visa/Mastercard.
+      </p>
 
-        {/* PERIOD FILTER */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-          {(['7d','30d','90d','YTD'] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)} style={{
-              padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
-              background: period === p ? '#0f172a' : 'white',
-              color: period === p ? 'white' : '#64748b',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}>{periodLabels[p]}</button>
-          ))}
-        </div>
-
-        {!result ? (
-          /* EMPTY STATE */
-          <div style={{ textAlign: 'center', padding: '80px 40px', color: '#94a3b8' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>{t('statistics.emptyTitle')}</div>
-            <div style={{ fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
-              {t('statistics.emptyDesc')}
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* SUMMARY CARDS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-              <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Ingresos Totales</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8 }}>{formatMoney(totalRevenue)}</div>
-              </div>
-              <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Comisiones Pagadas</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>{formatMoney(totalFees)}</div>
-              </div>
-              <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Discrepancias</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#92400e' }}>{formatMoney(Math.abs(totalDiff))}</div>
-              </div>
-              <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Tickets en Disputa</div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8 }}>{mismatches + disputes}</div>
-              </div>
-            </div>
-
-            {/* PROVIDER BREAKDOWN */}
-            <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Desglose por Proveedor</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {providers.map(p => (
-                  <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 120, fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    <div style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${(p.amount / totalRevenue) * 100}%`, height: '100%', background: '#635bff', borderRadius: 4 }} />
-                    </div>
-                    <div style={{ width: 80, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>{formatMoney(p.amount)}</div>
-                    <div style={{ width: 60, textAlign: 'right', fontSize: 12, color: '#64748b' }}>{formatNumber(p.txns)} txns</div>
-                    <div style={{ width: 80, textAlign: 'right', fontSize: 12, color: '#991b1b' }}>{formatMoney(p.fees)} fees</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CARD TYPES */}
-            <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Desglose por Tipo de Tarjeta</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-                {cardTypes.map(c => (
-                  <div key={c.type} style={{ padding: 16, borderRadius: 8, background: '#f8fafc' }}>
-                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>{c.type}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800 }}>{formatMoney(c.amount)}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{formatPct(c.pct)} del total</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* MONTHLY TREND */}
-            <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Tendencia Mensual</h3>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 160, padding: '0 16px' }}>
-                {monthly.map(m => (
-                  <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>{formatMoney(m.amount)}</div>
-                    <div style={{ width: '100%', height: `${(m.amount / maxMonthly) * 120}px`, background: '#635bff', borderRadius: '4px 4px 0 0', minHeight: 20 }} />
-                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{m.month}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
+      <div style={{ marginBottom: 16, padding: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13 }}>
+        Propuesta del motor · no es un cierre firmado. {engine ? `Motor: ${engine}` : ''}
       </div>
+
+      {error && (
+        <div style={{ padding: 12, background: '#fef2f2', color: '#991b1b', borderRadius: 8, marginBottom: 16 }}>{error}</div>
+      )}
+
+      {loading ? (
+        <div style={{ color: '#64748b' }}>Cargando…</div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
+            {[
+              { label: 'Banco', value: totals.bank ?? 0 },
+              { label: 'Proveedor', value: totals.provider ?? 0 },
+              { label: 'Confirmados', value: totals.confirmed_bank ?? 0, color: '#166534' },
+              { label: 'Sugeridos', value: totals.suggested_bank ?? 0, color: '#b45309' },
+              { label: 'Pendientes', value: totals.pending_bank ?? 0, color: '#991b1b' },
+              { label: '% confirmado', value: `${totals.confirm_rate_pct ?? 0}%`, color: '#4338ca' },
+            ].map((c) => (
+              <div key={c.label} style={{ padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>{c.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, color: c.color || '#0f172a' }}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {(totals.bank ?? 0) === 0 && (
+            <div style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', marginBottom: 20 }}>
+              <div style={{ fontWeight: 700 }}>Sin movimientos todavía</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
+                Esto no significa 100% conciliado. Subí CSV o sincronizá Open Banking y ejecutá Run.
+              </div>
+              <Link to="/setup" style={{ display: 'inline-block', marginTop: 12, color: '#635bff', fontWeight: 600 }}>Ir a Setup →</Link>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+              <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Modos de match</h2>
+              {Object.keys(modes).length === 0 ? (
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>Sin confirmaciones con evidencia aún.</div>
+              ) : (
+                Object.entries(modes).map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14 }}>
+                    <span>{k}</span><strong>{v}</strong>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+              <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Reglas disparadas</h2>
+              {Object.keys(rules).length === 0 ? (
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>Sin reglas todavía.</div>
+              ) : (
+                Object.entries(rules)
+                  .sort((a, b) => Number(b[1]) - Number(a[1]))
+                  .slice(0, 12)
+                  .map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 0', fontSize: 13 }}>
+                      <span style={{ color: '#334155' }}>{k}</span><strong>{v}</strong>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <Link to="/trial-report" style={{ color: '#635bff', fontWeight: 700 }}>Ver informe de ensayo completo →</Link>
+            <span style={{ color: '#cbd5e1' }}> · </span>
+            <button type="button" onClick={() => void load()} style={{ border: 'none', background: 'none', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>
+              Actualizar
+            </button>
+          </div>
+          {/* silence unused helper if tree-shaken poorly */}
+          <span style={{ display: 'none' }}>{formatMoney(0)}</span>
+        </>
+      )}
     </div>
   );
 }

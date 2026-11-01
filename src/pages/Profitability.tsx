@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
+const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
 
 interface CostItem {
   id: number;
@@ -9,23 +15,48 @@ interface CostItem {
   frequency: 'daily' | 'weekly' | 'monthly';
 }
 
+/**
+ * Cost notepad + live fee totals from provider rows when available.
+ * No fake "Demo Restaurant" revenue.
+ */
 export default function Profitability() {
-  const { t } = useTranslation();
-  const [selectedStore, setSelectedStore] = useState<number>(1);
   const [costs, setCosts] = useState<CostItem[]>([]);
-  const [showAddCost, setShowAddCost] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [feeTotal, setFeeTotal] = useState(0);
+  const [provCount, setProvCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  const [smartData, setSmartData] = useState<any>(null);
   useEffect(() => {
-    const raw = localStorage.getItem('lastSmartCheck');
-    if (raw) setSmartData(JSON.parse(raw));
+    const raw = localStorage.getItem('cf_local_costs');
+    if (raw) {
+      try {
+        setCosts(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
+    }
+    void loadFees();
   }, []);
 
-  const result = smartData?.result;
-  const stores = result ? [
-    { id: 1, name: 'Demo Restaurant', revenue: result.totalAmount || 0, providerFees: (result.totalAmount || 0) * 0.035 }
-  ] : [];
-  const currentStore = stores.find(s => s.id === selectedStore);
+  useEffect(() => {
+    localStorage.setItem('cf_local_costs', JSON.stringify(costs));
+  }, [costs]);
+
+  const loadFees = async () => {
+    try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      if (!tenant.id) return;
+      const res = await fetch(`${API}/api/v1/providers/?tenant_id=${tenant.id}`, { headers: getAuth() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const txs = data.transactions || [];
+      setProvCount(txs.length);
+      const fees = txs.reduce((s: number, t: any) => s + (Number(t.fee_amount) || 0), 0);
+      setFeeTotal(fees);
+    } catch (e: any) {
+      setError(e?.message || null);
+    }
+  };
 
   const monthlyCostTotal = costs.reduce((sum, c) => {
     if (c.frequency === 'daily') return sum + c.amount * 30;
@@ -33,125 +64,98 @@ export default function Profitability() {
     return sum + c.amount;
   }, 0);
 
-  const revenue = currentStore?.revenue || 0;
-  const providerFees = currentStore?.providerFees || 0;
-  const netProfit = revenue - providerFees - monthlyCostTotal;
-  const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-
-  const addCost = (name: string, amount: number, frequency: 'daily' | 'weekly' | 'monthly') => {
-    setCosts([...costs, { id: Date.now(), name, amount, frequency }]);
-    setShowAddCost(false);
-  };
-
-  const removeCost = (id: number) => setCosts(costs.filter(c => c.id !== id));
-
-  const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
-
-  const freqLabel: Record<string, string> = {
-    daily: t('profitability.daily'),
-    weekly: t('profitability.weekly'),
-    monthly: t('profitability.monthly'),
-  };
-
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>📊 {t('profitability.intelligence')}</div>
-          <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', textTransform: 'uppercase' }}>Beta</span>
-        </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('profitability.title')}</h1>
-        <p style={{ color: '#64748b', marginTop: 8, fontSize: 15, maxWidth: 700 }}>
-          {t('profitability.subtitle')}
-        </p>
+      <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800 }}>Costes (piloto)</h1>
+      <p style={{ color: '#64748b' }}>
+        Bloc de costes locales + fees leídos de transacciones proveedor si existen.
+        No inventamos ingresos de un “Demo Restaurant”.
+      </p>
+
+      <div style={{ marginBottom: 16, padding: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13 }}>
+        Esto <strong>no</strong> es un P&amp;L firmado. Para caja usá Verificación de pagos + Informe de ensayo.
       </div>
 
-      {stores.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 40px', color: '#94a3b8' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📈</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>{t('profitability.emptyTitle')}</div>
-          <div style={{ fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
-            {t('profitability.emptyDesc')}
-          </div>
+      {error && <div style={{ color: '#991b1b', marginBottom: 12 }}>{error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        <div style={{ padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>FEES EN MUESTRA PROVEEDOR</div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>{formatMoney(feeTotal)}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{provCount} filas cargadas (límite API)</div>
         </div>
-      ) : (
-        <>
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginRight: 12 }}>{t('profitability.analyzing')}</label>
-            <select value={selectedStore} onChange={(e) => setSelectedStore(Number(e.target.value))} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white', minWidth: 220 }}>
-              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
+        <div style={{ padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white' }}>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>COSTES MENSUALES (LOCAL)</div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>{formatMoney(monthlyCostTotal)}</div>
+        </div>
+      </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-            <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.monthlyRevenue')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#166534' }}>{formatMoney(revenue)}</div>
+      <div style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h2 style={{ margin: 0, fontSize: 16 }}>Tus costes</h2>
+          <button type="button" onClick={() => setShowAdd(true)} style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontWeight: 600, cursor: 'pointer' }}>
+            + Añadir
+          </button>
+        </div>
+        {costs.length === 0 ? (
+          <div style={{ fontSize: 13, color: '#94a3b8' }}>Sin costes locales todavía.</div>
+        ) : (
+          costs.map((c) => (
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 }}>
+              <span>{c.name} · {c.frequency}</span>
+              <span>
+                {formatMoney(c.amount)}{' '}
+                <button type="button" onClick={() => setCosts(costs.filter((x) => x.id !== c.id))} style={{ border: 'none', background: 'none', color: '#991b1b', cursor: 'pointer' }}>
+                  quitar
+                </button>
+              </span>
             </div>
-            <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.providerFees')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>-{formatMoney(providerFees)}</div>
-            </div>
-            <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.totalCosts')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: '#991b1b' }}>-{formatMoney(monthlyCostTotal)}</div>
-            </div>
-            <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('profitability.netProfit')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 8, color: netProfit >= 0 ? '#166534' : '#991b1b' }}>{netProfit >= 0 ? '' : '-'}{formatMoney(Math.abs(netProfit))}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{margin.toFixed(1)}% {t('profitability.margin')}</div>
-            </div>
-          </div>
+          ))
+        )}
+        {showAdd && (
+          <AddCost
+            onCancel={() => setShowAdd(false)}
+            onAdd={(name, amount, frequency) => {
+              setCosts([...costs, { id: Date.now(), name, amount, frequency }]);
+              setShowAdd(false);
+            }}
+          />
+        )}
+      </div>
 
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('profitability.monthlyCosts')}</h2>
-              <button onClick={() => setShowAddCost(true)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#635bff', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('profitability.addCost')}</button>
-            </div>
+      <Link to="/trial-report" style={{ color: '#635bff', fontWeight: 700 }}>Ir al informe de ensayo →</Link>
+    </div>
+  );
+}
 
-            {showAddCost && (
-              <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', marginBottom: 16 }}>
-                <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); addCost(fd.get('name') as string, Number(fd.get('amount')), fd.get('frequency') as 'daily'|'weekly'|'monthly'); }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('profitability.costName')}</label><input name="name" required placeholder="Alquiler, Salarios, etc." style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('profitability.amount')}</label><input name="amount" type="number" required placeholder="1500" style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{t('profitability.frequency')}</label><select name="frequency" style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}><option value="monthly">{t('profitability.monthly')}</option><option value="weekly">{t('profitability.weekly')}</option><option value="daily">{t('profitability.daily')}</option></select></div>
-                    <div style={{ display: 'flex', gap: 8 }}><button type="submit" style={{ padding: '10px 16px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{t('profitability.add')}</button><button type="button" onClick={() => setShowAddCost(false)} style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer' }}>{t('common.cancel')}</button></div>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {costs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-                {t('profitability.noCosts')}
-              </div>
-            ) : (
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', background: 'white' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 60px', padding: '14px 20px', background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0' }}>
-                  <div>{t('profitability.cost')}</div><div style={{ textAlign: 'right' }}>{t('profitability.amount')}</div><div style={{ textAlign: 'center' }}>{t('profitability.frequency')}</div><div style={{ textAlign: 'right' }}>{t('profitability.monthlyEquiv')}</div><div></div>
-                </div>
-                {costs.map(cost => {
-                  const monthly = cost.frequency === 'daily' ? cost.amount * 30 : cost.frequency === 'weekly' ? cost.amount * 4.33 : cost.amount;
-                  return (
-                    <div key={cost.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 60px', padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ fontWeight: 600 }}>{cost.name}</div>
-                      <div style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(cost.amount)}</div>
-                      <div style={{ textAlign: 'center' }}><span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: '#f1f5f9', color: '#64748b', textTransform: 'capitalize' }}>{freqLabel[cost.frequency] || cost.frequency}</span></div>
-                      <div style={{ textAlign: 'right', fontWeight: 700 }}>{formatMoney(monthly)}</div>
-                      <div style={{ textAlign: 'right' }}><button onClick={() => removeCost(cost.id)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 16 }}>🗑</button></div>
-                    </div>
-                  );
-                })}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 60px', padding: '14px 20px', background: '#f8fafc', fontWeight: 700, fontSize: 14 }}>
-                  <div style={{ color: '#64748b' }}>{t('profitability.totalMonthlyCosts')}</div><div></div><div></div><div style={{ textAlign: 'right', color: '#991b1b' }}>{formatMoney(monthlyCostTotal)}</div><div></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+function AddCost({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (name: string, amount: number, frequency: 'daily' | 'weekly' | 'monthly') => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('0');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  return (
+    <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 8 }}>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" style={{ width: '100%', marginBottom: 8, padding: 8, borderRadius: 6, border: '1px solid #cbd5e1' }} />
+      <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" style={{ width: '100%', marginBottom: 8, padding: 8, borderRadius: 6, border: '1px solid #cbd5e1' }} />
+      <select value={frequency} onChange={(e) => setFrequency(e.target.value as any)} style={{ width: '100%', marginBottom: 8, padding: 8, borderRadius: 6, border: '1px solid #cbd5e1' }}>
+        <option value="monthly">Mensual</option>
+        <option value="weekly">Semanal</option>
+        <option value="daily">Diario</option>
+      </select>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={() => onAdd(name || 'Coste', Number(amount) || 0, frequency)} style={{ padding: '8px 12px', borderRadius: 6, border: 'none', background: '#635bff', color: 'white', fontWeight: 600 }}>
+          Guardar
+        </button>
+        <button type="button" onClick={onCancel} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white' }}>
+          Cancelar
+        </button>
+      </div>
     </div>
   );
 }

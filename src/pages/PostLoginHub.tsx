@@ -70,6 +70,15 @@ export default function PostLoginHub() {
       bg: '#f0fdfa',
     },
     {
+      id: 'data',
+      icon: '📦',
+      title: 'Export / borrado',
+      desc: 'Descargar JSON/CSV o purge de la partición del tenant',
+      path: '/reports',
+      color: '#9a3412',
+      bg: '#fff7ed',
+    },
+    {
       id: 'tenant',
       icon: '🏪',
       title: 'Cambiar negocio',
