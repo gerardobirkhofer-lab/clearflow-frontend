@@ -192,7 +192,7 @@
     "cloudBenefit3": "Comply with internal IT security policies",
     "cloudBenefit4": "No shared database with other customers",
     "cloudTestMsg": "Connection test: In a real deployment this would verify connectivity with your database.",
-    "providerConnectDesc": "Connect payment providers for automatic transaction syncing. CSV upload is always available as a fallback.",
+    "providerConnectDesc": "Open Banking brings bank movements. Provider CSV adds settlement packs (gross/fee/net) that the bank feed does not include.",
     "noStoreSelected": "No store selected. Please select a store first.",
     "comingSoon": "Coming soon — upload CSV for now",
     "currency": "Currency",

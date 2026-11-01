@@ -198,7 +198,7 @@
     "cloudBenefit3": "Cumple con políticas internas de seguridad IT",
     "cloudBenefit4": "Sin base de datos compartida con otros clientes",
     "cloudTestMsg": "Prueba de conexión: En un despliegue real esto verificaría la conectividad con tu base de datos.",
-    "providerConnectDesc": "Conectá proveedores de pago para sincronización automática de transacciones. La carga de CSV siempre está disponible como alternativa.",
+    "providerConnectDesc": "Open Banking trae movimientos del banco. El CSV del proveedor aporta liquidaciones (bruto/comisión/neto) que el banco no detalla.",
     "noStoreSelected": "No hay tienda seleccionada. Por favor selecciona una tienda primero.",
     "comingSoon": "Próximamente — carga CSV por ahora",
     "currency": "Moneda",
