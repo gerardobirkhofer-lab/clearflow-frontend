@@ -31,6 +31,16 @@ export default function PostLoginHub() {
       primary: true,
     },
     {
+      id: 'security',
+      icon: '🔐',
+      title: 'Seguridad · Authenticator + SMS',
+      desc: 'TOTP principal y SMS de respaldo (nunca envíos solos)',
+      path: '/security',
+      color: '#991b1b',
+      bg: '#fef2f2',
+      primary: true,
+    },
+    {
       id: 'upload',
       icon: '📤',
       title: '2. Subir documentos',

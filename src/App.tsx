@@ -24,6 +24,7 @@ import Communications from './pages/Communications';
 import TrialReport from './pages/TrialReport';
 import DemoRetired from './pages/DemoRetired';
 import Control from './pages/Control';
+import SecuritySettings from './pages/SecuritySettings';
 import PilotBanner from './components/PilotBanner';
 
 function AppContent() {
@@ -112,6 +113,7 @@ function AppContent() {
             <Link to="/reports" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.reports')}</Link>
             <Link to="/pricing" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 600 }}>💎 {t('nav.pricing')}</Link>
             <Link to="/setup" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 500 }}>{t('nav.setup')}</Link>
+            <Link to="/security" style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 600 }}>🔐 Seguridad</Link>
             <Link to="/tenant-selector" style={{ textDecoration: 'none', color: '#635bff', fontWeight: 500 }}>← {t('nav.switchStore')}</Link>
             <div style={{ flex: 1 }}></div>
             <button type="button" onClick={handleLogout} style={{ background: 'none', border: '1px solid #e2e8f0', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>{t('nav.logout')}</button>
@@ -142,6 +144,7 @@ function AppContent() {
           <Route path="/mismatch-tracker" element={isLoggedIn ? <DemoRetired /> : <Navigate to="/login" replace />} />
           <Route path="/dispute-tracker" element={isLoggedIn ? <DemoRetired /> : <Navigate to="/login" replace />} />
           <Route path="/communications" element={isLoggedIn ? <Communications /> : <Navigate to="/login" replace />} />
+          <Route path="/security" element={isLoggedIn ? <SecuritySettings /> : <Navigate to="/login" replace />} />
           <Route path="/reconciliation" element={isLoggedIn ? <SmartCheckStatus /> : <Navigate to="/login" replace />} />
           <Route path="/payment-check" element={isLoggedIn ? <PaymentCheck /> : <Navigate to="/login" replace />} />
           <Route path="/control" element={isLoggedIn ? <Control /> : <Navigate to="/login" replace />} />
