@@ -2,8 +2,8 @@
   "nav": {
     "dashboard": "Panel",
     "statistics": "Estadísticas",
-    "profitability": "Rentabilidad",
-    "revenue": "Ingresos",
+    "profitability": "P&L proy. vs real",
+    "revenue": "Caja proyectada",
     "disputes": "Disputas",
     "mismatches": "Discrepancias",
     "communications": "Comunicaciones",
