@@ -2,8 +2,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistics",
-    "profitability": "Profitability",
-    "revenue": "Revenue",
+    "profitability": "P&L proj. vs actual",
+    "revenue": "Projected cash",
     "disputes": "Disputes",
     "mismatches": "Mismatches",
     "communications": "Communications",
