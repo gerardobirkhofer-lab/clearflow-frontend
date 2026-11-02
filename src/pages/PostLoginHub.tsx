@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface HubCard {
@@ -9,15 +10,39 @@ interface HubCard {
   color: string;
   bg: string;
   primary?: boolean;
+  badge?: number;
 }
+
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
 
 /** Happy path: Setup → subir/sync → Run → Ensayo. Demo trackers removed. */
 export default function PostLoginHub() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const tenant = JSON.parse(localStorage.getItem('tenant') || 'null');
+  const [pendingEmails, setPendingEmails] = useState(0);
 
   const setupComplete = !!localStorage.getItem('tenant') && !!localStorage.getItem('onboardingComplete');
+
+  useEffect(() => {
+    if (!tenant?.id) return;
+    const token = localStorage.getItem('token') || '';
+    fetch(`${API}/api/v1/email-outbox/?tenant_id=${tenant.id}&status=pending_approval`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const n =
+          typeof data.pending_approval_count === 'number'
+            ? data.pending_approval_count
+            : (data.items || []).length;
+        setPendingEmails(n);
+      })
+      .catch(() => {});
+  }, [tenant?.id]);
 
   const cards: HubCard[] = [
     {
@@ -59,6 +84,17 @@ export default function PostLoginHub() {
       color: '#635bff',
       bg: '#f5f3ff',
       primary: true,
+    },
+    {
+      id: 'comms',
+      icon: '📧',
+      title: 'Comunicaciones · autorizar envío',
+      desc: 'Borradores a liquidadoras: leés y Autorizás o Rechazás',
+      path: '/communications',
+      color: '#3730a3',
+      bg: '#eef2ff',
+      primary: true,
+      badge: pendingEmails,
     },
     {
       id: 'payment-check',
@@ -193,8 +229,31 @@ export default function PostLoginHub() {
               background: card.bg,
               cursor: 'pointer',
               fontFamily: 'inherit',
+              position: 'relative',
             }}
           >
+            {!!card.badge && card.badge > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  minWidth: 22,
+                  height: 22,
+                  padding: '0 6px',
+                  borderRadius: 11,
+                  background: '#dc2626',
+                  color: 'white',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {card.badge > 99 ? '99+' : card.badge}
+              </span>
+            )}
             <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
             <div style={{ fontWeight: 800, fontSize: 15, color: card.color }}>{card.title}</div>
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 6, lineHeight: 1.4 }}>{card.desc}</div>

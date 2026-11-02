@@ -20,27 +20,88 @@ export default function Control() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [factStatus, setFactStatus] = useState<{ lines?: number } | null>(null);
+  const [factMsg, setFactMsg] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [factSource, setFactSource] = useState('stripe');
+
+  const tenantId = () => {
+    try {
+      return JSON.parse(localStorage.getItem('tenant') || '{}').id as string | undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const refreshFacturador = () => {
+    const tid = tenantId();
+    const token = localStorage.getItem('token') || '';
+    if (!tid) return;
+    fetch(`${API}/api/v1/facturador/status?tenant_id=${tid}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setFactStatus(d))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     fetch(`${API}/api/v1/control/doctrine`)
       .then((r) => r.json())
       .then(setDoctrine)
       .catch(() => {});
+    refreshFacturador();
   }, []);
+
+  const uploadFacturador = async (file: File) => {
+    const tid = tenantId();
+    if (!tid) {
+      setFactMsg('No hay tenant activo.');
+      return;
+    }
+    setUploading(true);
+    setFactMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('tenant_id', tid);
+      fd.append('source_name', factSource.trim() || 'stripe');
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${API}/api/v1/facturador/intake`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFactMsg(apiDetail(data, `Upload falló (${res.status})`));
+        return;
+      }
+      setFactMsg(
+        `Ingestadas ${data.inserted ?? 0} · duplicados ${data.skipped_duplicates ?? 0}` +
+          (data.error_count ? ` · filas con error ${data.error_count}` : ''),
+      );
+      refreshFacturador();
+    } catch (e: any) {
+      setFactMsg(e?.message || 'Error de red');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const run = async () => {
     setRunning(true);
     setError(null);
     setResult(null);
     try {
-      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
-      if (!tenant.id) {
+      const tid = tenantId();
+      if (!tid) {
         setError('No hay tenant activo.');
         return;
       }
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `${API}/api/v1/control/run?tenant_id=${tenant.id}&detail=true&reconstruct=true&create_disputes=true`,
+        `${API}/api/v1/control/run?tenant_id=${tid}&detail=true&reconstruct=true&create_disputes=true`,
         { method: 'POST', headers: { Authorization: `Bearer ${token || ''}` } },
       );
       const data = await res.json().catch(() => ({}));
@@ -72,6 +133,69 @@ export default function Control() {
         <div style={{ marginTop: 8, color: '#94a3b8' }}>
           Claves: {(doctrine?.keys || ['banco', 'wallet', 'facturador', 'contrato']).join(' · ')}
         </div>
+      </div>
+
+      <div
+        style={{
+          padding: 16,
+          border: '1px solid #e2e8f0',
+          borderRadius: 12,
+          background: 'white',
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ fontWeight: 800, marginBottom: 6 }}>Facturador · ventas brutas</div>
+        <p style={{ margin: '0 0 10px', fontSize: 13, color: '#64748b', lineHeight: 1.45 }}>
+          CSV/JSON con columnas <code>date</code>, <code>gross</code> (opc. ticket_id). Alimenta Reconstruct
+          cuando la liquidadora es opaca. Líneas: <strong>{factStatus?.lines ?? '—'}</strong>
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <label style={{ fontSize: 13, color: '#475569' }}>
+            Proveedor (debe coincidir con Setup){' '}
+            <input
+              value={factSource}
+              onChange={(e) => setFactSource(e.target.value)}
+              placeholder="stripe / tpv / redsys"
+              style={{
+                marginLeft: 6,
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: '1px solid #cbd5e1',
+                fontSize: 13,
+                width: 140,
+              }}
+            />
+          </label>
+          <label
+            style={{
+              display: 'inline-block',
+              padding: '10px 16px',
+              borderRadius: 8,
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              opacity: uploading ? 0.7 : 1,
+            }}
+          >
+            {uploading ? 'Subiendo…' : 'Subir CSV / JSON facturador'}
+            <input
+              type="file"
+              accept=".csv,.json,text/csv,application/json"
+              hidden
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadFacturador(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        {factMsg && (
+          <div style={{ marginTop: 10, fontSize: 13, color: '#334155' }}>{factMsg}</div>
+        )}
       </div>
 
       {error && (
@@ -152,6 +276,8 @@ export default function Control() {
 
       <div style={{ marginTop: 20, fontSize: 13 }}>
         <Link to="/setup-wizard" style={{ color: '#635bff', fontWeight: 600 }}>Contratos / Setup →</Link>
+        {' · '}
+        <Link to="/communications" style={{ color: '#635bff', fontWeight: 600 }}>Comunicaciones →</Link>
         {' · '}
         <Link to="/trial-report" style={{ color: '#635bff', fontWeight: 600 }}>Informe ensayo →</Link>
         {' · '}
