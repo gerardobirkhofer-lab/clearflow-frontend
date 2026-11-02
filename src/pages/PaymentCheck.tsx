@@ -57,10 +57,21 @@ export default function PaymentCheck() {
   const [error, setError] = useState<string | null>(null);
   const [runMessage, setRunMessage] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [actionBusy, setActionBusy] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  const dateQs = () => {
+    const p = new URLSearchParams();
+    if (dateFrom) p.set('date_from', dateFrom);
+    if (dateTo) p.set('date_to', dateTo);
+    const s = p.toString();
+    return s ? `&${s}` : '';
+  };
 
   const mapBank = (t: any, matchedDefault: boolean): Transaction => ({
     id: t.id,
@@ -68,7 +79,11 @@ export default function PaymentCheck() {
     amount: t.amount || 0,
     date: t.date || t.transaction_date || '',
     type: 'bank',
-    matched: matchedDefault || !!t.matched || t.match_status === 'confirmed',
+    matched:
+      matchedDefault ||
+      !!t.matched ||
+      t.match_status === 'confirmed' ||
+      t.match_status === 'user_confirmed',
     match_status: t.match_status || (matchedDefault || t.matched ? 'confirmed' : 'pending'),
     match_evidence: t.match_evidence,
     source: t.source || (t.filename === 'open_banking' ? 'open_banking' : 'csv'),
@@ -94,11 +109,11 @@ export default function PaymentCheck() {
       const [dashRes, pendingRes, matchedRes] = await Promise.all([
         fetch(`${API}/api/v1/bank-statements/dashboard?tenant_id=${tenantId}`, { headers }),
         fetch(
-          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=0`,
+          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=0${dateQs()}`,
           { headers },
         ),
         fetch(
-          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=1`,
+          `${API}/api/v1/bank-statements/?tenant_id=${tenantId}&limit=50&matched=1${dateQs()}`,
           { headers },
         ),
       ]);
@@ -191,7 +206,7 @@ export default function PaymentCheck() {
       // Prefer async job (progress) — fall back to sync if endpoint missing
       let data: any = null;
       const asyncRes = await fetch(
-        `${API}/api/v1/reconciliation/run-async?tenant_id=${tenant.id}`,
+        `${API}/api/v1/reconciliation/run-async?tenant_id=${tenant.id}${dateQs()}`,
         { method: 'POST', headers },
       );
       if (asyncRes.ok) {
@@ -224,10 +239,10 @@ export default function PaymentCheck() {
           return;
         }
       } else {
-        const res = await fetch(`${API}/api/v1/reconciliation/run?tenant_id=${tenant.id}`, {
-          method: 'POST',
-          headers,
-        });
+        const res = await fetch(
+          `${API}/api/v1/reconciliation/run?tenant_id=${tenant.id}${dateQs()}`,
+          { method: 'POST', headers },
+        );
         data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(apiDetail(data, `La verificación falló (${res.status})`));
@@ -262,10 +277,45 @@ export default function PaymentCheck() {
   };
 
   const filtered = transactions.filter((t) => {
-    if (activeTab === 'unmatched') return !t.matched; // includes suggested + pending
-    if (activeTab === 'matched') return !!t.matched || t.match_status === 'confirmed';
+    if (activeTab === 'unmatched') return !t.matched; // includes suggested + pending + rejected
+    if (activeTab === 'matched') {
+      return (
+        !!t.matched ||
+        t.match_status === 'confirmed' ||
+        t.match_status === 'user_confirmed'
+      );
+    }
     return true;
   });
+
+  const actOnSuggestion = async (bankId: number, action: 'confirm' | 'reject') => {
+    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+    if (!tenant.id) return;
+    setActionBusy(bankId);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(
+        `${API}/api/v1/reconciliation/suggestions/${bankId}/${action}?tenant_id=${tenant.id}`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(apiDetail(data, `No se pudo ${action === 'confirm' ? 'confirmar' : 'rechazar'}`));
+        return;
+      }
+      setRunMessage(
+        action === 'confirm'
+          ? `Sugerencia #${bankId} validada por vos (user_confirmed).`
+          : `Sugerencia #${bankId} rechazada.`,
+      );
+      await fetchTransactions();
+    } catch (e: any) {
+      setError(e?.message || 'Error de red');
+    } finally {
+      setActionBusy(null);
+    }
+  };
 
   const formatMonto = (amount: number) => {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount || 0);
@@ -300,9 +350,44 @@ export default function PaymentCheck() {
       </div>
 
       <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e', fontSize: 13, lineHeight: 1.45 }}>
-        <strong>Motor v4 · 1:1 y 1:N.</strong> Confirma con ref/settlement + importe (o neto), o cuando
-        la <em>suma</em> de ventas de un settlement iguala el abono banco (±€0.01). Casi-igual (≤€1) →
-        <em> sugerido</em> (no confirmado). Expandí una fila para ver evidencia / legs.
+        <strong>Motor v5 · 1:1 y 1:N + score.</strong> Auto-confirma con evidencia fuerte. Casi-igual (≤€1) →
+        <em> sugerido</em> — vos Confirmás o Rechazás. Ventana de fechas opcional abajo.
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+        <label style={{ fontSize: 13, color: '#475569' }}>
+          Desde{' '}
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{ marginLeft: 4, padding: '6px 8px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+          />
+        </label>
+        <label style={{ fontSize: 13, color: '#475569' }}>
+          Hasta{' '}
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{ marginLeft: 4, padding: '6px 8px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => void fetchTransactions()}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Aplicar filtro
+        </button>
       </div>
 
       {obCount > 0 && (
@@ -491,22 +576,36 @@ export default function PaymentCheck() {
                       borderRadius: 12,
                       fontSize: 11,
                       fontWeight: 600,
-                      background: tx.matched || tx.match_status === 'confirmed'
-                        ? '#dcfce7'
-                        : isSuggested
-                          ? '#fef3c7'
-                          : '#fee2e2',
-                      color: tx.matched || tx.match_status === 'confirmed'
-                        ? '#166534'
-                        : isSuggested
-                          ? '#92400e'
-                          : '#991b1b',
+                      background:
+                        tx.match_status === 'user_confirmed'
+                          ? '#dbeafe'
+                          : tx.matched || tx.match_status === 'confirmed'
+                            ? '#dcfce7'
+                            : isSuggested
+                              ? '#fef3c7'
+                              : tx.match_status === 'rejected'
+                                ? '#f1f5f9'
+                                : '#fee2e2',
+                      color:
+                        tx.match_status === 'user_confirmed'
+                          ? '#1e40af'
+                          : tx.matched || tx.match_status === 'confirmed'
+                            ? '#166534'
+                            : isSuggested
+                              ? '#92400e'
+                              : tx.match_status === 'rejected'
+                                ? '#64748b'
+                                : '#991b1b',
                     }}>
-                      {tx.matched || tx.match_status === 'confirmed'
-                        ? 'Confirmado'
-                        : isSuggested
-                          ? 'Sugerido'
-                          : 'Pendiente'}
+                      {tx.match_status === 'user_confirmed'
+                        ? 'Validado'
+                        : tx.matched || tx.match_status === 'confirmed'
+                          ? 'Auto'
+                          : isSuggested
+                            ? 'Sugerido'
+                            : tx.match_status === 'rejected'
+                              ? 'Rechazado'
+                              : 'Pendiente'}
                     </span>
                   </div>
                 </div>
@@ -527,13 +626,57 @@ export default function PaymentCheck() {
                       {ev.legs_sum != null ? ` · suma legs: ${String(ev.legs_sum)}` : ''}
                       {ev.provider_fee != null ? ` · fee: ${String(ev.provider_fee)}` : ''}
                     </div>
-                    <div>Diff importe: {String(ev.amount_diff ?? '—')} · días: {String(ev.day_diff ?? 'n/d')}</div>
+                    <div>Diff importe: {String(ev.amount_diff ?? '—')} · días: {String(ev.day_diff ?? 'n/d')} · score: {String(ev.score ?? '—')}</div>
                     <div>Confirmado por: {String(ev.confirmed_by || ev.suggested_by || 'system_auto')} · {String(ev.confirmed_at || ev.suggested_at || '')}</div>
                     {Array.isArray(ev.provider_tx_ids) && (ev.provider_tx_ids as unknown[]).length > 0 ? (
                       <div>Provider txs: {(ev.provider_tx_ids as unknown[]).join(', ')}</div>
                     ) : ev.provider_tx_id != null ? (
                       <div>Provider tx: {String(ev.provider_tx_id)}</div>
                     ) : null}
+                    {isSuggested && tx.type === 'bank' && (
+                      <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                        <button
+                          type="button"
+                          disabled={actionBusy === tx.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void actOnSuggestion(tx.id, 'confirm');
+                          }}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: '#166534',
+                            color: 'white',
+                            fontWeight: 700,
+                            fontSize: 12,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Confirmar sugerencia
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionBusy === tx.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void actOnSuggestion(tx.id, 'reject');
+                          }}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: 8,
+                            border: '1px solid #fecaca',
+                            background: '#fef2f2',
+                            color: '#991b1b',
+                            fontWeight: 700,
+                            fontSize: 12,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

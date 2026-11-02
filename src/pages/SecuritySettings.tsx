@@ -19,6 +19,9 @@ export default function SecuritySettings() {
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
   const [smsStub, setSmsStub] = useState<string | null>(null);
+  const [dbUrl, setDbUrl] = useState('');
+  const [dbName, setDbName] = useState('');
+  const [dbBusy, setDbBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -301,7 +304,106 @@ export default function SecuritySettings() {
             Face ID solo para desbloquear el teléfono ≠ segundo factor. Passkey + Face ID sí autentica ante ClearFlow.
             Configura también <code>WEBAUTHN_RP_ID</code> / <code>WEBAUTHN_ORIGIN</code> en producción (dominio real).
           </p>
-          <Link to="/hub" style={{ color: '#635bff', fontWeight: 600, fontSize: 14 }}>← Volver al hub</Link>
+
+          <div style={{ marginTop: 28, padding: 16, border: '1px solid #e2e8f0', borderRadius: 12, background: '#f8fafc' }}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>Base dedicada (Pro / Enterprise)</div>
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: '#64748b', lineHeight: 1.45 }}>
+              Pegá una URL Postgres ya creada (Neon/Railway/etc.). ClearFlow corre create_all + SELECT 1 y enruta el tráfico del tenant ahí.
+              No provisiona la nube por vos.
+            </p>
+            <input
+              value={dbUrl}
+              onChange={(e) => setDbUrl(e.target.value)}
+              placeholder="postgresql://user:pass@host:5432/dbname"
+              style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #cbd5e1', marginBottom: 8, fontSize: 13, boxSizing: 'border-box' }}
+            />
+            <input
+              value={dbName}
+              onChange={(e) => setDbName(e.target.value)}
+              placeholder="nombre lógico (opcional)"
+              style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #cbd5e1', marginBottom: 10, fontSize: 13, boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                disabled={dbBusy || !dbUrl.trim()}
+                onClick={async () => {
+                  setDbBusy(true);
+                  setMsg(null);
+                  setErr(null);
+                  try {
+                    const qs = new URLSearchParams({
+                      database_url: dbUrl.trim(),
+                      tier: 'pro',
+                    });
+                    if (dbName.trim()) qs.set('database_name', dbName.trim());
+                    const res = await fetch(`${API}/api/v1/tenants/provision-db?${qs}`, {
+                      method: 'POST',
+                      headers: getAuth(),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+                    setMsg(data.message || 'DB dedicada provisionada');
+                    const act = await fetch(`${API}/api/v1/tenants/activate`, {
+                      method: 'POST',
+                      headers: getAuth(),
+                    });
+                    const actData = await act.json().catch(() => ({}));
+                    if (act.ok) setMsg((m) => `${m || ''} · ${actData.message || 'activa'}`);
+                  } catch (e: any) {
+                    setErr(e.message || 'Fallo provision-db');
+                  } finally {
+                    setDbBusy(false);
+                  }
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#0f172a',
+                  color: 'white',
+                  fontWeight: 700,
+                  cursor: dbBusy || !dbUrl.trim() ? 'not-allowed' : 'pointer',
+                  opacity: dbBusy || !dbUrl.trim() ? 0.6 : 1,
+                }}
+              >
+                {dbBusy ? 'Provisionando…' : 'Provisionar + activar'}
+              </button>
+              <button
+                type="button"
+                disabled={dbBusy}
+                onClick={async () => {
+                  setDbBusy(true);
+                  setErr(null);
+                  try {
+                    const res = await fetch(`${API}/api/v1/tenants/migrate`, {
+                      method: 'POST',
+                      headers: getAuth(),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+                    setMsg(data.message || 'migrate ok');
+                  } catch (e: any) {
+                    setErr(e.message || 'migrate falló');
+                  } finally {
+                    setDbBusy(false);
+                  }
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  border: '1px solid #cbd5e1',
+                  background: 'white',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Re-migrar tablas
+              </button>
+            </div>
+          </div>
+
+          <Link to="/hub" style={{ color: '#635bff', fontWeight: 600, fontSize: 14, display: 'inline-block', marginTop: 16 }}>← Volver al hub</Link>
         </div>
       )}
     </div>
