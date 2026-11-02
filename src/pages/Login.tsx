@@ -362,6 +362,81 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
       </form>
 
+      {mode === 'login' && (
+        <button
+          type="button"
+          disabled={submitting || !email}
+          onClick={async () => {
+            setError('');
+            setSubmitting(true);
+            try {
+              const begin = await fetch(`${API}/api/v1/auth/passkey/login/begin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+              });
+              const beginData = await begin.json();
+              if (!begin.ok) throw new Error(beginData.detail || 'Sin passkey para esta cuenta');
+              const publicKey = beginData.publicKey;
+              const decode = (v: string) => {
+                const pad = '='.repeat((4 - (v.length % 4)) % 4);
+                const b64 = (v + pad).replace(/-/g, '+').replace(/_/g, '/');
+                const raw = atob(b64);
+                const arr = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                return arr.buffer;
+              };
+              publicKey.challenge = decode(publicKey.challenge);
+              if (publicKey.allowCredentials) {
+                publicKey.allowCredentials = publicKey.allowCredentials.map((c: any) => ({
+                  ...c,
+                  id: decode(c.id),
+                }));
+              }
+              const cred = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential;
+              const resp = cred.response as AuthenticatorAssertionResponse;
+              const encode = (buf: ArrayBuffer) => {
+                const bytes = new Uint8Array(buf);
+                let s = '';
+                bytes.forEach((b) => { s += String.fromCharCode(b); });
+                return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+              };
+              const fin = await fetch(`${API}/api/v1/auth/passkey/login/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email,
+                  credential: {
+                    id: cred.id,
+                    rawId: encode(cred.rawId),
+                    type: cred.type,
+                    response: {
+                      clientDataJSON: encode(resp.clientDataJSON),
+                      authenticatorData: encode(resp.authenticatorData),
+                      signature: encode(resp.signature),
+                      userHandle: resp.userHandle ? encode(resp.userHandle) : null,
+                    },
+                  },
+                }),
+              });
+              const data = await fin.json();
+              if (!fin.ok || !data.token) throw new Error(data.detail || 'Passkey rechazado');
+              await finishLogin(data);
+            } catch (e: any) {
+              setError(e.message || 'Passkey no disponible');
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+          style={{
+            width: '100%', marginTop: 12, padding: 12, borderRadius: 8,
+            border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          Entrar con passkey / Face ID
+        </button>
+      )}
+
       <p style={{ textAlign: 'center', marginTop: 24, color: '#64748b', fontSize: 14 }}>
         {mode === 'login' ? t('login.noAccount') : t('login.hasAccount')}
         <span onClick={() => setMode(mode === 'login' ? 'register' : 'login')} style={{ color: '#635bff', fontWeight: 600, cursor: 'pointer' }}>

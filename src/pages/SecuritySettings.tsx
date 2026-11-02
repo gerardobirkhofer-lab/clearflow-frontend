@@ -224,10 +224,82 @@ export default function SecuritySettings() {
             )}
           </div>
 
+          <div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
+            <div style={{ fontWeight: 800 }}>Passkey (Face ID / Touch ID vía WebAuthn)</div>
+            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, marginBottom: 12 }}>
+              Autenticación fuerte ante ClearFlow. En iPhone/Mac puede usar Face ID; no es lo mismo que solo desbloquear el móvil.
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setErr(null);
+                setMsg(null);
+                try {
+                  const begin = await fetch(`${API}/api/v1/auth/passkey/register/begin`, {
+                    method: 'POST',
+                    headers: getAuth(),
+                  });
+                  const beginData = await begin.json();
+                  if (!begin.ok) throw new Error(beginData.detail || 'Passkeys no disponibles en servidor');
+                  const publicKey = beginData.publicKey;
+                  // Convert base64url fields for navigator.credentials
+                  const decode = (v: string) => {
+                    const pad = '='.repeat((4 - (v.length % 4)) % 4);
+                    const b64 = (v + pad).replace(/-/g, '+').replace(/_/g, '/');
+                    const raw = atob(b64);
+                    const arr = new Uint8Array(raw.length);
+                    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                    return arr.buffer;
+                  };
+                  publicKey.challenge = decode(publicKey.challenge);
+                  publicKey.user.id = decode(publicKey.user.id);
+                  if (publicKey.excludeCredentials) {
+                    publicKey.excludeCredentials = publicKey.excludeCredentials.map((c: any) => ({
+                      ...c,
+                      id: decode(c.id),
+                    }));
+                  }
+                  const cred = (await navigator.credentials.create({ publicKey })) as PublicKeyCredential;
+                  const att = cred.response as AuthenticatorAttestationResponse;
+                  const encode = (buf: ArrayBuffer) => {
+                    const bytes = new Uint8Array(buf);
+                    let s = '';
+                    bytes.forEach((b) => { s += String.fromCharCode(b); });
+                    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                  };
+                  const payload = {
+                    nickname: 'Este dispositivo',
+                    credential: {
+                      id: cred.id,
+                      rawId: encode(cred.rawId),
+                      type: cred.type,
+                      response: {
+                        clientDataJSON: encode(att.clientDataJSON),
+                        attestationObject: encode(att.attestationObject),
+                      },
+                    },
+                  };
+                  const fin = await fetch(`${API}/api/v1/auth/passkey/register/complete`, {
+                    method: 'POST',
+                    headers: { ...getAuth(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  });
+                  const finData = await fin.json();
+                  if (!fin.ok) throw new Error(finData.detail || 'No se pudo registrar passkey');
+                  setMsg(finData.message);
+                } catch (e: any) {
+                  setErr(e.message || 'Passkey cancelado o no soportado en este navegador');
+                }
+              }}
+              style={{ padding: '10px 14px', borderRadius: 8, border: 'none', background: '#635bff', color: 'white', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Registrar passkey en este dispositivo
+            </button>
+          </div>
+
           <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
-            Face ID / huella: desbloquean el dispositivo o el gestor de contraseñas en el móvil.
-            No son el segundo factor de ClearFlow. El servidor sigue pidiendo TOTP (o SMS de respaldo).
-            Más adelante podemos añadir passkeys (WebAuthn) que sí usan Face ID como autenticación fuerte.
+            Face ID solo para desbloquear el teléfono ≠ segundo factor. Passkey + Face ID sí autentica ante ClearFlow.
+            Configura también <code>WEBAUTHN_RP_ID</code> / <code>WEBAUTHN_ORIGIN</code> en producción (dominio real).
           </p>
           <Link to="/hub" style={{ color: '#635bff', fontWeight: 600, fontSize: 14 }}>← Volver al hub</Link>
         </div>

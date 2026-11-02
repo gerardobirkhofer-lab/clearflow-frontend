@@ -120,6 +120,12 @@ export default function SetupWizard() {
   const [bankMode, setBankMode] = useState<'shared' | 'separate'>('shared');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cloudChoice, setCloudChoice] = useState('clearflow');
+  const [s3Endpoint, setS3Endpoint] = useState('');
+  const [s3Bucket, setS3Bucket] = useState('');
+  const [s3Region, setS3Region] = useState('eu-west-1');
+  const [s3AccessKey, setS3AccessKey] = useState('');
+  const [s3SecretKey, setS3SecretKey] = useState('');
+  const [vaultMsg, setVaultMsg] = useState<string | null>(null);
   const totalSteps = 8;
   const [societySubStep, setSocietySubStep] = useState(0);
   const [storeSubStep, setStoreSubStep] = useState(0);
@@ -962,11 +968,57 @@ export default function SetupWizard() {
           </div>
 
           {cloudChoice === 'own' && (
-            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a' }}>
-              <p style={{ fontSize: 14, color: '#92400e', margin: 0, lineHeight: 1.5 }}>
-                <strong>BYO en preparación.</strong> Mientras conectamos tu nube, los documentos se guardan en el Vault ClearFlow
-                para no bloquear el onboarding. No te recomendamos contratar un proveedor concreto: usa el que ya tengas, o empieza con ClearFlow.
+            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <p style={{ fontSize: 14, color: '#475569', margin: '0 0 14px', lineHeight: 1.5 }}>
+                Conecta un bucket <strong>S3-compatible</strong> (AWS S3, MinIO, Cloudflare R2, GCS con API S3).
+                No te empujamos a contratar uno concreto: usa el que ya tengas. Las claves se cifran en ClearFlow.
               </p>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <input value={s3Endpoint} onChange={(e) => setS3Endpoint(e.target.value)} placeholder="Endpoint (s3.eu-west-1.amazonaws.com)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                <input value={s3Bucket} onChange={(e) => setS3Bucket(e.target.value)} placeholder="Bucket" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                <input value={s3Region} onChange={(e) => setS3Region(e.target.value)} placeholder="Region" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                <input value={s3AccessKey} onChange={(e) => setS3AccessKey(e.target.value)} placeholder="Access key" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                <input type="password" value={s3SecretKey} onChange={(e) => setS3SecretKey(e.target.value)} placeholder="Secret key" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setVaultMsg(null);
+                    try {
+                      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+                      const token = localStorage.getItem('token');
+                      if (!tenant.id || !token) {
+                        setVaultMsg('Inicia sesión antes de guardar BYO (o completa setup y configúralo en /security después).');
+                        return;
+                      }
+                      const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+                        ? import.meta.env.VITE_API_URL
+                        : 'https://clearflow-api-production.up.railway.app';
+                      const res = await fetch(`${API}/api/v1/documents/storage-config`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          tenant_id: tenant.id,
+                          backend: 's3',
+                          s3_endpoint: s3Endpoint,
+                          s3_bucket: s3Bucket,
+                          s3_region: s3Region,
+                          s3_access_key: s3AccessKey,
+                          s3_secret_key: s3SecretKey,
+                        }),
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+                      setVaultMsg('BYO S3 guardado. Los nuevos documentos irán a tu bucket.');
+                    } catch (e: any) {
+                      setVaultMsg(e.message || 'No se pudo guardar');
+                    }
+                  }}
+                  style={{ padding: '10px 14px', borderRadius: 8, border: 'none', background: '#0f172a', color: 'white', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Guardar mi nube
+                </button>
+                {vaultMsg && <div style={{ fontSize: 13, color: '#334155' }}>{vaultMsg}</div>}
+              </div>
             </div>
           )}
           {cloudChoice === 'clearflow' && (
