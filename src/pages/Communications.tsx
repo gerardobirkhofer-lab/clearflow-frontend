@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import BackButton from '../components/BackButton';
 
-const formatMoney = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+const formatMoney = (n: number) =>
+  new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
+
+const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+  ? import.meta.env.VITE_API_URL
+  : 'https://clearflow-api-production.up.railway.app';
+const getAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` });
 
 interface EmailLog {
   id: number;
@@ -19,180 +25,316 @@ interface EmailLog {
   sent_at: string;
 }
 
+interface OutboxItem {
+  id: number;
+  kind: string;
+  status: string;
+  dispute_id: number | null;
+  provider_name: string;
+  to_email: string | null;
+  subject: string;
+  body_text: string;
+  amount: number;
+  needs_recipient: boolean;
+  created_at: string | null;
+  error_message?: string | null;
+}
+
 export default function Communications() {
   const { t } = useTranslation();
+  const [tab, setTab] = useState<'pending' | 'sent'>('pending');
   const [logs, setLogs] = useState<EmailLog[]>([]);
+  const [outbox, setOutbox] = useState<OutboxItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filterProvider, setFilterProvider] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selected, setSelected] = useState<OutboxItem | null>(null);
+  const [overrideEmail, setOverrideEmail] = useState('');
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const tenantId = () => {
+    try {
+      return JSON.parse(localStorage.getItem('tenant') || '{}').id;
+    } catch {
+      return null;
+    }
+  };
+
+  const fetchOutbox = async () => {
+    const tid = tenantId();
+    if (!tid) {
+      setOutbox([]);
+      return;
+    }
+    const res = await fetch(`${API}/api/v1/email-outbox/?tenant_id=${tid}`, { headers: getAuth() });
+    if (!res.ok) {
+      setOutbox([]);
+      return;
+    }
+    const data = await res.json();
+    setOutbox(data.items || []);
+  };
 
   const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
-      if (!tenant.id) {
-        setLogs([]);
-        setLoading(false);
-        return;
-      }
-      const params = new URLSearchParams({ tenant_id: tenant.id });
-      if (filterProvider !== 'all') params.append('provider', filterProvider);
-      if (filterStatus !== 'all') params.append('status', filterStatus);
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/disputes/email-logs?${params}`);
-      const data = await res.json();
-      if (res.ok && data.logs) {
-        setLogs(data.logs);
-      } else {
-        setLogs([]);
-      }
-    } catch {
+    const tid = tenantId();
+    if (!tid) {
       setLogs([]);
+      return;
+    }
+    const params = new URLSearchParams({ tenant_id: tid });
+    const res = await fetch(`${API}/api/v1/disputes/email-logs?${params}`, { headers: getAuth() });
+    const data = await res.json().catch(() => ({}));
+    setLogs(res.ok && data.logs ? data.logs : []);
+  };
+
+  const refresh = async () => {
+    setLoading(true);
+    setActionMsg(null);
+    try {
+      await Promise.all([fetchOutbox(), fetchLogs()]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, [filterProvider, filterStatus]);
+    refresh();
+  }, []);
 
-  const totalAmount = logs.reduce((s, log) => s + (log.amount || 0), 0);
-  const sentCount = logs.filter(l => l.status === 'sent').length;
-  const failedCount = logs.filter(l => l.status === 'failed').length;
-  const providers = Array.from(new Set(logs.map(l => l.provider_name)));
+  const pending = outbox.filter((i) => i.status === 'pending_approval' || i.status === 'failed');
+  const archived = outbox.filter((i) => ['rejected', 'cancelled', 'sent', 'approved'].includes(i.status));
 
-  const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-    sent: { bg: '#dcfce7', text: '#166534', label: '✓ ' + t('common.sent') },
-    failed: { bg: '#fee2e2', text: '#991b1b', label: '✗ ' + t('common.failed') },
+  const approve = async (item: OutboxItem) => {
+    const tid = tenantId();
+    if (!tid) return;
+    setBusyId(item.id);
+    setActionMsg(null);
+    try {
+      const q = new URLSearchParams({ tenant_id: tid });
+      if (overrideEmail.trim()) q.set('to_email', overrideEmail.trim());
+      const res = await fetch(`${API}/api/v1/email-outbox/${item.id}/approve?${q}`, {
+        method: 'POST',
+        headers: getAuth(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      setActionMsg(data.message || 'Autorizado');
+      setSelected(null);
+      await refresh();
+    } catch (e: any) {
+      setActionMsg(e.message || 'No se pudo autorizar el envío');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reject = async (item: OutboxItem) => {
+    const tid = tenantId();
+    if (!tid) return;
+    setBusyId(item.id);
+    setActionMsg(null);
+    try {
+      const res = await fetch(
+        `${API}/api/v1/email-outbox/${item.id}/reject?tenant_id=${tid}`,
+        { method: 'POST', headers: getAuth() },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      setActionMsg(data.message || 'Rechazado');
+      setSelected(null);
+      await refresh();
+    } catch (e: any) {
+      setActionMsg(e.message || 'No se pudo rechazar');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', fontFamily: 'sans-serif', color: '#0f172a' }}>
       <BackButton />
 
-      {/* HEADER */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 13, color: '#635bff', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
           📧 {t('nav.communications')}
         </div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>{t('communications.title')}</h1>
-        <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          {t('communications.subtitle')}
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Comunicaciones</h1>
+        <p style={{ color: '#64748b', marginTop: 8, fontSize: 15, maxWidth: 720, lineHeight: 1.5 }}>
+          ClearFlow prepara el email a tu liquidadora o banco. <strong>Tú lo lees y autorizas</strong>.
+          Si no quieres enviarlo, recházalo: nuestro trabajo (detectar y documentar) ya está hecho.
         </p>
       </div>
 
-      {/* SUMMARY CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('communications.totalEmails')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{logs.length}</div>
-        </div>
-        <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('communications.sentSuccessfully')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#166534' }}>{sentCount}</div>
-        </div>
-        <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('common.failed')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: failedCount > 0 ? '#991b1b' : '#94a3b8' }}>{failedCount}</div>
-        </div>
-        <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('communications.totalDisputedAmount')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{formatMoney(totalAmount)}</div>
-        </div>
-        <div style={{ padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('communications.providersContacted')}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#635bff' }}>{providers.length}</div>
-        </div>
-      </div>
-
-      {/* FILTERS */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={filterProvider} onChange={(e) => setFilterProvider(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-          <option value="all">{t('common.all')} {t('common.provider')}</option>
-          <option value="Stripe">Stripe</option>
-          <option value="TPV / Redsys">TPV / Redsys</option>
-          <option value="Mercado Pago">Mercado Pago</option>
-          <option value="Karma">Karma</option>
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, background: 'white' }}>
-          <option value="all">{t('common.all')} {t('common.status')}</option>
-          <option value="sent">✓ {t('common.sent')}</option>
-          <option value="failed">✗ {t('common.failed')}</option>
-        </select>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button
-          onClick={fetchLogs}
-          style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#0f172a', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          type="button"
+          onClick={() => setTab('pending')}
+          style={{
+            padding: '10px 18px', borderRadius: 8, border: '1px solid #e2e8f0',
+            background: tab === 'pending' ? '#0f172a' : 'white',
+            color: tab === 'pending' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer',
+          }}
         >
-          🔄 {t('common.refresh')}
+          Pendientes de autorización ({pending.length})
         </button>
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{logs.length} {t('common.total').toLowerCase()}</span>
+        <button
+          type="button"
+          onClick={() => setTab('sent')}
+          style={{
+            padding: '10px 18px', borderRadius: 8, border: '1px solid #e2e8f0',
+            background: tab === 'sent' ? '#0f172a' : 'white',
+            color: tab === 'sent' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          Historial enviado ({logs.length})
+        </button>
+        <button
+          type="button"
+          onClick={refresh}
+          style={{ marginLeft: 'auto', padding: '10px 16px', borderRadius: 8, border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600 }}
+        >
+          Actualizar
+        </button>
       </div>
 
-      {/* TABLE */}
-      <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '50px 1.2fr 1.5fr 100px 90px 100px 120px 140px', padding: '14px 20px', background: '#f8fafc', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e8f0' }}>
-          <div>ID</div>
-          <div>{t('common.provider')}</div>
-          <div>{t('common.concept')}</div>
-          <div style={{ textAlign: 'right' }}>{t('common.amount')}</div>
-          <div style={{ textAlign: 'center' }}>{t('mismatchTracker.daysOpen')}</div>
-          <div style={{ textAlign: 'center' }}>{t('common.status')}</div>
-          <div style={{ textAlign: 'center' }}>{t('communications.sentAt')}</div>
-          <div>{t('communications.recipient')}</div>
+      {actionMsg && (
+        <div style={{ marginBottom: 16, padding: 12, borderRadius: 8, background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', fontSize: 13 }}>
+          {actionMsg}
         </div>
+      )}
 
-        {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
-            <div>{t('common.loading')}</div>
+      {loading && <div style={{ padding: 24, color: '#64748b' }}>Cargando…</div>}
+
+      {tab === 'pending' && !loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.1fr' : '1fr', gap: 16 }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', overflow: 'hidden' }}>
+            {pending.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+                <div style={{ fontWeight: 600 }}>No hay borradores pendientes</div>
+                <div style={{ fontSize: 13, marginTop: 6 }}>
+                  Cuando el motor detecte una discrepancia contractual, el borrador aparecerá aquí.
+                </div>
+                {archived.length > 0 && (
+                  <div style={{ fontSize: 12, marginTop: 12, color: '#94a3b8' }}>
+                    {archived.length} borrador(es) ya resueltos (enviados / rechazados).
+                  </div>
+                )}
+              </div>
+            ) : (
+              pending.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSelected(item);
+                    setOverrideEmail(item.to_email || '');
+                  }}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '14px 18px',
+                    border: 'none', borderBottom: '1px solid #f1f5f9',
+                    background: selected?.id === item.id ? '#f5f3ff' : 'white', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{item.subject}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                    {item.provider_name || 'Proveedor'} · {formatMoney(item.amount)} · {item.status}
+                    {item.needs_recipient ? ' · falta email' : ''}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
-        ) : (
-          logs.map(log => (
-            <div key={log.id} style={{ display: 'grid', gridTemplateColumns: '50px 1.2fr 1.5fr 100px 90px 100px 120px 140px', padding: '14px 20px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: '#635bff' }}>#{log.id}</div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{log.provider_name}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>{log.date || 'N/A'}</div>
+
+          {selected && (
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', padding: 20 }}>
+              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>
+                Vista previa — autorización del cliente
               </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{log.concept || '—'}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{log.description || t('common.noData')}</div>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>{selected.subject}</div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>
+                Destinatario
+              </label>
+              <input
+                value={overrideEmail}
+                onChange={(e) => setOverrideEmail(e.target.value)}
+                placeholder="reclamaciones@proveedor.com"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', marginBottom: 12, fontSize: 14 }}
+              />
+              <pre style={{
+                whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', fontSize: 12,
+                background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14,
+                maxHeight: 360, overflow: 'auto', lineHeight: 1.45, margin: '0 0 16px',
+              }}>
+                {selected.body_text}
+              </pre>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={busyId === selected.id}
+                  onClick={() => approve(selected)}
+                  style={{
+                    padding: '12px 18px', borderRadius: 8, border: 'none', background: '#166534',
+                    color: 'white', fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  Autorizar y enviar
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId === selected.id}
+                  onClick={() => reject(selected)}
+                  style={{
+                    padding: '12px 18px', borderRadius: 8, border: '1px solid #fca5a5', background: '#fef2f2',
+                    color: '#991b1b', fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  No enviar
+                </button>
               </div>
-              <div style={{ textAlign: 'right', fontWeight: 700 }}>{formatMoney(log.amount)}</div>
-              <div style={{ textAlign: 'center', fontWeight: 600, color: log.days_open > 14 ? '#991b1b' : '#64748b' }}>
-                {log.days_open}d
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <span style={{
-                  padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                  background: statusColors[log.status]?.bg || '#f1f5f9',
-                  color: statusColors[log.status]?.text || '#64748b',
-                  textTransform: 'uppercase',
-                  display: 'inline-block',
-                }}>
-                  {statusColors[log.status]?.label || log.status}
-                </span>
-              </div>
-              <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b' }}>
-                {log.sent_at ? new Date(log.sent_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
-              </div>
-              <div style={{ fontSize: 12, color: '#0f172a', fontFamily: 'monospace' }}>
-                {log.recipient_email}
-              </div>
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 12, lineHeight: 1.45 }}>
+                Al pulsar «No enviar», ClearFlow no contacta al proveedor. La discrepancia permanece en el dashboard.
+              </p>
             </div>
-          ))
-        )}
+          )}
+        </div>
+      )}
 
-        {!loading && logs.length === 0 && (
-          <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
-            <div style={{ fontWeight: 600 }}>{t('communications.noCommunications')}</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>{t('communications.noCommunicationsDesc')}</div>
-          </div>
-        )}
-      </div>
+      {tab === 'sent' && !loading && (
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: 'white', overflow: 'hidden' }}>
+          {logs.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+              Aún no hay emails enviados (solo tras tu autorización).
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.2fr 1fr 100px 100px 1fr',
+                  gap: 8,
+                  padding: '14px 18px',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: 13,
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>{log.provider_name}</div>
+                  <div style={{ color: '#94a3b8', fontSize: 11 }}>{log.concept || '—'}</div>
+                </div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12 }}>{log.recipient_email}</div>
+                <div style={{ fontWeight: 700 }}>{formatMoney(log.amount)}</div>
+                <div style={{ color: log.status === 'sent' ? '#166534' : '#991b1b', fontWeight: 700 }}>
+                  {log.status}
+                </div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>
+                  {log.sent_at ? new Date(log.sent_at).toLocaleString('es-ES') : '—'}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

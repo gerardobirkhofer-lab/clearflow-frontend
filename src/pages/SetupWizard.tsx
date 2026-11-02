@@ -126,7 +126,7 @@ export default function SetupWizard() {
   const [contractHelpOpen, setContractHelpOpen] = useState(true);
   const [openGuideId, setOpenGuideId] = useState<string | null>(null);
 
-  const onContractFile = (pid: string, file: File | null) => {
+  const onContractFile = async (pid: string, file: File | null) => {
     if (!file) {
       updateProviderConfig(pid, 'contract_file_name', '');
       updateProviderConfig(pid, 'contract_file_url', '');
@@ -134,6 +134,32 @@ export default function SetupWizard() {
     }
     updateProviderConfig(pid, 'contract_file_name', file.name);
     updateProviderConfig(pid, 'contract_file_url', `attached:${file.name}`);
+    // Persist into ClearFlow tenant vault (not just local filename)
+    try {
+      const tenant = JSON.parse(localStorage.getItem('tenant') || '{}');
+      const token = localStorage.getItem('token');
+      if (!tenant.id || !token) return;
+      const API = (import.meta.env.VITE_API_URL || '').includes('railway')
+        ? import.meta.env.VITE_API_URL
+        : 'https://clearflow-api-production.up.railway.app';
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('tenant_id', tenant.id);
+      fd.append('category', 'contract');
+      fd.append('related_provider_name', providerOptions.find((p) => p.id === pid)?.name || pid);
+      fd.append('notes', 'Contrato oficial subido desde Setup');
+      const res = await fetch(`${API}/api/v1/documents/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateProviderConfig(pid, 'contract_file_url', `vault:${data.id}`);
+      }
+    } catch {
+      // Filename still kept locally; vault upload can retry later
+    }
   };
 
   // Auto-initialize bank accounts when reaching step 6 if empty
@@ -898,11 +924,15 @@ export default function SetupWizard() {
       {/* STEP 7: Cloud */}
       {step === 7 && (
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Donde quieres almacenar tus documentos?</h2>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>Elige la opción de almacenamiento que prefieras para tus archivos de conciliacion.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>¿Dónde quieres guardar contratos y evidencias?</h2>
+          <p style={{ color: '#64748b', marginBottom: 16, lineHeight: 1.5 }}>
+            Esto es el <strong>almacén de documentos del tenant</strong> (contratos, PDFs, evidencias).
+            No es el contrato con Stripe/Redsys: ese lo subes en el paso de proveedores.
+          </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <button
+              type="button"
               onClick={() => setCloudChoice('clearflow')}
               style={{
                 padding: 28, borderRadius: 12, border: cloudChoice === 'clearflow' ? '2px solid #635bff' : '2px solid #e2e8f0',
@@ -910,10 +940,13 @@ export default function SetupWizard() {
               }}
             >
               <div style={{ fontSize: 28, marginBottom: 8 }}>☁️</div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>Cloud de ClearFlow</div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Almacenamiento seguro gestionado por nosotros. Incluido en tu plan.</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Vault ClearFlow (recomendado)</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+                Espacio por tenant, gestionado por nosotros. Incluido — no hace falta contratar nada extra para arrancar.
+              </div>
             </button>
             <button
+              type="button"
               onClick={() => setCloudChoice('own')}
               style={{
                 padding: 28, borderRadius: 12, border: cloudChoice === 'own' ? '2px solid #635bff' : '2px solid #e2e8f0',
@@ -921,16 +954,26 @@ export default function SetupWizard() {
               }}
             >
               <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>Mi propio cloud</div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Conecta tu propio almacenamiento (Google Drive, Dropbox, AWS S3, etc.)</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Mi propia nube (BYO)</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+                S3, Azure, GCS o Drive de empresa. Tú controlas el bucket; ClearFlow solo lee/escribe lo necesario.
+              </div>
             </button>
           </div>
 
           {cloudChoice === 'own' && (
-            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
-                <strong>Nota:</strong> La configuración de tu propio cloud se realizara en una sesion posterior con nuestro equipo de soporte tecnico.
-                Por ahora usaremos el almacenamiento de ClearFlow.
+            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a' }}>
+              <p style={{ fontSize: 14, color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+                <strong>BYO en preparación.</strong> Mientras conectamos tu nube, los documentos se guardan en el Vault ClearFlow
+                para no bloquear el onboarding. No te recomendamos contratar un proveedor concreto: usa el que ya tengas, o empieza con ClearFlow.
+              </p>
+            </div>
+          )}
+          {cloudChoice === 'clearflow' && (
+            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <p style={{ fontSize: 14, color: '#166534', margin: 0, lineHeight: 1.5 }}>
+                ClearFlow accederá a este vault automáticamente cuando entren ventas, TPV, pasarelas o banco, para conciliar
+                y generar borradores de email. <strong>Ningún email a liquidadoras se envía sin tu autorización.</strong>
               </p>
             </div>
           )}
